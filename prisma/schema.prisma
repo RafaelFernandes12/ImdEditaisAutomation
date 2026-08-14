@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StatusEdital {
+  SENDED
+  ONGOING
+  FAILED
+  RESERVA
+  SUCESS
+  COMPLETED
+}
+
+enum PdfTipo {
+  EDITAL
+  HOMOLOGACAO
+  RESULTADO
+}
+
+model AiChat {
+  id             Int      @id @default(autoincrement())
+  conversationId String   @unique
+  conversation   Json     @default("[]")
+  title          String
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @updatedAt() @db.Timestamp(6)
+}
+
+model Edital {
+  id                Int      @id @default(autoincrement())
+  badge             String   @unique
+  title             String
+  link              String   @unique
+  isActive          Boolean
+  subscriptionUntil String
+  created_at        DateTime @default(now()) @db.Timestamp(6)
+  updated_at        DateTime @updatedAt() @db.Timestamp(6)
+
+  pdfs Pdf[]
+
+  users EditalToUser[]
+}
+
+model Pdf {
+  id    Int     @id @default(autoincrement())
+  label String
+  text  String
+  link  String  @unique
+  type  PdfTipo
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  editalId Int
+  edital   Edital     @relation(fields: [editalId], references: [id])
+  pdfSends PdfSends[]
+}
+
+model User {
+  id      Int    @id @default(autoincrement())
+  chatId  String @unique
+  contact String @unique
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  editais EditalToUser[]
+}
+
+model EditalToUser {
+  id       Int          @id @default(autoincrement())
+  editalId Int
+  edital   Edital       @relation(fields: [editalId], references: [id])
+  userId   Int
+  users    User         @relation(fields: [userId], references: [id])
+  status   StatusEdital
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  pdfSends PdfSends[]
+}
+
+model PdfSends {
+  id             Int          @id @default(autoincrement())
+  pdfId          Int
+  pdf            Pdf          @relation(fields: [pdfId], references: [id])
+  editalToUserId Int
+  editalToUser   EditalToUser @relation(fields: [editalToUserId], references: [id])
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+}
