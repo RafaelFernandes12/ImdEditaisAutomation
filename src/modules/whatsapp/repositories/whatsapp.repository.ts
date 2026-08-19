@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { Logger } from 'nestjs-pino';
+import { CreatePdfSend } from '../dto/whatsapp.dto.js';
 
 @Injectable()
 export class WhatsappRepository {
@@ -25,5 +26,11 @@ export class WhatsappRepository {
     });
     this.logger.log('GetEditais', editais);
     return editais;
+  }
+  async createPdfSends(data: CreatePdfSend) {
+    const send = await this.prisma.pdfSends.create({
+      data: { editalToUserId: data.editalToUserId, pdfId: data.pdfId },
+    });
+    return send;
   }
 }

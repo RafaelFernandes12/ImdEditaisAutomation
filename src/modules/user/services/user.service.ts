@@ -20,4 +20,8 @@ export class UserService {
   async findManyUsers() {
     return await this.userRepository.getUsers();
   }
+
+  async findByChatId(chatId: string) {
+    return await this.userRepository.findByChatId(chatId);
+  }
 }

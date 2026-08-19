@@ -1,6 +1,8 @@
 export class CreateUser {
   chatId: string;
   contact: string;
+  name: string;
+  matricula: string;
   editaisId: number[];
 }
 

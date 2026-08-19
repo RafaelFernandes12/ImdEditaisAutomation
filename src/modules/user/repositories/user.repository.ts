@@ -11,34 +11,56 @@ export class UserRepository {
     private readonly logger: Logger,
   ) {}
 
+  private async buildEditaisToSend(editaisId: number[]) {
+    return Promise.all(
+      editaisId.map(async (editalId) => {
+        const pdfs = await this.prisma.pdf.findMany({
+          where: { editalId },
+        });
+        return {
+          editalId,
+          status: StatusEdital.SENDED,
+          pdfSends: {
+            create: pdfs.map((pdf) => ({ pdfId: pdf.id })),
+          },
+        };
+      }),
+    );
+  }
+
   async updateEditaisUser(data: UpdateEditaisUser) {
+    const editaisToSend = await this.buildEditaisToSend(data.editaisId);
     const created = await this.prisma.user.update({
       where: { contact: data.contact },
       data: {
         editais: {
-          create: data.editaisId.map((editalId) => ({
-            editalId,
-            status: StatusEdital.SENDED,
-          })),
+          create: editaisToSend,
         },
       },
     });
     return created;
   }
   async createUser(data: CreateUser) {
+    const editaisToSend = await this.buildEditaisToSend(data.editaisId);
     const created = await this.prisma.user.create({
       data: {
         chatId: data.chatId,
         contact: data.contact,
+        name: data.name,
+        matricula: data.matricula,
         editais: {
-          create: data.editaisId.map((editalId) => ({
-            editalId,
-            status: StatusEdital.SENDED,
-          })),
+          create: editaisToSend,
         },
       },
     });
     return created;
+  }
+
+  async findByChatId(chatId: string) {
+    return await this.prisma.user.findUnique({
+      where: { chatId },
+      include: { editais: true },
+    });
   }
 
   async getUsers() {
