@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import * as aws from 'aws-sdk';
+import aws from 'aws-sdk';
 import * as fs from 'fs';
 
 interface IUploadFile {
@@ -12,9 +12,11 @@ interface IUploadFile {
 @Injectable()
 export class UploadOne {
   s3 = new aws.S3({
-    region: process.env.S3_REGION,
-    accessKeyId: process.env.S3_KEY,
-    secretAccessKey: process.env.S3_SECRET,
+    region: process.env.MINIO_REGION,
+    accessKeyId: process.env.MINIO_ACCESS_KEY,
+    secretAccessKey: process.env.MINIO_SECRET_KEY,
+    endpoint: process.env.MINIO_URL,
+    s3ForcePathStyle: true,
   });
 
   async uploadFile({ fileStream, path, fileName, contentType }: IUploadFile) {
@@ -24,10 +26,9 @@ export class UploadOne {
         Bucket: bucket,
         Key: `${path}/${fileName}`,
         Body: fileStream,
-        ACL: 'public-read',
         ContentType: contentType,
       })
       .promise();
-    return res.Location;
+    return res;
   }
 }

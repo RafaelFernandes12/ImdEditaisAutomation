@@ -60,3 +60,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # whatsapp-web.js session/cache
 .wwebjs_auth
 .wwebjs_cache
+
+# Puppeteer persistent browser profile (holds Google session tokens)
+.chrome-profile/

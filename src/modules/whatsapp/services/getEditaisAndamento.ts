@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { WhatsappRepository } from '../repositories/whatsapp.repository.js';
 import pkg from 'whatsapp-web.js';
+import { EditalService } from '../../edital/services/edital.service.js';
 import { UserService } from '../../user/services/user.service.js';
 
 @Injectable()
 export class GetEditaisAndamento {
   constructor(
-    private whatsappRepository: WhatsappRepository,
+    private editalService: EditalService,
     private userService: UserService,
   ) {}
 
   async execute(message: pkg.Message) {
-    const activeEditais = await this.whatsappRepository.getEditaisActive();
+    const activeEditais = await this.editalService.findActive();
 
     if (activeEditais.length === 0) {
       await message.reply('Nenhum edital em andamento no momento.');
@@ -40,7 +40,7 @@ export class GetEditaisAndamento {
 
   private async sendPdfEditais(
     message: pkg.Message,
-    activeEditais: Awaited<ReturnType<WhatsappRepository['getEditaisActive']>>,
+    activeEditais: Awaited<ReturnType<EditalService['findActive']>>,
   ) {
     const user = await this.userService.findByChatId(message.from);
     if (!user) {

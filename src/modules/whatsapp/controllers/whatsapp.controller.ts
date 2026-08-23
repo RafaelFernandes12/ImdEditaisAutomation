@@ -1,8 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { WhatsappService } from '../services/whatsapp.service.js';
 
 @Controller('wpp')
-export class WebScrappingController {
+export class WhatsappController {
   constructor(private readonly whatsappService: WhatsappService) {}
 
   // @Get('/')

@@ -4,15 +4,11 @@ export class CreateUser {
   name: string;
   matricula: string;
   editaisId: number[];
+  curriculoVitae?: string;
+  curriculoLattes?: string;
 }
 
 export class UpdateEditaisUser {
   contact: string;
   editaisId: number[];
-}
-export class CreatePdf {
-  label: string;
-  text: string;
-  link: string;
-  editalId: number;
 }

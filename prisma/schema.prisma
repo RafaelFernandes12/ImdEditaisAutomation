@@ -14,11 +14,11 @@ datasource db {
 
 enum StatusEdital {
   SENDED
-  ONGOING
-  FAILED
+  HOMOLOGACAO
+  ENTREVISTA
   RESERVA
   SUCESS
-  COMPLETED
+  FAILED
 }
 
 enum PdfTipo {
@@ -43,6 +43,8 @@ model Edital {
   link              String   @unique
   isActive          Boolean
   subscriptionUntil String
+  summary           String
+  keyWords          String
   created_at        DateTime @default(now()) @db.Timestamp(6)
   updated_at        DateTime @updatedAt() @db.Timestamp(6)
 
@@ -67,11 +69,13 @@ model Pdf {
 }
 
 model User {
-  id        Int    @id @default(autoincrement())
-  name      String
-  matricula String @unique
-  chatId    String @unique
-  contact   String @unique
+  id              Int     @id @default(autoincrement())
+  name            String
+  matricula       String  @unique
+  chatId          String  @unique
+  contact         String  @unique
+  curriculoVitae  String?
+  curriculoLattes String?
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)

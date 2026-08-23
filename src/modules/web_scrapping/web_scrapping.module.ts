@@ -1,21 +1,44 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../config/prisma/prisma.module.js';
 import { PrismaService } from '../../config/prisma/prisma.service.js';
-import { WebScrappingService } from './services/web-scrapping.service.js';
 import { WebScrappingController } from './controllers/web_scrapping.controller.js';
-import { WebScrappingRepository } from './repositories/web-scrapping.repository.js';
 import { UserModule } from '../user/user.module.js';
-import { WhatsappRepository } from '../whatsapp/repositories/whatsapp.repository.js';
-import { WhatsappModule } from '../whatsapp/whatsapp.module.js';
+import { EditalModule } from '../edital/edital.module.js';
+import { PdfModule } from '../pdf/pdf.module.js';
+import { EditaisScraperService } from './services/editais-scraper.service.js';
+import { PdfExtractorService } from './services/pdf-extractor.service.js';
+import { NotifyNewEditaisProvider } from './providers/notify-new-editais.provider.js';
+import { NotifyHomologProvider } from './providers/notify-homologados.provider.js';
+import { BullModule } from '@nestjs/bullmq';
+import { PdfSendsModule } from '../pdf_sends/pdf_sends.module.js';
+import { GetNewEditaisProvider } from './providers/get-new-editais.provider.js';
+import { GetNewEditaisConsumer } from './providers/get-new-editais.consumer.js';
+import { FinishEditaisProvider } from './providers/finish-editais.provider.js';
+import { EditalToUserModule } from '../edital_to_user/edital_to_user.module.js';
+import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 
 @Module({
-  imports: [PrismaModule, UserModule, WhatsappModule],
-  exports: [WebScrappingService],
+  imports: [
+    PrismaModule,
+    UserModule,
+    EditalModule,
+    AiChatModule,
+    EditalToUserModule,
+    PdfModule,
+    PdfSendsModule,
+    BullModule.registerQueue({ name: 'scanHomolog' }),
+    BullModule.registerQueue({ name: 'notifyNewEditais' }),
+    BullModule.registerQueue({ name: 'getNewEditais' }),
+  ],
   providers: [
     PrismaService,
-    WebScrappingService,
-    WebScrappingRepository,
-    WhatsappRepository,
+    FinishEditaisProvider,
+    EditaisScraperService,
+    PdfExtractorService,
+    NotifyNewEditaisProvider,
+    GetNewEditaisProvider,
+    GetNewEditaisConsumer,
+    NotifyHomologProvider,
   ],
   controllers: [WebScrappingController],
 })

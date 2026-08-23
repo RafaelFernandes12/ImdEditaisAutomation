@@ -1,8 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { Logger } from 'nestjs-pino';
-import { StatusEdital } from '../../../../generated/prisma/client.js';
-import { CreateUser, UpdateEditaisUser } from '../dto/user.dto.js';
+import { Prisma } from '../../../../generated/prisma/client.js';
+
+interface CreateUserData {
+  chatId: string;
+  contact: string;
+  name: string;
+  matricula: string;
+  curriculoVitae?: string;
+  curriculoLattes?: string;
+  keyWords?: string;
+}
 
 @Injectable()
 export class UserRepository {
@@ -11,63 +20,40 @@ export class UserRepository {
     private readonly logger: Logger,
   ) {}
 
-  private async buildEditaisToSend(editaisId: number[]) {
-    return Promise.all(
-      editaisId.map(async (editalId) => {
-        const pdfs = await this.prisma.pdf.findMany({
-          where: { editalId },
-        });
-        return {
-          editalId,
-          status: StatusEdital.SENDED,
-          pdfSends: {
-            create: pdfs.map((pdf) => ({ pdfId: pdf.id })),
-          },
-        };
-      }),
-    );
+  async create(
+    data: CreateUserData,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const user = await tx.user.create({ data });
+    this.logger.log('Insert user', user);
+    return user;
   }
 
-  async updateEditaisUser(data: UpdateEditaisUser) {
-    const editaisToSend = await this.buildEditaisToSend(data.editaisId);
-    const created = await this.prisma.user.update({
-      where: { contact: data.contact },
-      data: {
-        editais: {
-          create: editaisToSend,
-        },
-      },
-    });
-    return created;
-  }
-  async createUser(data: CreateUser) {
-    const editaisToSend = await this.buildEditaisToSend(data.editaisId);
-    const created = await this.prisma.user.create({
-      data: {
-        chatId: data.chatId,
-        contact: data.contact,
-        name: data.name,
-        matricula: data.matricula,
-        editais: {
-          create: editaisToSend,
-        },
-      },
-    });
-    return created;
-  }
-
-  async findByChatId(chatId: string) {
-    return await this.prisma.user.findUnique({
+  async findByChatId(
+    chatId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.findUnique({
       where: { chatId },
       include: { editais: true },
     });
   }
 
-  async getUsers() {
-    return await this.prisma.user.findMany({
+  async findByContact(
+    contact: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.findUnique({ where: { contact } });
+  }
+
+  async findMany(tx: Prisma.TransactionClient = this.prisma) {
+    return await tx.user.findMany({
       include: {
         editais: {
-          include: { edital: { include: { pdfs: true } } },
+          include: {
+            pdfSends: { include: { pdf: true } },
+            edital: { include: { pdfs: true } },
+          },
         },
       },
     });

@@ -2,23 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository.js';
 import { Logger } from 'nestjs-pino';
 import { CreateUser, UpdateEditaisUser } from '../dto/user.dto.js';
+import { UserEditaisLinkingService } from './user-editais-linking.service.js';
 
 @Injectable()
 export class UserService {
   constructor(
     private userRepository: UserRepository,
+    private userEditaisLinkingService: UserEditaisLinkingService,
     private readonly logger: Logger,
   ) {}
 
   async updateEditaisUser(data: UpdateEditaisUser) {
-    return await this.userRepository.updateEditaisUser(data);
+    return await this.userEditaisLinkingService.updateEditaisUser(data);
   }
+
   async createUser(data: CreateUser) {
-    return await this.userRepository.createUser(data);
+    return await this.userEditaisLinkingService.createUser(data);
   }
 
   async findManyUsers() {
-    return await this.userRepository.getUsers();
+    return await this.userRepository.findMany();
   }
 
   async findByChatId(chatId: string) {
