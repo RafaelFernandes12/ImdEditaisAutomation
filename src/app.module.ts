@@ -8,6 +8,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
+import { FormsModule } from './modules/forms/forms.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
     }),
     FilesModule,
     PuppeteerModule,
+    FormsModule,
   ],
 })
 export class AppModule {}

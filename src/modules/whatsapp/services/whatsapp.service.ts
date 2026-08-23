@@ -128,6 +128,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     '!ping': (_client, message) => this.ping(message),
     '!editais andamento': (_client, message) =>
       this.getEditaisAndamento.execute(message),
+    '!extensao': (_client, message) => this.sendExtensionToken(message),
   };
 
   private registerMessageHandler(client: pkg.Client) {
@@ -167,5 +168,22 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
 
   private async ping(message: pkg.Message) {
     await message.reply('pong');
+  }
+
+  private async sendExtensionToken(message: pkg.Message) {
+    const token = await this.userService.getOrCreateExtensionToken(
+      message.from,
+    );
+    if (!token) {
+      await message.reply(
+        'Você precisa fazer login primeiro. Envie !login para começar.',
+      );
+      return;
+    }
+
+    const serverUrl = process.env.PUBLIC_URL ?? 'http://localhost:3030';
+    await message.reply(
+      `Cole este token nas opções da extensão do Chrome:\n\n${token}\n\nURL do servidor: ${serverUrl}`,
+    );
   }
 }

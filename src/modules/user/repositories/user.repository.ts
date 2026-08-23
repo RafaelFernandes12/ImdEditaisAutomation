@@ -46,6 +46,24 @@ export class UserRepository {
     return await tx.user.findUnique({ where: { contact } });
   }
 
+  async findByExtensionToken(
+    extensionToken: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.findUnique({ where: { extensionToken } });
+  }
+
+  async setExtensionToken(
+    chatId: string,
+    extensionToken: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.update({
+      where: { chatId },
+      data: { extensionToken },
+    });
+  }
+
   async findMany(tx: Prisma.TransactionClient = this.prisma) {
     return await tx.user.findMany({
       include: {

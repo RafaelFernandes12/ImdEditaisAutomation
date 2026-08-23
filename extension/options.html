@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Opções — Preenchedor de Formulários IA</title>
+    <style>
+      body {
+        font-family: system-ui, Roboto, Arial, sans-serif;
+        max-width: 480px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+      label {
+        display: block;
+        margin: 16px 0 4px;
+        font-weight: 600;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      button {
+        margin-top: 20px;
+        background: #0b57d0;
+        color: #fff;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 100px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .status {
+        margin-top: 12px;
+        color: #188038;
+        min-height: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Preenchedor de Formulários IA</h1>
+    <p>Envie <code>!extensao</code> no WhatsApp para obter seu token.</p>
+    <label for="token">Token</label>
+    <input id="token" type="text" placeholder="cole seu token aqui" />
+    <label for="serverUrl">URL do servidor</label>
+    <input id="serverUrl" type="text" placeholder="http://localhost:3030" />
+    <button id="save">Salvar</button>
+    <div class="status" id="status"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

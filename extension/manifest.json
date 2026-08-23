@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Preenchedor de Formulários IA",
+  "version": "0.1.0",
+  "description": "Preenche formulários do Google com respostas geradas por IA, para revisão e envio pelo próprio usuário.",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/forms/*"],
+      "js": ["extractor.main.js"],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://docs.google.com/forms/*"],
+      "js": ["fill.js", "content.js"],
+      "css": ["panel.css"],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    }
+  ]
+}

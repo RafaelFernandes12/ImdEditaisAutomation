@@ -1,0 +1,95 @@
+#gfai-launch {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483647;
+  background: #0b57d0;
+  color: #fff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 100px;
+  font-family: system-ui, Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+#gfai-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 76px;
+  width: 360px;
+  max-height: 70vh;
+  z-index: 2147483647;
+  background: #fff;
+  color: #202124;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, Roboto, Arial, sans-serif;
+  overflow: hidden;
+}
+
+#gfai-panel .gfai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #0b57d0;
+  color: #fff;
+  font-weight: 600;
+}
+
+#gfai-panel .gfai-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#gfai-panel .gfai-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+}
+
+#gfai-panel .gfai-row {
+  margin-bottom: 12px;
+}
+
+#gfai-panel .gfai-row label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+#gfai-panel .gfai-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+#gfai-panel .gfai-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+}
+
+#gfai-panel .gfai-approve {
+  width: 100%;
+  background: #188038;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 100px;
+  font-weight: 600;
+  cursor: pointer;
+}

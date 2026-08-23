@@ -76,6 +76,7 @@ model User {
   contact         String  @unique
   curriculoVitae  String?
   curriculoLattes String?
+  extensionToken  String? @unique
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
