@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { PDFParse } from 'pdf-parse';
 import { Logger } from 'nestjs-pino';
 import { openAIClient } from '../../../config/openai/openai.service.js';
 import { FormAnswer, FormQuestion } from '../forms.types.js';
+import { GetOne } from '../../files/get-one.js';
+import { UserService } from '../../user/services/user.service.js';
 
 interface UserProfile {
   name: string;
@@ -12,16 +15,25 @@ interface UserProfile {
 
 @Injectable()
 export class FormAnswerService {
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly getOne: GetOne,
+    private readonly userService: UserService,
+  ) {}
 
-  private buildPrompt(user: UserProfile, questions: FormQuestion[]): string {
+  private async buildPrompt(user: UserProfile, questions: FormQuestion[]) {
+    const userKey = await this.userService.findByName(user.name);
+    if (!userKey?.curriculoVitae) return 'no perfil cuzao';
+    const vitae = await this.getOne.getOne(userKey.curriculoVitae);
+
+    const parser = new PDFParse({ data: vitae.Body as unknown as string });
+    const { text } = await parser.getText();
     return `Você é um assistente que preenche formulários do Google em nome de um candidato.
 
 PERFIL DO CANDIDATO:
 - Nome: ${user.name}
 - Matrícula: ${user.matricula}
-- Currículo (Vitae): ${user.curriculoVitae ?? 'não informado'}
-- Currículo (Lattes): ${user.curriculoLattes ?? 'não informado'}
+- Currículo (Vitae): ${text ?? 'não informado'}
 
 REGRAS:
 1. Responda cada pergunta usando os dados do perfil. Se não houver dado suficiente, faça a melhor inferência plausível e concisa.

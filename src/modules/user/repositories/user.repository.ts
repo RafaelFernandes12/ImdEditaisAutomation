@@ -52,7 +52,9 @@ export class UserRepository {
   ) {
     return await tx.user.findUnique({ where: { extensionToken } });
   }
-
+  async findByName(name: string, tx: Prisma.TransactionClient = this.prisma) {
+    return await tx.user.findFirst({ where: { name } });
+  }
   async setExtensionToken(
     chatId: string,
     extensionToken: string,

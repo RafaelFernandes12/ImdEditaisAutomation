@@ -29,6 +29,10 @@ export class UserService {
     return await this.userRepository.findByChatId(chatId);
   }
 
+  async findByName(name: string) {
+    return await this.userRepository.findByName(name);
+  }
+
   async findByExtensionToken(extensionToken: string) {
     return await this.userRepository.findByExtensionToken(extensionToken);
   }
