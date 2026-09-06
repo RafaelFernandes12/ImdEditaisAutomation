@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { openAIClient } from '../../../config/openai/openai.service.js';
 
 @Injectable()
@@ -28,11 +28,16 @@ Aqui está o PDF:
 `;
 
   async execute(pdfText: string) {
-    const editalResume = await openAIClient.responses.create({
-      model: 'gpt-4o-mini',
-      input: this.summarizePrompt + pdfText,
-    });
+    try {
+      const editalResume = await openAIClient.responses.create({
+        model: process.env.LLM_MODEL ?? 'gpt-4o-mini',
+        input: this.summarizePrompt + pdfText,
+      });
 
-    return editalResume.output_text;
+      console.log('EDITALRESUME', editalResume);
+      return editalResume.output_text;
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
   }
 }

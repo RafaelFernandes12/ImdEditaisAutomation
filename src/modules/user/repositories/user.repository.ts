@@ -51,7 +51,7 @@ export class UserRepository {
       include: {
         editais: {
           include: {
-            pdfSends: { include: { pdf: true } },
+            pdfSends: true,
             edital: { include: { pdfs: true } },
           },
         },

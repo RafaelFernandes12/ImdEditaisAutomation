@@ -16,6 +16,7 @@ import { GetNewEditaisConsumer } from './providers/get-new-editais.consumer.js';
 import { FinishEditaisProvider } from './providers/finish-editais.provider.js';
 import { EditalToUserModule } from '../edital_to_user/edital_to_user.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
+import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { AiChatModule } from '../ai_chat/ai_chat.module.js';
     EditalToUserModule,
     PdfModule,
     PdfSendsModule,
-    BullModule.registerQueue({ name: 'scanHomolog' }),
+    BullModule.registerQueue({ name: 'sendPdf' }),
     BullModule.registerQueue({ name: 'notifyNewEditais' }),
     BullModule.registerQueue({ name: 'getNewEditais' }),
   ],
@@ -36,6 +37,7 @@ import { AiChatModule } from '../ai_chat/ai_chat.module.js';
     EditaisScraperService,
     PdfExtractorService,
     NotifyNewEditaisProvider,
+    NotifyPdfsProvider,
     GetNewEditaisProvider,
     GetNewEditaisConsumer,
     NotifyHomologProvider,

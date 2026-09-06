@@ -15,8 +15,9 @@ export class EditalRepository {
     data: CreateEdital,
     tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const edital = await tx.edital.create({
-      data: {
+    const edital = await tx.edital.upsert({
+      where: { badge: data.badge },
+      create: {
         title: data.title,
         badge: data.badge,
         link: data.link,
@@ -25,6 +26,7 @@ export class EditalRepository {
         summary: data.summary,
         keyWords: data.keyWords,
       },
+      update: { badge: data.badge },
     });
     this.logger.log('Insert edital', edital);
 

@@ -7,12 +7,16 @@ import { PdfTipo } from '#generated/prisma/enums.js';
 export class PdfService {
   constructor(private pdfRepository: PdfRepository) {}
 
-  async create(data: CreatePdf) {
-    return await this.pdfRepository.create(data);
+  async createMany(data: CreatePdf[]) {
+    return await this.pdfRepository.createMany(data);
   }
 
   async findByLink(link: string) {
     return await this.pdfRepository.findByLink(link);
+  }
+
+  async findAll(userName: string) {
+    return await this.pdfRepository.findAll(userName);
   }
 
   async findByLabel(type: PdfTipo) {

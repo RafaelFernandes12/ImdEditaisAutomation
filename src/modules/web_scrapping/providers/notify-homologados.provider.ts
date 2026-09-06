@@ -18,7 +18,7 @@ export class NotifyHomologProvider {
     private pdfService: PdfService,
     private pdfSendService: PdfSendsService,
     private editalToUserService: EditalToUserService,
-    @InjectQueue('scanHomolog') private scanHomologQueue: Queue,
+    @InjectQueue('sendPdf') private scanHomologQueue: Queue,
   ) {}
 
   // @Cron('5 * * * * *')
@@ -31,6 +31,7 @@ export class NotifyHomologProvider {
       const nameRe = new RegExp(name);
       const approvedRe = new RegExp(
         `(?<!in)(?<!não\\s+)(?<!nao\\s+)(?:homolog|defer)`,
+        'i',
       );
 
       const matchedPdf = pdfsHomolog.find((pdf) =>

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
+import { PdfService } from '../../pdf/services/pdf.service.js';
 
 export interface EditaisUrl {
   href: string;
@@ -20,6 +21,7 @@ export interface EditalWithPdfLinks extends Omit<EditaisUrl, 'href'> {
 
 @Injectable()
 export class EditaisScraperService {
+  constructor(private readonly pdfService: PdfService) {}
   async getEditaisEmAndamento(): Promise<EditaisUrl[]> {
     return this.getEditais('.box-editais-andamentos');
   }
@@ -53,6 +55,12 @@ export class EditaisScraperService {
           }))
           .get();
 
+        console.log('DOWNLOADHREF', downloadHref);
+        downloadHref.filter(
+          (download) => this.pdfService.findByLink(download.link) === undefined,
+        );
+
+        console.log('DOWNLOADHREF', downloadHref);
         return {
           ...url,
           link: url.href,

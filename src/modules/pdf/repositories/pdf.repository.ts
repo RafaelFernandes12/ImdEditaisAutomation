@@ -11,11 +11,26 @@ export class PdfRepository {
     private readonly logger: Logger,
   ) {}
 
-  async create(data: CreatePdf, tx: Prisma.TransactionClient = this.prisma) {
-    const pdf = await tx.pdf.create({ data });
+  async createMany(
+    data: CreatePdf[],
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const pdf = await tx.pdf.createMany({ data });
     this.logger.log('Insert pdf', pdf);
     return pdf;
   }
+
+  async findAll(userName: string, tx: Prisma.TransactionClient = this.prisma) {
+    const pdf = await tx.pdf.findMany({
+      where: {
+        edital: { isActive: true },
+        text: { contains: userName, mode: 'insensitive' },
+      },
+      select: { id: true, editalId: true },
+    });
+    return pdf;
+  }
+
   async findByLabel(type: PdfTipo, tx: Prisma.TransactionClient = this.prisma) {
     const pdf = await tx.pdf.findMany({
       where: { type, edital: { isActive: true } },

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PdfTipo" ADD VALUE 'ENTREVISTA';

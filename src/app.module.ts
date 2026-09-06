@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
@@ -19,7 +21,7 @@ import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
     LoggerModule.forRoot({
       pinoHttp: {
         level: 'info',
-        enabled: false,
+        enabled: true,
         transport: {
           targets: [
             {
@@ -41,6 +43,10 @@ import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
       },
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
     }),
     FilesModule,
     PuppeteerModule,

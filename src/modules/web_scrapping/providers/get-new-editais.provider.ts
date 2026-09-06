@@ -19,20 +19,11 @@ export class GetNewEditaisProvider {
   async execute() {
     this.logger.log('Start execute web-scrapping');
 
-    const [resEmAndamento, resFinished] = await Promise.all([
-      this.pdfExtractorService.execute(
-        await this.editaisScraperService.getEditaisEmAndamento(),
-      ),
-      this.pdfExtractorService.execute(
-        await this.editaisScraperService.getEditaisFinished(),
-      ),
-    ]);
+    const resEmAndamento = await this.pdfExtractorService.execute(
+      await this.editaisScraperService.getEditaisEmAndamento(),
+    );
 
-    const editais = [
-      ...resEmAndamento.map((r) => ({ ...r, isActive: true })),
-      ...resFinished.map((r) => ({ ...r, isActive: false })),
-    ].flatMap((v) => v.pdfs.flatMap((e) => ({ ...v, pdf: e })));
-
+    const editais = resEmAndamento.map((r) => ({ ...r, isActive: true }));
     await this.getNewEditais.addBulk(
       editais.map((edital) => ({ name: 'getNewEditais', data: edital })),
     );
