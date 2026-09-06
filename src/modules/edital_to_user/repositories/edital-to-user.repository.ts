@@ -25,6 +25,24 @@ export class EditalToUserRepository {
     this.logger.log('Insert editalToUser', editalToUser);
     return editalToUser;
   }
+
+  async upsert(
+    id: number,
+    data: CreateEditalToUser,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const editalToUser = await tx.editalToUser.upsert({
+      where: { id },
+      create: {
+        userId: data.userId,
+        editalId: data.editalId,
+        status: data.status,
+      },
+      update: { status: data.status },
+    });
+    this.logger.log('Insert editalToUser', editalToUser);
+    return editalToUser;
+  }
   async create(
     data: CreateEditalToUser,
     tx: Prisma.TransactionClient = this.prisma,

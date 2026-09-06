@@ -26,7 +26,7 @@ export class PdfRepository {
         edital: { isActive: true },
         text: { contains: userName, mode: 'insensitive' },
       },
-      select: { id: true, editalId: true },
+      include: { edital: true },
     });
     return pdf;
   }
