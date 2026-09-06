@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EditalService } from '../../edital/services/edital.service.js';
 import { EditaisScraperService } from '../services/editais-scraper.service.js';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class FinishEditaisProvider {
@@ -10,7 +10,7 @@ export class FinishEditaisProvider {
     private editalService: EditalService,
   ) {}
 
-  // @Cron('5 * * * * *')
+  @Cron(CronExpression.EVERY_6_HOURS)
   async execute() {
     const editaisFinished =
       await this.editaisScraperService.getEditaisFinished();

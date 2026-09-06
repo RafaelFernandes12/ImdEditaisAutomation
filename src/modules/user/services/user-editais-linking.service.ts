@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
-import { Prisma, StatusEdital } from '../../../../generated/prisma/client.js';
+import { Prisma } from '../../../../generated/prisma/client.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { PdfRepository } from '../../pdf/repositories/pdf.repository.js';
-import { EditalToUserRepository } from '../../edital_to_user/repositories/edital-to-user.repository.js';
-import { PdfSendsRepository } from '../../pdf_sends/repositories/pdf-sends.repository.js';
+import { SendsRepository } from '../../sends/repositories/sends.repository.js';
 import { CreateUser, UpdateEditaisUser } from '../dto/user.dto.js';
 
 @Injectable()
@@ -13,8 +12,7 @@ export class UserEditaisLinkingService {
     private readonly prisma: PrismaService,
     private userRepository: UserRepository,
     private pdfRepository: PdfRepository,
-    private editalToUserRepository: EditalToUserRepository,
-    private pdfSendsRepository: PdfSendsRepository,
+    private sendsRepository: SendsRepository,
   ) {}
 
   async createUser(data: CreateUser) {
@@ -24,9 +22,6 @@ export class UserEditaisLinkingService {
           chatId: data.chatId,
           contact: data.contact,
           name: data.name,
-          matricula: data.matricula,
-          curriculoVitae: data.curriculoVitae,
-          curriculoLattes: data.curriculoLattes,
         },
         tx,
       );
@@ -52,13 +47,9 @@ export class UserEditaisLinkingService {
     editaisId: number[],
   ) {
     for (const editalId of editaisId) {
-      const link = await this.editalToUserRepository.create(
-        { userId, editalId, status: StatusEdital.SENDED },
-        tx,
-      );
       const pdfs = await this.pdfRepository.findByEditalId(editalId, tx);
-      await this.pdfSendsRepository.createMany(
-        pdfs.map((pdf) => ({ pdfId: pdf.id, editalToUserId: link.id })),
+      await this.sendsRepository.createMany(
+        pdfs.map((pdf) => ({ userId, editalId, pdfId: pdf.id })),
         tx,
       );
     }

@@ -29,15 +29,6 @@ enum PdfTipo {
   RESULTADO
 }
 
-model AiChat {
-  id             Int      @id @default(autoincrement())
-  conversationId String   @unique
-  conversation   Json     @default("[]")
-  title          String
-  created_at     DateTime @default(now()) @db.Timestamp(6)
-  updated_at     DateTime @updatedAt() @db.Timestamp(6)
-}
-
 model Edital {
   id                Int      @id @default(autoincrement())
   badge             String   @unique
@@ -52,7 +43,6 @@ model Edital {
 
   pdfs Pdf[]
 
-  users EditalToUser[]
   sends Sends[]
 }
 
@@ -67,43 +57,23 @@ model Pdf {
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
   editalId Int
-  edital   Edital     @relation(fields: [editalId], references: [id])
-  pdfSends PdfSends[]
+  edital   Edital  @relation(fields: [editalId], references: [id])
   sends    Sends[]
 }
 
 model User {
-  id              Int     @id @default(autoincrement())
-  name            String
-  matricula       String  @unique
-  chatId          String  @unique
-  contact         String  @unique
-  curriculoVitae  String?
-  curriculoLattes String?
+  id      Int    @id @default(autoincrement())
+  name    String
+  chatId  String @unique
+  contact String @unique
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  editais EditalToUser[]
-  sends   Sends[]
-}
-
-model EditalToUser {
-  id       Int          @id @default(autoincrement())
-  editalId Int
-  edital   Edital       @relation(fields: [editalId], references: [id])
-  userId   Int
-  users    User         @relation(fields: [userId], references: [id])
-  status   StatusEdital
-
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @updatedAt() @db.Timestamp(6)
-
-  pdfSends PdfSends[]
+  sends Sends[]
 }
 
 model Sends {
-  id     Int    @id @default(autoincrement())
   pdf    Pdf    @relation(fields: [pdfId], references: [id])
   edital Edital @relation(fields: [editalId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
@@ -113,15 +83,6 @@ model Sends {
   pdfId      Int
   editalId   Int
   userId     Int
-}
 
-model PdfSends {
-  id             Int          @id @default(autoincrement())
-  pdfId          Int
-  pdf            Pdf          @relation(fields: [pdfId], references: [id])
-  editalToUserId Int
-  editalToUser   EditalToUser @relation(fields: [editalToUserId], references: [id])
-
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @updatedAt() @db.Timestamp(6)
+  @@id([pdfId, editalId, userId])
 }

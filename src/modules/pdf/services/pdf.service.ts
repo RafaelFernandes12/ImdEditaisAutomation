@@ -15,8 +15,8 @@ export class PdfService {
     return await this.pdfRepository.findByLink(link);
   }
 
-  async findAll(userName: string) {
-    return await this.pdfRepository.findAll(userName);
+  async findAllByUserName(userName: string) {
+    return await this.pdfRepository.findAllByUserName(userName);
   }
 
   async findByLabel(type: PdfTipo) {

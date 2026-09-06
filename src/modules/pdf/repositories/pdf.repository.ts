@@ -20,7 +20,10 @@ export class PdfRepository {
     return pdf;
   }
 
-  async findAll(userName: string, tx: Prisma.TransactionClient = this.prisma) {
+  async findAllByUserName(
+    userName: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
     const pdf = await tx.pdf.findMany({
       where: {
         edital: { isActive: true },

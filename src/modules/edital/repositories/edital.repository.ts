@@ -36,7 +36,7 @@ export class EditalRepository {
   async findActive(tx: Prisma.TransactionClient = this.prisma) {
     const editais = await tx.edital.findMany({
       where: { isActive: true },
-      include: { pdfs: true, users: true },
+      include: { pdfs: true, sends: true },
     });
     this.logger.log('GetEditaisActive', editais);
     return editais;

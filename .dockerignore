@@ -1,0 +1,28 @@
+node_modules
+dist
+generated
+.git
+.gitignore
+coverage
+test
+
+# local state that must not leak into the image
+.env
+.env.*
+.wwebjs_auth
+.wwebjs_cache
+.chrome-profile
+editais
+*.log
+.tsbuildinfo
+
+# editor / agent tooling
+.claude
+.agents
+.windsurf
+.vscode
+.idea
+
+Dockerfile
+.dockerignore
+docker-compose.yml

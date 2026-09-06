@@ -137,6 +137,33 @@ MINIO_SECRET_KEY=
 LOKI_URL=              # destino dos logs
 ```
 
+## Rodando com Docker
+
+O `docker-compose.yml` sobe a aplicação junto com Postgres, Redis, MinIO (com o bucket `editaisimd` já criado), Loki e Grafana.
+
+```bash
+cp .env.example .env   # ajuste OPENAI_API_KEY e as credenciais do MinIO
+docker compose up -d --build
+docker compose logs -f app   # o QR code do WhatsApp aparece aqui
+```
+
+As migrations do Prisma (`prisma migrate deploy`) rodam automaticamente no start do container.
+
+| Serviço | Endereço |
+|---|---|
+| API | http://localhost:7638 |
+| Bull Board | http://localhost:7638/queues |
+| MinIO (console) | http://localhost:9001 |
+| Grafana (logs do Loki) | http://localhost:3000 |
+| Postgres | `localhost:5432` |
+| Redis | `localhost:6379` |
+
+Se você já tiver Postgres, Redis, MinIO, Loki ou Grafana rodando na máquina, as portas publicadas podem ser trocadas no `.env` (`POSTGRES_PORT`, `REDIS_PORT`, `MINIO_PORT`, `MINIO_CONSOLE_PORT`, `LOKI_PORT`, `GRAFANA_PORT`, `PORT`) — ou suba só a aplicação com `docker compose up -d app` apontando as variáveis para os serviços existentes.
+
+A sessão do WhatsApp fica no volume `wwebjs_auth`, então o QR code só é escaneado uma vez — mesmo entre `docker compose down` e `up`. Para começar do zero: `docker compose down -v`.
+
+O `GET /puppeteer` é a exceção: ele se conecta a um Chrome real rodando na máquina host (`--remote-debugging-port=9222`) e, a partir do container, precisaria apontar para `host.docker.internal` em vez de `127.0.0.1`.
+
 ## Rotas
 
 As etapas do pipeline são disparadas por HTTP (ver `main.http`):

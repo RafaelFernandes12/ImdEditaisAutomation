@@ -8,15 +8,15 @@ import { PdfModule } from '../pdf/pdf.module.js';
 import { EditaisScraperService } from './services/editais-scraper.service.js';
 import { PdfExtractorService } from './services/pdf-extractor.service.js';
 import { NotifyNewEditaisProvider } from './providers/notify-new-editais.provider.js';
-import { NotifyHomologProvider } from './providers/notify-homologados.provider.js';
+import { NotifyNewEditaisConsumer } from './providers/notify-new-editais.consumer.js';
 import { BullModule } from '@nestjs/bullmq';
-import { PdfSendsModule } from '../pdf_sends/pdf_sends.module.js';
 import { GetNewEditaisProvider } from './providers/get-new-editais.provider.js';
 import { GetNewEditaisConsumer } from './providers/get-new-editais.consumer.js';
 import { FinishEditaisProvider } from './providers/finish-editais.provider.js';
-import { EditalToUserModule } from '../edital_to_user/edital_to_user.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
+import { NotifyNewPdf } from './providers/notify-pdfs.consumer.js';
+import { SendsModule } from '../sends/sends.module.js';
 
 @Module({
   imports: [
@@ -24,9 +24,8 @@ import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
     UserModule,
     EditalModule,
     AiChatModule,
-    EditalToUserModule,
     PdfModule,
-    PdfSendsModule,
+    SendsModule,
     BullModule.registerQueue({ name: 'sendPdf' }),
     BullModule.registerQueue({ name: 'notifyNewEditais' }),
     BullModule.registerQueue({ name: 'getNewEditais' }),
@@ -37,10 +36,11 @@ import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
     EditaisScraperService,
     PdfExtractorService,
     NotifyNewEditaisProvider,
+    NotifyNewEditaisConsumer,
     NotifyPdfsProvider,
+    NotifyNewPdf,
     GetNewEditaisProvider,
     GetNewEditaisConsumer,
-    NotifyHomologProvider,
   ],
   controllers: [WebScrappingController],
 })

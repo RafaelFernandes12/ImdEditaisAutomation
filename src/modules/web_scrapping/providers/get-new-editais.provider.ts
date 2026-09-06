@@ -4,6 +4,7 @@ import { EditaisScraperService } from '../services/editais-scraper.service.js';
 import { PdfExtractorService } from '../services/pdf-extractor.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class GetNewEditaisProvider {
@@ -15,7 +16,7 @@ export class GetNewEditaisProvider {
     private readonly logger: Logger,
   ) {}
 
-  // @Cron('5 * * * * *')
+  @Cron('* * 10 * *')
   async execute() {
     this.logger.log('Start execute web-scrapping');
 

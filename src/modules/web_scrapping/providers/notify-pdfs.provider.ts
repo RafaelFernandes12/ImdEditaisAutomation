@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserService } from '../../user/services/user.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class NotifyPdfsProvider {
@@ -10,7 +11,7 @@ export class NotifyPdfsProvider {
     @InjectQueue('sendPdf') private queue: Queue,
   ) {}
 
-  // @Cron('5 * * * * *')
+  @Cron('* * 12 * *')
   async execute() {
     const users = await this.userService.findManyUsers();
 

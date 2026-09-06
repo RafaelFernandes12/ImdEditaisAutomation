@@ -7,9 +7,6 @@ interface CreateUserData {
   chatId: string;
   contact: string;
   name: string;
-  matricula: string;
-  curriculoVitae?: string;
-  curriculoLattes?: string;
   keyWords?: string;
 }
 
@@ -35,7 +32,7 @@ export class UserRepository {
   ) {
     return await tx.user.findUnique({
       where: { chatId },
-      include: { editais: true },
+      include: { sends: true },
     });
   }
 
@@ -48,14 +45,7 @@ export class UserRepository {
 
   async findMany(tx: Prisma.TransactionClient = this.prisma) {
     return await tx.user.findMany({
-      include: {
-        editais: {
-          include: {
-            pdfSends: true,
-            edital: { include: { pdfs: true } },
-          },
-        },
-      },
+      include: { sends: true },
     });
   }
 }

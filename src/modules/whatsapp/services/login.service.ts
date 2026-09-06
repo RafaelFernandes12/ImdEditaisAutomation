@@ -27,29 +27,12 @@ export class LoginService {
   private readonly steps: {
     key: keyof loginData;
     prompt: string;
-    type: 'text' | 'media';
+    type: 'text';
   }[] = [
     {
       key: 'name',
       prompt: 'Escreva seu nome completo: (Obrigatorio)',
       type: 'text',
-    },
-    {
-      key: 'matricula',
-      prompt: 'Agora escreva sua matrícula: (Obrigatorio)',
-      type: 'text',
-    },
-    {
-      key: 'vitae',
-      prompt:
-        'Anexe o seu currículo vitae, isso ajudará a ordenar as suas vagas de interesse: (Opcional, caso não queira, apenas digite NAO)',
-      type: 'media',
-    },
-    {
-      key: 'lattes',
-      prompt:
-        'Anexe o seu currículo lattes: (Opcional, caso não queira, apenas digite NAO)',
-      type: 'media',
     },
   ];
   private pendingLogin = new Map<
@@ -67,25 +50,7 @@ export class LoginService {
       if (!pending) return;
 
       const currentStep = this.steps[pending.stepIndex];
-      if (currentStep.type === 'media') {
-        if (message.body.trim().toUpperCase() === 'NAO') {
-          pending.data[currentStep.key] = undefined;
-        } else if (message.hasMedia) {
-          const media = await message.downloadMedia();
-          const mediaBuffer = Buffer.from(media.data, 'base64');
-          const mediaUrl = await this.uploadOne.uploadFile({
-            contentType: media.mimetype,
-            path: await client.getFormattedNumber(message.to),
-            fileName: currentStep.key === 'vitae' ? 'vitae.pdf' : 'lattes.pdf',
-            fileStream: mediaBuffer,
-          });
-          pending.data[currentStep.key] = mediaUrl.Key;
-        } else {
-          await message.reply('Envie um arquivo indexado ou digite NAO');
-        }
-      } else {
-        pending.data[currentStep.key] = message.body;
-      }
+      pending.data[currentStep.key] = message.body;
 
       const nextIndex = pending.stepIndex + 1;
       if (nextIndex < this.steps.length) {
@@ -115,9 +80,6 @@ export class LoginService {
       chatId: message.from,
       contact: await client.getFormattedNumber(message.to),
       name: data.name!,
-      matricula: data.matricula!,
-      curriculoVitae: this.parseOptional(data.vitae),
-      curriculoLattes: this.parseOptional(data.lattes),
       editaisId,
     });
     await this.getEditaisAndamento.execute(message);

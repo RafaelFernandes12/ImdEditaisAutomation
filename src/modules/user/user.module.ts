@@ -5,11 +5,10 @@ import { UserRepository } from './repositories/user.repository.js';
 import { UserService } from './services/user.service.js';
 import { UserEditaisLinkingService } from './services/user-editais-linking.service.js';
 import { PdfModule } from '../pdf/pdf.module.js';
-import { EditalToUserModule } from '../edital_to_user/edital_to_user.module.js';
-import { PdfSendsModule } from '../pdf_sends/pdf_sends.module.js';
+import { SendsModule } from '../sends/sends.module.js';
 
 @Module({
-  imports: [PrismaModule, PdfModule, EditalToUserModule, PdfSendsModule],
+  imports: [PrismaModule, PdfModule, SendsModule],
   exports: [UserService],
   providers: [
     PrismaService,
