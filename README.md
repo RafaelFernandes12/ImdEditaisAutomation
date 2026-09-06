@@ -1,99 +1,156 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# IMD Editais Automation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Bot de WhatsApp que monitora o [portal de editais do IMD/UFRN](https://www.metropoledigital.ufrn.br/portal/editais), resume cada vaga com IA e acompanha o aluno por todas as etapas do processo seletivo — tudo pelo WhatsApp.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+O problema que ele resolve: os editais do IMD saem sem aviso, cada um é um PDF com várias vagas dentro, e as etapas seguintes (homologação, análise curricular, entrevista, resultado) são publicadas como novos anexos no mesmo edital. Quem não fica atualizando o portal manualmente perde prazo.
 
-## Description
+## O que ele faz
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. **Descobre editais novos.** Faz scraping do portal com Puppeteer e Cheerio, identificando editais ainda não vistos.
+2. **Lê os PDFs.** Extrai o texto de cada anexo do edital com `pdf-parse` e guarda no banco.
+3. **Resume cada vaga.** Um LLM transforma o PDF em um resumo estruturado — uma entrada por vaga, com remuneração, carga horária, duração, palavras-chave e elegibilidade. Um único edital costuma ter 2 a 4 vagas distintas.
+4. **Notifica os alunos cadastrados** por WhatsApp assim que o edital sai.
+5. **Acompanha o processo até o fim.** Quando um novo anexo é publicado (homologação, currículo, entrevista, resultado), o aluno recebe a atualização daquele edital — sem receber duas vezes o mesmo documento.
 
-## Project setup
+### Exemplo de mensagem enviada
 
-```bash
-$ yarn install
+```
+*1. PROCESSO SELETIVO SIMPLIFICADO*
+🗓️ Inscrições até: 11/09/2026
+🔗 https://www.metropoledigital.ufrn.br/portal/visualizar/881
+   📎 Edital de seleção: https://tinyurl.com/28okks7w
+*Vaga:* DESENVOLVEDOR(A) FRONTEND
+*Qtd vagas:* 1
+*Remuneração:* R$ 2.400,00 (20h semanais / A definir / Presencial/Híbrido/Remoto)
+*Palavras-chaves:* HTML, CSS, JavaScript, APIs REST, Git
+*Duração:* Até 8 meses
+*Elegibilidade:* Graduação em andamento na UFRN em TI, Ciência da Computação,
+Engenharia de Software ou curso afim; organização, responsabilidade, proatividade.
+
+*Vaga:* DESENVOLVEDOR(A) BACKEND
+*Qtd vagas:* 2
+...
 ```
 
-## Compile and run the project
+### Cadastro do aluno
 
-```bash
-# development
-$ yarn run start
+O cadastro acontece dentro da própria conversa do WhatsApp, em etapas:
 
-# watch mode
-$ yarn run start:dev
+| Etapa | Campo | Obrigatório |
+|---|---|---|
+| 1 | Nome completo | sim |
+| 2 | Matrícula | sim |
+| 3 | Currículo Vitae (PDF) | não |
+| 4 | Currículo Lattes (PDF) | não |
 
-# production mode
-$ yarn run start:prod
+Os currículos anexados vão para o storage e são usados para ordenar as vagas por interesse do aluno.
+
+## Arquitetura
+
+```
+Portal de editais (UFRN)
+        │  Puppeteer + Cheerio
+        ▼
+  editais-scraper ──► pdf-extractor ──► SummarizeEdital (LLM)
+        │                                      │
+        ▼                                      ▼
+    PostgreSQL  ◄──────────────────────  resumo por vaga
+        │
+        ▼
+  providers de notificação ──► whatsapp-web.js ──► aluno
 ```
 
-## Run tests
+Os módulos em `src/modules`:
+
+| Módulo | Responsabilidade |
+|---|---|
+| `web_scrapping` | Scraping do portal, extração de PDFs e os providers que orquestram as notificações |
+| `ai_chat` | `SummarizeEdital` — transforma o texto do PDF no resumo estruturado por vaga |
+| `whatsapp` | Cliente `whatsapp-web.js`, fluxo de login e envio das mensagens |
+| `edital` / `pdf` | Persistência dos editais e seus anexos |
+| `user` | Cadastro dos alunos e vínculo com os editais de interesse |
+| `edital_to_user` / `pdf_sends` | Controle de o que já foi enviado para quem, evitando duplicidade |
+| `files` | Upload dos currículos para o storage S3-compatível |
+| `puppeteer` | Browser compartilhado |
+
+Os providers de `web_scrapping` são as quatro etapas do pipeline:
+
+- `get-new-editais` — descobre e persiste editais novos
+- `notify-new-editais` — envia o resumo do edital recém-publicado
+- `notify-homologados` — avisa sobre a homologação das inscrições
+- `notify-pdfs` — envia os anexos seguintes (currículo, entrevista, resultado)
+- `finish-editais` — encerra o acompanhamento quando o processo termina
+
+## Stack
+
+- **NestJS 11** + TypeScript (ESM)
+- **Prisma 7** + PostgreSQL (via `@prisma/adapter-pg`)
+- **Puppeteer** e **Cheerio** — scraping
+- **pdf-parse** — extração de texto dos editais
+- **whatsapp-web.js** — cliente de WhatsApp (login por QR code)
+- **OpenAI SDK** — resumo dos editais, com `LLM_BASE_URL` configurável para qualquer endpoint compatível
+- **BullMQ** + Redis, com Bull Board em `/queues`
+- **MinIO / S3** — armazenamento dos currículos
+- **Pino** + Loki — logging estruturado
+
+## Modelo de dados
+
+| Model | Papel |
+|---|---|
+| `Edital` | Edital do portal: título, link, prazo de inscrição, resumo e palavras-chave |
+| `Pdf` | Anexo do edital, com o texto extraído e o tipo (`EDITAL`, `HOMOLOGACAO`, `ENTREVISTA`, `CURRICULO`, `RESULTADO`) |
+| `User` | Aluno cadastrado: nome, matrícula, contato e currículos |
+| `EditalToUser` | Vínculo aluno↔edital com o status do processo (`SENDED`, `HOMOLOGACAO`, `ENTREVISTA`, `RESERVA`, `SUCESS`, `FAILED`) |
+| `Sends` / `PdfSends` | Registro do que já foi enviado, para não repetir mensagem |
+| `AiChat` | Histórico das conversas com o LLM |
+
+## Rodando localmente
+
+**Requisitos:** Node.js, PostgreSQL, Redis e um bucket S3-compatível (MinIO).
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+yarn install
+yarn migrate        # prisma migrate dev + generate
+yarn dev            # nest start --watch
 ```
 
-## Deployment
+Na primeira execução o `whatsapp-web.js` imprime um QR code no terminal — escaneie com o WhatsApp que enviará as mensagens. A sessão fica em `.wwebjs_auth/` e não precisa ser refeita.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Variáveis de ambiente
 
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+DATABASE_URL=          # conexão PostgreSQL
+PORT=3030
+
+OPENAI_API_KEY=
+LLM_BASE_URL=          # endpoint compatível com a API da OpenAI
+LLM_MODEL=             # default: gpt-4o-mini
+
+REDIS_HOST=
+REDIS_PORT=
+
+MINIO_URL=
+MINIO_REGION=
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+
+LOKI_URL=              # destino dos logs
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Rotas
 
-## Resources
+As etapas do pipeline são disparadas por HTTP (ver `main.http`):
 
-Check out a few resources that may come in handy when working with NestJS:
+| Rota | O que faz |
+|---|---|
+| `GET /editais/getNewEditais` | Faz o scraping e persiste editais novos |
+| `GET /editais/notifyNewEditais` | Envia os editais novos aos alunos |
+| `GET /editais/notifyHomolog` | Notifica a homologação das inscrições |
+| `GET /editais/notifyPdfs` | Envia os anexos seguintes do processo |
+| `GET /queues` | Bull Board |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Estado atual
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-# ImdEditaisAutomation
+- Os `@Cron` dos providers estão **comentados** — hoje o pipeline roda pelas rotas HTTP acima. Para automatizar, basta descomentar os decorators em `src/modules/web_scrapping/providers/`.
+- `@nestjs/bullmq`, `bullmq` e `@bull-board/*` estão em `devDependencies`, mas são importados em `app.module.ts`. Uma instalação sem dev deps quebra o boot.
+- O script `whatsapp:browser` aponta para `scripts/whatsapp-browser.js`, que não existe no repositório.
