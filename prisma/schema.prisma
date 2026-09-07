@@ -70,7 +70,8 @@ model User {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  sends Sends[]
+  sends     Sends[]
+  reminders Reminders[]
 }
 
 model Sends {
@@ -85,4 +86,16 @@ model Sends {
   userId     Int
 
   @@id([pdfId, editalId, userId])
+}
+
+model Reminders {
+  id       Int      @id @default(autoincrement())
+  reminder DateTime
+  text     String
+  user     User     @relation(fields: [userId], references: [id])
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  userId Int
 }
