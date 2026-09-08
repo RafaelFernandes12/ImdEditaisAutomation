@@ -76,13 +76,35 @@ export class LoginService {
     const editaisId = (await this.editalService.findActive()).map(
       (id) => id.id,
     );
+
     await this.userService.createUser({
       chatId: message.from,
-      contact: await client.getFormattedNumber(message.to),
+      contact: await this.getFormattedContact(message),
       name: data.name!,
       editaisId,
     });
     await this.getEditaisAndamento.execute(message);
+  }
+
+  /**
+   * message.from pode vir como um LID (ex: 121642315460836@lid), que nao e um
+   * telefone. Resolve o LID para o numero real antes de formatar.
+   */
+  private async getFormattedContact(message: pkg.Message) {
+    let userId = message.from;
+
+    if (userId.endsWith('@lid')) {
+      const [resolved] = await client.getContactLidAndPhone([userId]);
+
+      if (!resolved?.pn) {
+        const contact = await message.getContact();
+        return contact.number ?? userId;
+      }
+
+      userId = resolved.pn;
+    }
+
+    return client.getFormattedNumber(userId);
   }
 
   private parseOptional(value?: string) {
