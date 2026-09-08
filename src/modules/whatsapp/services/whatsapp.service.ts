@@ -10,6 +10,13 @@ import { UserService } from '../../user/services/user.service.js';
 const READY_TIMEOUT_MS = 90_000;
 const MAX_RESTART_ATTEMPTS = 2;
 const RETRY_BACKOFF_MS = 5_000;
+const DIAGNOSTICS_INTERVAL_MS = 15_000;
+
+/** Minimal shape of the puppeteer page whatsapp-web.js keeps internally. */
+type PupPage = {
+  evaluate(expression: string): Promise<unknown>;
+  on(event: 'pageerror', handler: (err: unknown) => void): void;
+};
 
 type InitOutcome = 'ready' | 'timeout' | 'failed';
 
@@ -22,10 +29,16 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     private readonly logger: Logger,
   ) {}
 
+  private diagnosticsTimer?: NodeJS.Timeout;
+
   onModuleInit() {
     client.on('qr', (qr) => {
       qrcode.generate(qr, { small: true });
       this.logger.log('QR RECEIVED', qr);
+      // Also started here, not just on `loading_screen`: a session restored
+      // from the volume never shows a loading screen, and that boot needs the
+      // same visibility.
+      this.startPageDiagnostics();
     });
 
     // The stretch between a scan and `ready` is where boots die silently, so
@@ -34,8 +47,14 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Client authenticated, waiting for sync');
     });
 
+    // Bound to the client, not to tryInitialize's one-shot listener: that one is
+    // removed once the first boot settles, so later ready events left the probe
+    // running and reporting a healthy client as stalled.
+    client.on('ready', () => this.stopPageDiagnostics());
+
     client.on('loading_screen', (percent, message) => {
       this.logger.log(`Loading screen: ${percent}% ${message}`);
+      this.startPageDiagnostics();
     });
 
     client.on('change_state', (state) => {
@@ -55,6 +74,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     this.initializeWithWatchdog().catch((err) => this.logger.error(err));
   }
   async onModuleDestroy() {
+    this.stopPageDiagnostics();
     // Awaited so Nest's shutdown hooks close the browser before the process
     // exits, instead of leaving it orphaned holding the session profile.
     await this.safeDestroy();
@@ -109,6 +129,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
 
       const onReady = () => {
         this.logger.log('Client is ready!');
+        this.stopPageDiagnostics();
         finish('ready');
       };
 
@@ -136,6 +157,50 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         finish('failed');
       });
     });
+  }
+
+  /**
+   * Boots stall between the scan and `ready`: `loading_screen` reaches 100% but
+   * `change:hasSynced` never fires, so WhatsApp unlinks the device 3 minutes
+   * later. Nothing surfaces the socket state in that window, so poll for it.
+   */
+  private startPageDiagnostics() {
+    if (this.diagnosticsTimer) return;
+
+    const page = (client as unknown as { pupPage?: PupPage }).pupPage;
+    if (!page) return;
+
+    page.on('pageerror', (err) => {
+      this.logger.error(`Page error: ${String(err)}`);
+    });
+
+    this.diagnosticsTimer = setInterval(() => {
+      page
+        .evaluate(
+          `(() => {
+            try {
+              const s = window.require('WAWebSocketModel').Socket;
+              return JSON.stringify({
+                state: s.state,
+                stream: s.stream,
+                hasSynced: s.hasSynced,
+                offline: window.AuthStore?.OfflineMessageHandler?.getOfflineDeliveryProgress?.(),
+                wwebjs: typeof window.WWebJS !== 'undefined',
+              });
+            } catch (e) {
+              return 'probe failed: ' + String(e);
+            }
+          })()`,
+        )
+        .then((snapshot) => this.logger.warn(`Sync probe: ${String(snapshot)}`))
+        .catch((err) => this.logger.warn(`Sync probe failed: ${err}`));
+    }, DIAGNOSTICS_INTERVAL_MS);
+  }
+
+  private stopPageDiagnostics() {
+    if (!this.diagnosticsTimer) return;
+    clearInterval(this.diagnosticsTimer);
+    this.diagnosticsTimer = undefined;
   }
 
   private async safeDestroy() {
