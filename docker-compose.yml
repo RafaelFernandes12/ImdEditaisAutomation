@@ -67,9 +67,7 @@ services:
       - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: rafaelfernn/imd_editais:1.0.0
     restart: unless-stopped
     # Fixed so Chromium keeps recognising its own profile lock across recreates.
     hostname: projeto-ai-app

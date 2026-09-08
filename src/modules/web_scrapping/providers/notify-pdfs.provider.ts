@@ -11,7 +11,7 @@ export class NotifyPdfsProvider {
     @InjectQueue('sendPdf') private queue: Queue,
   ) {}
 
-  @Cron('* * 12 * *')
+  @Cron('* 12 * * *')
   async execute() {
     const users = await this.userService.findManyUsers();
 
