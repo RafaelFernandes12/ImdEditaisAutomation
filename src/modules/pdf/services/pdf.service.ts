@@ -14,9 +14,11 @@ export class PdfService {
   async findByLink(link: string) {
     return await this.pdfRepository.findByLink(link);
   }
-
-  async findAllByUserName(userName: string) {
-    return await this.pdfRepository.findAllByUserName(userName);
+  async findAllResultadosByUserName(userName: string) {
+    return await this.pdfRepository.findAllResultadosByUserName(userName);
+  }
+  async findAllActiveByUserName(userName: string) {
+    return await this.pdfRepository.findAllActiveByUserName(userName);
   }
 
   async findByLabel(type: PdfTipo) {

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Edital" ALTER COLUMN "finishedAt" DROP NOT NULL,
+ALTER COLUMN "validUntil" DROP NOT NULL;

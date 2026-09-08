@@ -30,16 +30,18 @@ enum PdfTipo {
 }
 
 model Edital {
-  id                Int      @id @default(autoincrement())
-  badge             String   @unique
+  id                Int       @id @default(autoincrement())
+  badge             String    @unique
   title             String
-  link              String   @unique
+  link              String    @unique
   isActive          Boolean
   subscriptionUntil String
+  validUntil        DateTime?
+  finishedAt        DateTime?
   summary           String
   keyWords          String
-  created_at        DateTime @default(now()) @db.Timestamp(6)
-  updated_at        DateTime @updatedAt() @db.Timestamp(6)
+  created_at        DateTime  @default(now()) @db.Timestamp(6)
+  updated_at        DateTime  @updatedAt() @db.Timestamp(6)
 
   pdfs Pdf[]
 

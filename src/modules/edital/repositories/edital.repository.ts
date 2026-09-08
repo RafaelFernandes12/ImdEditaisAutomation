@@ -43,13 +43,27 @@ export class EditalRepository {
   }
 
   async deactivateMany(
-    ids: number[],
+    data: {
+      id: number;
+      validUntil: number;
+    }[],
     tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const editais = await tx.edital.updateMany({
-      where: { id: { in: ids } },
-      data: { isActive: false },
-    });
+    const editais = await Promise.all(
+      data.map(
+        async (d) =>
+          await tx.edital.update({
+            where: { id: d.id },
+            data: {
+              isActive: false,
+              finishedAt: new Date(),
+              validUntil: new Date(
+                new Date().setMonth(new Date().getMonth() + d.validUntil),
+              ),
+            },
+          }),
+      ),
+    );
     this.logger.log('DeactivateEditais', editais);
     return editais;
   }

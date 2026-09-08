@@ -19,8 +19,20 @@ export class PdfRepository {
     this.logger.log('Insert pdf', pdf);
     return pdf;
   }
-
-  async findAllByUserName(
+  async findAllResultadosByUserName(
+    userName: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const pdf = await tx.pdf.findMany({
+      where: {
+        text: { contains: userName, mode: 'insensitive' },
+        type: 'RESULTADO',
+      },
+      include: { edital: true },
+    });
+    return pdf;
+  }
+  async findAllActiveByUserName(
     userName: string,
     tx: Prisma.TransactionClient = this.prisma,
   ) {

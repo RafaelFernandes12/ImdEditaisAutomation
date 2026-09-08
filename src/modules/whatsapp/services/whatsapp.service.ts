@@ -30,26 +30,19 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   private diagnosticsTimer?: NodeJS.Timeout;
+  private instrumentedPage?: PupPage;
 
   onModuleInit() {
     client.on('qr', (qr) => {
       qrcode.generate(qr, { small: true });
       this.logger.log('QR RECEIVED', qr);
-      // Also started here, not just on `loading_screen`: a session restored
-      // from the volume never shows a loading screen, and that boot needs the
-      // same visibility.
       this.startPageDiagnostics();
     });
 
-    // The stretch between a scan and `ready` is where boots die silently, so
-    // every milestone WhatsApp Web reports in between gets logged.
     client.on('authenticated', () => {
       this.logger.log('Client authenticated, waiting for sync');
     });
 
-    // Bound to the client, not to tryInitialize's one-shot listener: that one is
-    // removed once the first boot settles, so later ready events left the probe
-    // running and reporting a healthy client as stalled.
     client.on('ready', () => this.stopPageDiagnostics());
 
     client.on('loading_screen', (percent, message) => {
@@ -75,15 +68,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   }
   async onModuleDestroy() {
     this.stopPageDiagnostics();
-    // Awaited so Nest's shutdown hooks close the browser before the process
-    // exits, instead of leaving it orphaned holding the session profile.
     await this.safeDestroy();
   }
 
   private async initializeWithWatchdog() {
-    // Bounded fast retries to recover from a stalled boot, then a final attempt
-    // with no deadline. The fallback matters: waiting forever is the original
-    // behaviour, so this can never end up worse than not having a watchdog.
     for (let attempt = 1; attempt <= MAX_RESTART_ATTEMPTS; attempt++) {
       const outcome = await this.tryInitialize(READY_TIMEOUT_MS);
       if (outcome === 'ready') {
@@ -98,8 +86,6 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         `Client ${cause} (attempt ${attempt}/${MAX_RESTART_ATTEMPTS}), restarting client`,
       );
       await this.safeDestroy();
-      // A launch failure resolves instantly, so without a pause every attempt
-      // is spent inside the same second as the first one.
       await new Promise((r) => setTimeout(r, RETRY_BACKOFF_MS));
     }
 
@@ -109,10 +95,6 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     await this.tryInitialize(null);
   }
 
-  /**
-   * Resolves 'ready' once the client is ready, 'timeout' if it stalls past
-   * timeoutMs, 'failed' if initialize() rejects. Pass null to wait forever.
-   */
   private tryInitialize(timeoutMs: number | null): Promise<InitOutcome> {
     return new Promise<InitOutcome>((resolve) => {
       let settled = false;
@@ -133,8 +115,6 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         finish('ready');
       };
 
-      // A QR means the client is alive and blocked on a human, not stalled.
-      // Restarting here would invalidate the code mid-scan, so drop the deadline.
       const onQr = () => {
         if (timer) {
           clearTimeout(timer);
@@ -150,8 +130,6 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         timer = setTimeout(() => finish('timeout'), timeoutMs);
       }
 
-      // Not awaited before arming the timer: initialize() can hang internally
-      // (it navigates with timeout disabled), which is exactly what we guard.
       client.initialize().catch((err) => {
         this.logger.error(`Client initialize failed: ${err}`);
         finish('failed');
@@ -159,20 +137,18 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /**
-   * Boots stall between the scan and `ready`: `loading_screen` reaches 100% but
-   * `change:hasSynced` never fires, so WhatsApp unlinks the device 3 minutes
-   * later. Nothing surfaces the socket state in that window, so poll for it.
-   */
   private startPageDiagnostics() {
     if (this.diagnosticsTimer) return;
 
     const page = (client as unknown as { pupPage?: PupPage }).pupPage;
     if (!page) return;
 
-    page.on('pageerror', (err) => {
-      this.logger.error(`Page error: ${String(err)}`);
-    });
+    if (this.instrumentedPage !== page) {
+      page.on('pageerror', (err) => {
+        this.logger.error(`Page error: ${String(err)}`);
+      });
+      this.instrumentedPage = page;
+    }
 
     this.diagnosticsTimer = setInterval(() => {
       page

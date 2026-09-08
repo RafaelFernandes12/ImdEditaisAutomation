@@ -14,7 +14,7 @@ export class EditalService {
     return await this.editalRepository.findActive();
   }
 
-  async deactivateMany(ids: number[]) {
-    return await this.editalRepository.deactivateMany(ids);
+  async deactivateMany(data: { id: number; validUntil: number }[]) {
+    return await this.editalRepository.deactivateMany(data);
   }
 }

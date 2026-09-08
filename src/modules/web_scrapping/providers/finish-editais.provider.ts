@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable } from '@nestjs/common';
 import { EditalService } from '../../edital/services/edital.service.js';
 import { EditaisScraperService } from '../services/editais-scraper.service.js';
@@ -15,11 +16,25 @@ export class FinishEditaisProvider {
     const editaisFinished =
       await this.editaisScraperService.getEditaisFinished();
     const dbActiveEditais = await this.editalService.findActive();
-    const editais = dbActiveEditais.filter((ef) =>
-      editaisFinished.some(
-        (dae) => dae.badge === ef.badge && dae.title === ef.title,
-      ),
-    );
-    await this.editalService.deactivateMany(editais.map((e) => e.id));
+
+    const editais = dbActiveEditais
+      .flatMap((ef) =>
+        editaisFinished.flatMap((dae) => {
+          if (dae.badge === ef.badge && dae.title === ef.title) {
+            const split = ef.pdfs
+              ?.at(0)
+              ?.text.split('\n')
+              ?.find((v) => v.match('validade'))
+              ?.match(/(\d+)\s*(?:\([^)]*\)\s*)?m[eê]s(?:es)?/i)?.[1];
+            return {
+              id: ef.id,
+              validUntil: Number(split),
+            };
+          }
+        }),
+      )
+      .filter((f) => f !== undefined);
+
+    await this.editalService.deactivateMany(editais);
   }
 }

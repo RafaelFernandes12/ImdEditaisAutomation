@@ -16,7 +16,7 @@ export class GetNewEditaisProvider {
     private readonly logger: Logger,
   ) {}
 
-  @Cron('* 10 * * *')
+  @Cron(CronExpression.EVERY_6_HOURS)
   async execute() {
     this.logger.log('Start execute web-scrapping');
 

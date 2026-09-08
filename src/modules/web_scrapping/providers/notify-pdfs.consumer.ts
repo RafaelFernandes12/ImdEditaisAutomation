@@ -19,7 +19,7 @@ export class NotifyNewPdf extends WorkerHost {
       const user = job.data as Awaited<
         ReturnType<UserService['findManyUsers']>
       >[number];
-      const pdfs = await this.pdfService.findAllByUserName(user.name);
+      const pdfs = await this.pdfService.findAllActiveByUserName(user.name);
       await Promise.all(
         pdfs.map(async (pdf) => {
           await this.sendsService.createMany([

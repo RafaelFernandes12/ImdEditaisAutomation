@@ -11,7 +11,7 @@ export class NotifyNewEditaisProvider {
     @InjectQueue('notifyNewEditais') private queue: Queue,
   ) {}
 
-  @Cron('* 11 * * *')
+  @Cron(CronExpression.EVERY_6_HOURS)
   async execute() {
     const users = await this.userService.findManyUsers();
 
