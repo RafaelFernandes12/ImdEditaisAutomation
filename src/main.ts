@@ -5,7 +5,12 @@ import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error(`Unhandled rejection: ${String(reason)}`);
+  });
 
   app.enableCors();
   app.enableShutdownHooks();

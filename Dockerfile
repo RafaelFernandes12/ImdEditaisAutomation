@@ -60,4 +60,8 @@ USER node
 EXPOSE 7638
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+# The session volume outlives the container, and Chromium's Singleton* lock
+# encodes the hostname that took it. A recreated container gets a new
+# hostname, so a lock left behind by a crash reads as "profile in use by
+# another computer" and the browser refuses to launch. Clear it on boot.
+CMD ["sh", "-c", "rm -f /app/.wwebjs_auth/session/Singleton* && npx prisma migrate deploy && node dist/src/main.js"]

@@ -9,6 +9,9 @@ import { UserService } from '../../user/services/user.service.js';
 
 const READY_TIMEOUT_MS = 90_000;
 const MAX_RESTART_ATTEMPTS = 2;
+const RETRY_BACKOFF_MS = 5_000;
+
+type InitOutcome = 'ready' | 'timeout' | 'failed';
 
 @Injectable()
 export class WhatsappService implements OnModuleInit, OnModuleDestroy {
@@ -23,6 +26,20 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     client.on('qr', (qr) => {
       qrcode.generate(qr, { small: true });
       this.logger.log('QR RECEIVED', qr);
+    });
+
+    // The stretch between a scan and `ready` is where boots die silently, so
+    // every milestone WhatsApp Web reports in between gets logged.
+    client.on('authenticated', () => {
+      this.logger.log('Client authenticated, waiting for sync');
+    });
+
+    client.on('loading_screen', (percent, message) => {
+      this.logger.log(`Loading screen: ${percent}% ${message}`);
+    });
+
+    client.on('change_state', (state) => {
+      this.logger.log(`Client state changed: ${state}`);
     });
 
     client.on('disconnected', (reason) => {
@@ -48,14 +65,22 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     // with no deadline. The fallback matters: waiting forever is the original
     // behaviour, so this can never end up worse than not having a watchdog.
     for (let attempt = 1; attempt <= MAX_RESTART_ATTEMPTS; attempt++) {
-      if (await this.tryInitialize(READY_TIMEOUT_MS)) {
+      const outcome = await this.tryInitialize(READY_TIMEOUT_MS);
+      if (outcome === 'ready') {
         return;
       }
 
+      const cause =
+        outcome === 'timeout'
+          ? `not ready within ${READY_TIMEOUT_MS}ms`
+          : 'failed to launch';
       this.logger.warn(
-        `Client not ready within ${READY_TIMEOUT_MS}ms (attempt ${attempt}/${MAX_RESTART_ATTEMPTS}), restarting client`,
+        `Client ${cause} (attempt ${attempt}/${MAX_RESTART_ATTEMPTS}), restarting client`,
       );
       await this.safeDestroy();
+      // A launch failure resolves instantly, so without a pause every attempt
+      // is spent inside the same second as the first one.
+      await new Promise((r) => setTimeout(r, RETRY_BACKOFF_MS));
     }
 
     this.logger.warn(
@@ -65,26 +90,26 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Resolves true once the client is ready, false if it stalls past timeoutMs.
-   * Pass null to wait indefinitely.
+   * Resolves 'ready' once the client is ready, 'timeout' if it stalls past
+   * timeoutMs, 'failed' if initialize() rejects. Pass null to wait forever.
    */
-  private tryInitialize(timeoutMs: number | null): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+  private tryInitialize(timeoutMs: number | null): Promise<InitOutcome> {
+    return new Promise<InitOutcome>((resolve) => {
       let settled = false;
       let timer: NodeJS.Timeout | undefined;
 
-      const finish = (becameReady: boolean) => {
+      const finish = (outcome: InitOutcome) => {
         if (settled) return;
         settled = true;
         if (timer) clearTimeout(timer);
         client.removeListener('ready', onReady);
         client.removeListener('qr', onQr);
-        resolve(becameReady);
+        resolve(outcome);
       };
 
       const onReady = () => {
         this.logger.log('Client is ready!');
-        finish(true);
+        finish('ready');
       };
 
       // A QR means the client is alive and blocked on a human, not stalled.
@@ -101,14 +126,14 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       client.on('qr', onQr);
 
       if (timeoutMs !== null) {
-        timer = setTimeout(() => finish(false), timeoutMs);
+        timer = setTimeout(() => finish('timeout'), timeoutMs);
       }
 
       // Not awaited before arming the timer: initialize() can hang internally
       // (it navigates with timeout disabled), which is exactly what we guard.
       client.initialize().catch((err) => {
         this.logger.error(`Client initialize failed: ${err}`);
-        finish(false);
+        finish('failed');
       });
     });
   }
