@@ -54,6 +54,7 @@ export class LoginService {
       pending.data[currentStep.key] = message.body;
 
       console.log('DEBUGANDO');
+      console.log('LOGANDO');
       this.logger.debug(
         {
           evt: 'login.step.answered',
