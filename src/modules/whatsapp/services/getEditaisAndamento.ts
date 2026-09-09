@@ -3,6 +3,7 @@ import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EditalService } from '../../edital/services/edital.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { formatDate } from '#src/utils/formate-date.js';
 
 @Injectable()
 export class GetEditaisAndamento {
@@ -37,7 +38,7 @@ export class GetEditaisAndamento {
 
         return (
           `*${index + 1}. ${edital.title}*\n` +
-          `🗓️ Inscrições até: ${edital.subscriptionUntil}\n` +
+          `🗓️ Inscrições até: ${formatDate(edital.subscriptionUntil)}\n` +
           `🔗 ${edital.link}\n` +
           `${pdfLines}\n` +
           `${edital.summary}`

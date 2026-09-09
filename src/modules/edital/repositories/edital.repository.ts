@@ -32,6 +32,7 @@ export class EditalRepository {
     const editais = await tx.edital.findMany({
       where: { isActive: true },
       include: { pdfs: true, sends: true },
+      orderBy: { subscriptionUntil: 'desc' },
     });
     return editais;
   }

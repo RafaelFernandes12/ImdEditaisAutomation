@@ -1,18 +1,19 @@
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { EditalService } from '../../edital/services/edital.service.js';
-import { client } from '../../../config/whatsapp/client.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
+import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
+import { formatDate } from '#src/utils/formate-date.js';
 
 @Processor('notifyNewEditais')
 export class NotifyNewEditaisConsumer extends WorkerHost {
   constructor(
-    private userService: UserService,
     private editalService: EditalService,
     @InjectPinoLogger(NotifyNewEditaisConsumer.name)
     private readonly logger: PinoLogger,
+    private readonly userService: UserService,
   ) {
     super();
   }
@@ -62,7 +63,7 @@ export class NotifyNewEditaisConsumer extends WorkerHost {
 
         return (
           `*${index + 1}. ${edital.title}*\n` +
-          `🗓️ Inscrições até: ${edital.subscriptionUntil}\n` +
+          `🗓️ Inscrições até: ${formatDate(edital.subscriptionUntil)}\n` +
           `🔗 ${edital.link}\n` +
           `${pdfLines}\n` +
           `${edital.summary}`

@@ -8,6 +8,7 @@ import { GetEditaisAndamento } from './getEditaisAndamento.js';
 import { UserService } from '../../user/services/user.service.js';
 import { DeactiveUser } from './deactiveUser.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { ReactiveUser } from './reactiveUser.js';
 
 const READY_TIMEOUT_MS = 90_000;
 const MAX_RESTART_ATTEMPTS = 2;
@@ -39,6 +40,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     @InjectPinoLogger(WhatsappService.name)
     private readonly logger: PinoLogger,
     private readonly deactiveUser: DeactiveUser,
+    private readonly reactiveUser: ReactiveUser,
   ) {}
 
   private diagnosticsTimer?: NodeJS.Timeout;
@@ -341,7 +343,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     '!ping': (_client, message) => this.ping(message),
     '!editais andamento': (_client, message) =>
       this.getEditaisAndamento.execute(message),
-    '!desativar': (_client, message) => this.deactiveUser.execute(message),
+    '!desativar': (_client, message) =>
+      this.deactiveUser.execute(client, message),
+    '!reativar': (_client, message) =>
+      this.reactiveUser.execute(client, message),
   };
 
   private registerMessageHandler(client: pkg.Client) {

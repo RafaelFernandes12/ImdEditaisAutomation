@@ -93,7 +93,38 @@ export class UserService {
 
     return users;
   }
+  async reactiveUser(contact: string) {
+    const startedAt = Date.now();
+    const user = await this.userRepository.reactiveUser(contact);
 
+    this.logger.debug(
+      {
+        evt: 'user.reactive_user.done',
+        contact: maskContact(user?.contact),
+        found: user !== null,
+        userId: user?.id,
+        durationMs: Date.now() - startedAt,
+      },
+      'Usuário reativado',
+    );
+    return user;
+  }
+  async deactiveUser(contact: string) {
+    const startedAt = Date.now();
+    const user = await this.userRepository.deactiveUser(contact);
+
+    this.logger.debug(
+      {
+        evt: 'user.deactive_user.done',
+        contact: maskContact(user?.contact),
+        found: user !== null,
+        userId: user?.id,
+        durationMs: Date.now() - startedAt,
+      },
+      'Usuário desativado',
+    );
+    return user;
+  }
   async findByChatId(chatId: string) {
     const startedAt = Date.now();
     const user = await this.userRepository.findByChatId(chatId);

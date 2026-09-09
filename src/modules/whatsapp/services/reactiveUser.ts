@@ -4,16 +4,16 @@ import { UserService } from '../../user/services/user.service.js';
 import { getFormattedContact } from './util.service.js';
 
 @Injectable()
-export class DeactiveUser {
+export class ReactiveUser {
   constructor(private readonly userService: UserService) {}
 
   async execute(client: pkg.Client, message: pkg.Message) {
-    await this.userService.deactiveUser(
+    await this.userService.reactiveUser(
       await getFormattedContact(client, message),
     );
 
     await message.reply(
-      `📢 Usuário desativado com sucesso, para ativar novamente, digite *'!reativar'*`,
+      `📢 Usuário reativado com sucesso, para desativar digite *!desativar'*`,
     );
   }
 }

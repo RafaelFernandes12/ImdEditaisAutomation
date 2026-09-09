@@ -5,8 +5,8 @@ import { EditalService } from '../../edital/services/edital.service.js';
 import { GetEditaisAndamento } from './getEditaisAndamento.js';
 import { UserService } from '../../user/services/user.service.js';
 import { client } from '../../../config/whatsapp/client.js';
-import { UploadOne } from '../../../modules/files/upload-one.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { getFormattedContact } from './util.service.js';
 
 type loginData = {
   name?: string;
@@ -21,7 +21,6 @@ export class LoginService {
     private editalService: EditalService,
     private userService: UserService,
     private getEditaisAndamento: GetEditaisAndamento,
-    private uploadOne: UploadOne,
     @InjectPinoLogger(LoginService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -114,7 +113,7 @@ export class LoginService {
       (id) => id.id,
     );
 
-    const contact = await this.getFormattedContact(message);
+    const contact = await getFormattedContact(client, message);
 
     await this.userService.createUser({
       chatId: message.from,
@@ -136,38 +135,5 @@ export class LoginService {
     );
 
     await this.getEditaisAndamento.execute(message);
-  }
-
-  private async getFormattedContact(message: pkg.Message) {
-    let userId = message.from;
-
-    if (userId.endsWith('@lid')) {
-      const [resolved] = await client.getContactLidAndPhone([userId]);
-
-      if (!resolved?.pn) {
-        const contact = await message.getContact();
-        this.logger.warn(
-          {
-            evt: 'login.contact.lid_unresolved',
-            chatId: maskContact(message.from),
-            fallbackFound: Boolean(contact.number),
-          },
-          'Não foi possível resolver o telefone a partir do @lid',
-        );
-        return contact.number ?? userId;
-      }
-
-      this.logger.debug(
-        {
-          evt: 'login.contact.lid_resolved',
-          chatId: maskContact(message.from),
-        },
-        'Telefone resolvido a partir do @lid',
-      );
-
-      userId = resolved.pn;
-    }
-
-    return client.getFormattedNumber(userId);
   }
 }

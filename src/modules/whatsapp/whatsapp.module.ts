@@ -11,6 +11,7 @@ import { FilesModule } from '../files/files.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
 import { DeactiveUser } from './services/deactiveUser.js';
+import { ReactiveUser } from './services/reactiveUser.js';
 
 @Module({
   imports: [
@@ -28,6 +29,8 @@ import { DeactiveUser } from './services/deactiveUser.js';
     DeactiveUser,
     LoginService,
     GetEditaisAndamento,
+    ReactiveUser,
+    DeactiveUser,
   ],
   controllers: [WhatsappController],
 })

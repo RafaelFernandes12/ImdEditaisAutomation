@@ -30,7 +30,24 @@ export class UserRepository {
       include: { sends: true },
     });
   }
-
+  async reactiveUser(
+    contact: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.update({
+      where: { contact },
+      data: { isActive: true },
+    });
+  }
+  async deactiveUser(
+    contact: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return await tx.user.update({
+      where: { contact },
+      data: { isActive: false },
+    });
+  }
   async findByContact(
     contact: string,
     tx: Prisma.TransactionClient = this.prisma,

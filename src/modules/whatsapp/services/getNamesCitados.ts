@@ -4,6 +4,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { PdfService } from '../../pdf/services/pdf.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { formatDate } from '#src/utils/formate-date.js';
 
 @Injectable()
 export class GetNamesCitados {
@@ -47,7 +48,7 @@ export class GetNamesCitados {
       .map((pdf, index) => {
         return (
           `*${index + 1}. ${pdf.edital.title}*\n` +
-          `🗓️ Inscrições até: ${pdf.edital.subscriptionUntil}\n` +
+          `🗓️ Inscrições até: ${formatDate(pdf.edital.subscriptionUntil)}\n` +
           `🔗 ${pdf.edital.link}\n` +
           `${pdf.label}:${pdf.link}\n` +
           `${pdf.edital.summary}`
