@@ -53,6 +53,7 @@ export class LoginService {
       const currentStep = this.steps[pending.stepIndex];
       pending.data[currentStep.key] = message.body;
 
+      console.log('DEBUGANDO');
       this.logger.debug(
         {
           evt: 'login.step.answered',
