@@ -1,4 +1,4 @@
-import { Logger } from 'nestjs-pino';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EditalService } from '../../edital/services/edital.service.js';
 import { PdfService } from '../../pdf/services/pdf.service.js';
 import { resolvePdfTipo } from '../services/pdf-tipo.util.js';
@@ -28,17 +28,72 @@ export class GetNewEditaisConsumer extends WorkerHost {
     private editalService: EditalService,
     private pdfService: PdfService,
     private summarizeEdital: SummarizeEdital,
-    private readonly logger: Logger,
+    @InjectPinoLogger(GetNewEditaisConsumer.name)
+    private readonly logger: PinoLogger,
   ) {
     super();
   }
+
   async process(job: Job) {
+    const startedAt = Date.now();
+    const edital = job.data as getNewEditaisResult;
+
+    this.logger.info(
+      {
+        evt: 'queue.get_new_editais.job_start',
+        queue: 'getNewEditais',
+        jobId: job.id,
+        attempt: job.attemptsMade + 1,
+        editalTitle: edital.title,
+        pdfCount: edital.pdfs.length,
+      },
+      'Processando novo edital',
+    );
+
     try {
-      const edital = job.data as getNewEditaisResult;
-      const summary = await this.summarizeEdital.execute(
-        trimEditalForSummary(edital.pdfs[0].text),
+      if (edital.pdfs.length === 0) {
+        this.logger.warn(
+          {
+            evt: 'queue.get_new_editais.no_pdfs',
+            queue: 'getNewEditais',
+            jobId: job.id,
+            editalTitle: edital.title,
+          },
+          'Edital chegou na fila sem nenhum PDF',
+        );
+      }
+
+      const trimmed = trimEditalForSummary(edital.pdfs[0].text);
+
+      this.logger.debug(
+        {
+          evt: 'queue.get_new_editais.trimmed',
+          queue: 'getNewEditais',
+          jobId: job.id,
+          editalTitle: edital.title,
+          rawLength: edital.pdfs[0].text.length,
+          trimmedLength: trimmed.length,
+        },
+        'Texto do edital preparado para o resumo',
       );
+
+      const summarizeStartedAt = Date.now();
+      const summary = await this.summarizeEdital.execute(trimmed);
       const keyWords = extractAllKeywords(summary).join(', ');
+
+      this.logger.info(
+        {
+          evt: 'queue.get_new_editais.summarized',
+          queue: 'getNewEditais',
+          jobId: job.id,
+          editalTitle: edital.title,
+          summaryLength: summary.length,
+          keywordCount: keyWords ? keyWords.split(', ').length : 0,
+          durationMs: Date.now() - summarizeStartedAt,
+        },
+        'Edital resumido pela LLM',
+      );
+
       const createdEdital = await this.editalService.createEdital({
         badge: edital.badge,
         title: edital.title,
@@ -48,6 +103,7 @@ export class GetNewEditaisConsumer extends WorkerHost {
         keyWords,
         summary,
       });
+
       const pdfCreate = edital.pdfs.map((pdf) => ({
         ...pdf,
         editalId: createdEdital.id,
@@ -55,7 +111,34 @@ export class GetNewEditaisConsumer extends WorkerHost {
       }));
 
       await this.pdfService.createMany(pdfCreate);
-    } catch (e) {
+
+      this.logger.info(
+        {
+          evt: 'queue.get_new_editais.job_done',
+          queue: 'getNewEditais',
+          jobId: job.id,
+          attempt: job.attemptsMade + 1,
+          editalId: createdEdital.id,
+          editalTitle: edital.title,
+          pdfCount: pdfCreate.length,
+          pdfTypes: pdfCreate.map((p) => p.type),
+          durationMs: Date.now() - startedAt,
+        },
+        'Edital gravado com seus PDFs',
+      );
+    } catch (e: unknown) {
+      this.logger.error(
+        {
+          evt: 'queue.get_new_editais.job_failed',
+          queue: 'getNewEditais',
+          jobId: job.id,
+          attempt: job.attemptsMade + 1,
+          editalTitle: edital.title,
+          durationMs: Date.now() - startedAt,
+          err: e,
+        },
+        'Falha ao processar novo edital',
+      );
       throw new BadRequestException(e);
     }
   }

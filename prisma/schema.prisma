@@ -64,10 +64,11 @@ model Pdf {
 }
 
 model User {
-  id      Int    @id @default(autoincrement())
-  name    String
-  chatId  String @unique
-  contact String @unique
+  id       Int     @id @default(autoincrement())
+  name     String
+  chatId   String  @unique
+  contact  String  @unique
+  isActive Boolean @default(true)
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)

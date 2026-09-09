@@ -1,22 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
-import { Logger } from 'nestjs-pino';
 import { PdfTipo, Prisma } from '../../../../generated/prisma/client.js';
 import { CreatePdf } from '../dto/pdf.dto.js';
 
 @Injectable()
 export class PdfRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createMany(
     data: CreatePdf[],
     tx: Prisma.TransactionClient = this.prisma,
   ) {
     const pdf = await tx.pdf.createMany({ data });
-    this.logger.log('Insert pdf', pdf);
     return pdf;
   }
   async findAllResultadosByUserName(
@@ -54,7 +49,6 @@ export class PdfRepository {
   }
   async findByLink(link: string, tx: Prisma.TransactionClient = this.prisma) {
     const pdf = await tx.pdf.findUnique({ where: { link } });
-    this.logger.log('GetPdfByLink', pdf?.id);
     return pdf;
   }
 
@@ -63,7 +57,6 @@ export class PdfRepository {
     tx: Prisma.TransactionClient = this.prisma,
   ) {
     const pdfs = await tx.pdf.findMany({ where: { editalId } });
-    this.logger.log('GetPdfsByEditalId', pdfs.length);
     return pdfs;
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Logger } from 'nestjs-pino';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EditaisScraperService } from '../services/editais-scraper.service.js';
 import { PdfExtractorService } from '../services/pdf-extractor.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -13,22 +13,49 @@ export class GetNewEditaisProvider {
     private pdfExtractorService: PdfExtractorService,
 
     @InjectQueue('getNewEditais') private getNewEditais: Queue,
-    private readonly logger: Logger,
+    @InjectPinoLogger(GetNewEditaisProvider.name)
+    private readonly logger: PinoLogger,
   ) {}
 
   @Cron(CronExpression.EVERY_6_HOURS)
   async execute() {
-    this.logger.log('Start execute web-scrapping');
+    const startedAt = Date.now();
 
-    const resEmAndamento = await this.pdfExtractorService.execute(
-      await this.editaisScraperService.getEditaisEmAndamento(),
+    this.logger.info(
+      { evt: 'cron.get_new_editais.start', cron: true },
+      'Iniciando coleta de novos editais',
     );
 
-    const editais = resEmAndamento.map((r) => ({ ...r, isActive: true }));
-    await this.getNewEditais.addBulk(
-      editais.map((edital) => ({ name: 'getNewEditais', data: edital })),
-    );
+    try {
+      const resEmAndamento = await this.pdfExtractorService.execute(
+        await this.editaisScraperService.getEditaisEmAndamento(),
+      );
 
-    this.logger.log('Finish execute web-scrapping');
+      const editais = resEmAndamento.map((r) => ({ ...r, isActive: true }));
+      await this.getNewEditais.addBulk(
+        editais.map((edital) => ({ name: 'getNewEditais', data: edital })),
+      );
+
+      this.logger.info(
+        {
+          evt: 'cron.get_new_editais.done',
+          cron: true,
+          enqueued: editais.length,
+          durationMs: Date.now() - startedAt,
+        },
+        'Coleta de novos editais finalizada',
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        {
+          evt: 'cron.get_new_editais.failed',
+          cron: true,
+          durationMs: Date.now() - startedAt,
+          err: error,
+        },
+        'Falha na coleta de novos editais',
+      );
+      throw error;
+    }
   }
 }

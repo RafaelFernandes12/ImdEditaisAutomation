@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
-import { Logger } from 'nestjs-pino';
 import { Prisma } from '../../../../generated/prisma/client.js';
 
 interface CreateUserData {
@@ -12,17 +11,13 @@ interface CreateUserData {
 
 @Injectable()
 export class UserRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(
     data: CreateUserData,
     tx: Prisma.TransactionClient = this.prisma,
   ) {
     const user = await tx.user.create({ data });
-    this.logger.log('Insert user', user);
     return user;
   }
 

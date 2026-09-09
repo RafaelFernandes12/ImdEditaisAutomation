@@ -11,6 +11,8 @@ import { UserModule } from './modules/user/user.module.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
 
+const LOG_LEVEL = process.env.LOG_LEVEL ?? 'info';
+
 @Module({
   imports: [
     AiChatModule,
@@ -20,12 +22,13 @@ import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
     ScheduleModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
-        level: 'info',
+        level: LOG_LEVEL,
         enabled: true,
         transport: {
           targets: [
             {
               target: 'pino-loki',
+              level: LOG_LEVEL,
               options: {
                 host: process.env.LOKI_URL,
                 labels: { app: 'projeto_ai' },
@@ -33,7 +36,11 @@ import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
                 interval: 5,
               },
             },
-            { target: 'pino-pretty', options: { colorize: true } },
+            {
+              target: 'pino-pretty',
+              level: LOG_LEVEL,
+              options: { colorize: true },
+            },
           ],
         },
       },

@@ -1,15 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
-import { Logger } from 'nestjs-pino';
 import { Prisma } from '../../../../generated/prisma/client.js';
 import { CreateEdital } from '../dto/edital.dto.js';
 
 @Injectable()
 export class EditalRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createEdital(
     data: CreateEdital,
@@ -28,7 +24,6 @@ export class EditalRepository {
       },
       update: { badge: data.badge },
     });
-    this.logger.log('Insert edital', edital);
 
     return edital;
   }
@@ -38,7 +33,6 @@ export class EditalRepository {
       where: { isActive: true },
       include: { pdfs: true, sends: true },
     });
-    this.logger.log('GetEditaisActive', editais);
     return editais;
   }
 
@@ -64,7 +58,6 @@ export class EditalRepository {
           }),
       ),
     );
-    this.logger.log('DeactivateEditais', editais);
     return editais;
   }
 }

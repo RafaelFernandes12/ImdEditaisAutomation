@@ -10,13 +10,22 @@ import { GetEditaisAndamento } from './services/getEditaisAndamento.js';
 import { FilesModule } from '../files/files.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
+import { DeactiveUser } from './services/deactiveUser.js';
 
 @Module({
-  imports: [PrismaModule, UserModule, EditalModule, FilesModule, AiChatModule, PdfModule],
+  imports: [
+    PrismaModule,
+    UserModule,
+    EditalModule,
+    FilesModule,
+    AiChatModule,
+    PdfModule,
+  ],
   exports: [WhatsappService],
   providers: [
     PrismaService,
     WhatsappService,
+    DeactiveUser,
     LoginService,
     GetEditaisAndamento,
   ],
