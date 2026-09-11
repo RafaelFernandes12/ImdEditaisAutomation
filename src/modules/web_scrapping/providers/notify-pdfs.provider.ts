@@ -14,7 +14,7 @@ export class NotifyPdfsProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron(CronExpression.EVERY_6_HOURS)
+  @Cron('10 0-23/6 * * *')
   async execute() {
     const startedAt = Date.now();
 

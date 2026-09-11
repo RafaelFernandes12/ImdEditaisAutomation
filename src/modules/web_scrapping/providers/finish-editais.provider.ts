@@ -13,7 +13,7 @@ export class FinishEditaisProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron(CronExpression.EVERY_6_HOURS)
+  @Cron('15 0-23/6 * * *')
   async execute() {
     const startedAt = Date.now();
 
