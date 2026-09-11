@@ -42,7 +42,7 @@ export class FinishEditaisProvider {
       const editais = dbActiveEditais
         .flatMap((ef) =>
           editaisFinished.flatMap((dae) => {
-            if (dae.badge === ef.badge && dae.title === ef.title) {
+            if (dae.href === ef.link) {
               const split = ef.pdfs
                 ?.at(0)
                 ?.text.split('\n')
