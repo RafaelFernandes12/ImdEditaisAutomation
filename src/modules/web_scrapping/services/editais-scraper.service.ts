@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as cheerio from 'cheerio';
 import { PdfService } from '../../pdf/services/pdf.service.js';
+import { formatDateBrToUs } from '#src/utils/formate-date.js';
 
 const SITE_BASE_URL = 'https://www.metropoledigital.ufrn.br';
 const EDITAIS_LIST_URL = `${SITE_BASE_URL}/portal/editais`;
@@ -10,7 +11,7 @@ export interface EditaisUrl {
   href: string;
   badge: string;
   title: string;
-  subscriptionUntil: string;
+  subscriptionUntil: Date;
 }
 
 export interface EditalPdfLink {
@@ -197,11 +198,9 @@ export class EditaisScraperService {
           href: `${SITE_BASE_URL}${$editaisLoaded(el).attr('href')}`,
           badge: $editaisLoaded(el).find('.badge').text(),
           title: $editaisLoaded(el).find('h5').text(),
-          subscriptionUntil: $editaisLoaded(el)
-            .find('p')
-            .text()
-            .trim()
-            .substring(0, 25),
+          subscriptionUntil: formatDateBrToUs(
+            $editaisLoaded(el).find('p').text().trim().substring(15, 25),
+          ),
         }))
         .get();
 

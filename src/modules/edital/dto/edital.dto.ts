@@ -3,7 +3,7 @@ export class CreateEdital {
   title: string;
   link: string;
   isActive: boolean;
-  subscriptionUntil: string;
+  subscriptionUntil: Date;
   summary: string;
   keyWords: string;
 }

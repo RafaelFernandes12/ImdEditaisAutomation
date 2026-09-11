@@ -14,7 +14,7 @@ interface getNewEditaisResult {
   badge: string;
   title: string;
   link: string;
-  subscriptionUntil: string;
+  subscriptionUntil: Date;
   pdfs: {
     text: string;
     label: string;
@@ -61,6 +61,7 @@ export class GetNewEditaisConsumer extends WorkerHost {
           },
           'Edital chegou na fila sem nenhum PDF',
         );
+        return;
       }
 
       const trimmed = trimEditalForSummary(edital.pdfs[0].text);
