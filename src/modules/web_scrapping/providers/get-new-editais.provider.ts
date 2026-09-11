@@ -4,7 +4,7 @@ import { EditaisScraperService } from '../services/editais-scraper.service.js';
 import { PdfExtractorService } from '../services/pdf-extractor.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class GetNewEditaisProvider {
@@ -17,7 +17,7 @@ export class GetNewEditaisProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron(CronExpression.EVERY_6_HOURS)
+  @Cron('0 8,17 * * 1-5', { timeZone: 'America/Sao_Paulo' })
   async execute() {
     const startedAt = Date.now();
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EditalService } from '../../edital/services/edital.service.js';
 import { EditaisScraperService } from '../services/editais-scraper.service.js';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class FinishEditaisProvider {
@@ -13,7 +13,7 @@ export class FinishEditaisProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron('15 0-23/6 * * *')
+  @Cron('10 8,17 * * 1-5', { timeZone: 'America/Sao_Paulo' })
   async execute() {
     const startedAt = Date.now();
 
