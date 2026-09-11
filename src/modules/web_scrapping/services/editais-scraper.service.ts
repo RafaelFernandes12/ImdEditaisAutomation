@@ -196,7 +196,7 @@ export class EditaisScraperService {
         .find('a')
         .map((_, el) => ({
           href: `${SITE_BASE_URL}${$editaisLoaded(el).attr('href')}`,
-          badge: $editaisLoaded(el).find('.badge').text(),
+          badge: $editaisLoaded(el).find('.badge').first().text(),
           title: $editaisLoaded(el).find('h5').text(),
           subscriptionUntil: formatDateBrToUs(
             $editaisLoaded(el).find('p').text().trim().substring(15, 25),
