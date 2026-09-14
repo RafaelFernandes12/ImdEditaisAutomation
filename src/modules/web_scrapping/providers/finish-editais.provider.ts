@@ -44,7 +44,7 @@ export class FinishEditaisProvider {
           editaisFinished.flatMap((dae) => {
             if (dae.href === ef.link) {
               const split = ef.pdfs
-                ?.at(0)
+                ?.find((pdf) => pdf.type === 'EDITAL')
                 ?.text.split('\n')
                 ?.find((v) => v.match('validade'))
                 ?.match(/(\d+)\s*(?:\([^)]*\)\s*)?m[eê]s(?:es)?/i)?.[1];
@@ -58,8 +58,10 @@ export class FinishEditaisProvider {
                     evt: 'cron.finish_editais.valid_until_unparsed',
                     cron: true,
                     editalId: ef.id,
-                    editalTitle: ef.title,
-                    hasPdf: Boolean(ef.pdfs?.at(0)),
+                    editalTitle: ef.title + ef.badge,
+                    hasPdf: Boolean(
+                      ef.pdfs?.find((pdf) => pdf.type === 'EDITAL'),
+                    ),
                   },
                   'Não foi possível extrair a validade do edital',
                 );
