@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { openAIClient } from '../../../config/openai/openai.service.js';
 
 @Injectable()
-export class SummarizeEdital {
+export class SummarizeJob {
   constructor() {}
   summarizePrompt = `Atue como um redator de vagas de emprego focado em comunicação ultradireta para WhatsApp. Seu objetivo é resumir as oportunidades do PDF em formato compacto, sem enrolação.
 
@@ -29,13 +29,13 @@ Aqui está o PDF:
 
   async execute(pdfText: string) {
     try {
-      const editalResume = await openAIClient.responses.create({
+      const jobResume = await openAIClient.responses.create({
         model: process.env.LLM_MODEL ?? 'gpt-4o-mini',
         input: this.summarizePrompt + pdfText,
       });
 
-      console.log('EDITALRESUME', editalResume);
-      return editalResume.output_text;
+      console.log('JOBRESUME', jobResume);
+      return jobResume.output_text;
     } catch (e) {
       throw new BadRequestException(e);
     }

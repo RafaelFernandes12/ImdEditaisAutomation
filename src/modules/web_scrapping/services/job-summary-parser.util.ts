@@ -1,11 +1,11 @@
-export interface EditalJobKeywords {
+export interface JobKeywords {
   vaga: string;
   palavrasChaves: string[];
 }
 
-export function extractKeywordsPerJob(summary: string): EditalJobKeywords[] {
+export function extractKeywordsPerJob(summary: string): JobKeywords[] {
   const lines = summary.split(/\r?\n/);
-  const jobs: EditalJobKeywords[] = [];
+  const jobs: JobKeywords[] = [];
   let currentVaga = '';
 
   for (const line of lines) {

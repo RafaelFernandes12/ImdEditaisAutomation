@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EditalService } from '../../edital/services/edital.service.js';
-import { EditaisScraperService } from '../services/editais-scraper.service.js';
+import { JobsService } from '../../jobs/services/jobs.service.js';
+import { ImdScraperService } from '../services/imd-scraper.service.js';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class FinishEditaisProvider {
+export class FinishJobsProvider {
   constructor(
-    private editaisScraperService: EditaisScraperService,
-    private editalService: EditalService,
-    @InjectPinoLogger(FinishEditaisProvider.name)
+    private imdScraperService: ImdScraperService,
+    private jobsService: JobsService,
+    @InjectPinoLogger(FinishJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
 
@@ -18,32 +18,33 @@ export class FinishEditaisProvider {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'cron.finish_editais.start', cron: true },
+      { evt: 'cron.finish_jobs.start', cron: true },
       'Verificando editais encerrados',
     );
 
     try {
-      const editaisFinished =
-        await this.editaisScraperService.getEditaisFinished();
-      const dbActiveEditais = await this.editalService.findActive();
+      const jobsFinished = await this.imdScraperService.getJobsFinished();
+      const dbActiveJobs = await this.jobsService.findActive();
 
       this.logger.debug(
         {
-          evt: 'cron.finish_editais.candidates',
+          evt: 'cron.finish_jobs.candidates',
           cron: true,
-          finishedOnSite: editaisFinished.length,
-          activeInDb: dbActiveEditais.length,
+          finishedOnSite: jobsFinished.length,
+          activeInDb: dbActiveJobs.length,
         },
         'Comparando editais encerrados com os ativos no banco',
       );
 
       let unparsedValidUntil = 0;
 
-      const editais = dbActiveEditais
+      const jobsToFinish = dbActiveJobs
         .flatMap((ef) =>
-          editaisFinished.flatMap((dae) => {
+          jobsFinished.flatMap((dae) => {
             if (dae.href === ef.link) {
-              const split = ef.pdfs
+              if (!ef.edital) return;
+
+              const split = ef.edital.pdfs
                 ?.find((pdf) => pdf.type === 'EDITAL')
                 ?.text.split('\n')
                 ?.find((v) => v.match('validade'))
@@ -55,12 +56,12 @@ export class FinishEditaisProvider {
                 unparsedValidUntil += 1;
                 this.logger.warn(
                   {
-                    evt: 'cron.finish_editais.valid_until_unparsed',
+                    evt: 'cron.finish_jobs.valid_until_unparsed',
                     cron: true,
-                    editalId: ef.id,
-                    editalTitle: ef.title + ef.badge,
+                    jobId: ef.id,
+                    jobTitle: ef.title,
                     hasPdf: Boolean(
-                      ef.pdfs?.find((pdf) => pdf.type === 'EDITAL'),
+                      ef.edital.pdfs?.find((pdf) => pdf.type === 'EDITAL'),
                     ),
                   },
                   'Não foi possível extrair a validade do edital',
@@ -76,15 +77,15 @@ export class FinishEditaisProvider {
         )
         .filter((f) => f !== undefined);
 
-      await this.editalService.deactivateMany(editais);
+      await this.jobsService.deactivateMany(jobsToFinish);
 
       this.logger.info(
         {
-          evt: 'cron.finish_editais.done',
+          evt: 'cron.finish_jobs.done',
           cron: true,
-          finishedOnSite: editaisFinished.length,
-          activeInDb: dbActiveEditais.length,
-          deactivated: editais.length,
+          finishedOnSite: jobsFinished.length,
+          activeInDb: dbActiveJobs.length,
+          deactivated: jobsToFinish.length,
           unparsedValidUntil,
           durationMs: Date.now() - startedAt,
         },
@@ -93,7 +94,7 @@ export class FinishEditaisProvider {
     } catch (error: unknown) {
       this.logger.error(
         {
-          evt: 'cron.finish_editais.failed',
+          evt: 'cron.finish_jobs.failed',
           cron: true,
           durationMs: Date.now() - startedAt,
           err: error,

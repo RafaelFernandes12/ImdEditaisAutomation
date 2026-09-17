@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EditaisScraperService } from '../services/editais-scraper.service.js';
+import { ImdScraperService } from '../services/imd-scraper.service.js';
 import { PdfExtractorService } from '../services/pdf-extractor.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class GetNewEditaisProvider {
+export class GetNewJobsProvider {
   constructor(
-    private editaisScraperService: EditaisScraperService,
+    private imdScraperService: ImdScraperService,
     private pdfExtractorService: PdfExtractorService,
 
-    @InjectQueue('getNewEditais') private getNewEditais: Queue,
-    @InjectPinoLogger(GetNewEditaisProvider.name)
+    @InjectQueue('getNewJobs') private getNewJobs: Queue,
+    @InjectPinoLogger(GetNewJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
 
@@ -22,25 +22,25 @@ export class GetNewEditaisProvider {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'cron.get_new_editais.start', cron: true },
+      { evt: 'cron.get_new_jobs.start', cron: true },
       'Iniciando coleta de novos editais',
     );
 
     try {
       const resEmAndamento = await this.pdfExtractorService.execute(
-        await this.editaisScraperService.getEditaisEmAndamento(),
+        await this.imdScraperService.getJobsEmAndamento(),
       );
 
-      const editais = resEmAndamento.map((r) => ({ ...r, isActive: true }));
-      await this.getNewEditais.addBulk(
-        editais.map((edital) => ({ name: 'getNewEditais', data: edital })),
+      const jobs = resEmAndamento.map((r) => ({ ...r, isActive: true }));
+      await this.getNewJobs.addBulk(
+        jobs.map((job) => ({ name: 'getNewJobs', data: job })),
       );
 
       this.logger.info(
         {
-          evt: 'cron.get_new_editais.done',
+          evt: 'cron.get_new_jobs.done',
           cron: true,
-          enqueued: editais.length,
+          enqueued: jobs.length,
           durationMs: Date.now() - startedAt,
         },
         'Coleta de novos editais finalizada',
@@ -48,7 +48,7 @@ export class GetNewEditaisProvider {
     } catch (error: unknown) {
       this.logger.error(
         {
-          evt: 'cron.get_new_editais.failed',
+          evt: 'cron.get_new_jobs.failed',
           cron: true,
           durationMs: Date.now() - startedAt,
           err: error,

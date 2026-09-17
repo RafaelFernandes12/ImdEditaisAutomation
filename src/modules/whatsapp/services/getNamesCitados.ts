@@ -28,9 +28,9 @@ export class GetNamesCitados {
     );
 
     const user = await this.userService.findByChatId('oi');
-    const editais = await this.pdfService.findAllResultadosByUserName('rafael');
+    const pdfs = await this.pdfService.findAllResultadosByUserName('rafael');
 
-    if (editais.length === 0) {
+    if (pdfs.length === 0) {
       this.logger.info(
         {
           evt: 'wa.names_citados.empty',
@@ -44,14 +44,14 @@ export class GetNamesCitados {
       return;
     }
 
-    const body = editais
+    const body = pdfs
       .map((pdf, index) => {
         return (
-          `*${index + 1}. ${pdf.edital.title}*\n` +
+          `*${index + 1}. ${pdf.edital.job.title}*\n` +
           `🗓️ Inscrições até: ${formatDate(pdf.edital.subscriptionUntil)}\n` +
-          `🔗 ${pdf.edital.link}\n` +
+          `🔗 ${pdf.edital.job.link}\n` +
           `${pdf.label}:${pdf.link}\n` +
-          `${pdf.edital.summary}`
+          `${pdf.edital.job.summary}`
         );
       })
       .join('\n\n');
@@ -63,7 +63,7 @@ export class GetNamesCitados {
         evt: 'wa.names_citados.done',
         chatId: maskContact(message.from),
         userFound: user !== null,
-        count: editais.length,
+        count: pdfs.length,
         messageLength: body.length,
         durationMs: Date.now() - startedAt,
       },

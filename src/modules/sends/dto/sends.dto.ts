@@ -1,5 +1,5 @@
 export class CreateSend {
   userId: number;
-  editalId: number;
+  jobId: number;
   pdfId: number;
 }

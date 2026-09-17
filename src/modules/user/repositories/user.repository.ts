@@ -58,6 +58,7 @@ export class UserRepository {
   async findMany(tx: Prisma.TransactionClient = this.prisma) {
     return await tx.user.findMany({
       include: { sends: true },
+      where: { isActive: true },
     });
   }
 }

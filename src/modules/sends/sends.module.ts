@@ -7,8 +7,6 @@ import { SendsService } from './services/sends.service.js';
 @Module({
   imports: [PrismaModule],
   providers: [PrismaService, SendsRepository, SendsService],
-  // SendsRepository is exported alongside SendsService so
-  // UserEditaisLinkingService can create sends inside its transaction.
   exports: [SendsService, SendsRepository],
 })
 export class SendsModule {}

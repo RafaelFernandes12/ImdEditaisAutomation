@@ -5,17 +5,17 @@ import { Prisma } from '../../../../generated/prisma/client.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { PdfRepository } from '../../pdf/repositories/pdf.repository.js';
 import { SendsRepository } from '../../sends/repositories/sends.repository.js';
-import { CreateUser, UpdateEditaisUser } from '../dto/user.dto.js';
+import { CreateUser, UpdateJobsUser } from '../dto/user.dto.js';
 import { maskContact } from '../../../utils/log-redact.js';
 
 @Injectable()
-export class UserEditaisLinkingService {
+export class UserJobsLinkingService {
   constructor(
     private readonly prisma: PrismaService,
     private userRepository: UserRepository,
     private pdfRepository: PdfRepository,
     private sendsRepository: SendsRepository,
-    @InjectPinoLogger(UserEditaisLinkingService.name)
+    @InjectPinoLogger(UserJobsLinkingService.name)
     private readonly logger: PinoLogger,
   ) {}
 
@@ -32,13 +32,13 @@ export class UserEditaisLinkingService {
         tx,
       );
 
-      const linked = await this.linkEditais(tx, user.id, data.editaisId);
+      const linked = await this.linkJobs(tx, user.id, data.jobsId);
 
       this.logger.info(
         {
-          evt: 'user.link_editais.created',
+          evt: 'user.link_jobs.created',
           userId: user.id,
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           sendsCreated: linked.sendsCreated,
           durationMs: Date.now() - startedAt,
         },
@@ -49,7 +49,7 @@ export class UserEditaisLinkingService {
     });
   }
 
-  async updateEditaisUser(data: UpdateEditaisUser) {
+  async updateJobsUser(data: UpdateJobsUser) {
     const startedAt = Date.now();
 
     return this.prisma.$transaction(async (tx) => {
@@ -57,22 +57,22 @@ export class UserEditaisLinkingService {
       if (!user) {
         this.logger.warn(
           {
-            evt: 'user.link_editais.user_not_found',
+            evt: 'user.link_jobs.user_not_found',
             contact: maskContact(data.contact),
-            editaisCount: data.editaisId.length,
+            jobsCount: data.jobsId.length,
           },
           'Usuário não encontrado ao vincular editais',
         );
         throw new Error(`User with contact ${data.contact} not found`);
       }
 
-      const linked = await this.linkEditais(tx, user.id, data.editaisId);
+      const linked = await this.linkJobs(tx, user.id, data.jobsId);
 
       this.logger.info(
         {
-          evt: 'user.link_editais.updated',
+          evt: 'user.link_jobs.updated',
           userId: user.id,
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           sendsCreated: linked.sendsCreated,
           durationMs: Date.now() - startedAt,
         },
@@ -83,23 +83,23 @@ export class UserEditaisLinkingService {
     });
   }
 
-  private async linkEditais(
+  private async linkJobs(
     tx: Prisma.TransactionClient,
     userId: number,
-    editaisId: number[],
+    jobsId: number[],
   ) {
     let sendsCreated = 0;
-    let editaisWithoutPdfs = 0;
+    let jobsWithoutPdfs = 0;
 
-    for (const editalId of editaisId) {
-      const pdfs = await this.pdfRepository.findByEditalId(editalId, tx);
+    for (const jobId of jobsId) {
+      const pdfs = await this.pdfRepository.findByJobId(jobId, tx);
 
       if (pdfs.length === 0) {
-        editaisWithoutPdfs += 1;
+        jobsWithoutPdfs += 1;
       }
 
       const created = await this.sendsRepository.createMany(
-        pdfs.map((pdf) => ({ userId, editalId, pdfId: pdf.id })),
+        pdfs.map((pdf) => ({ userId, jobId, pdfId: pdf.id })),
         tx,
       );
 
@@ -107,9 +107,9 @@ export class UserEditaisLinkingService {
 
       this.logger.debug(
         {
-          evt: 'user.link_editais.edital',
+          evt: 'user.link_jobs.job',
           userId,
-          editalId,
+          jobId,
           pdfCount: pdfs.length,
           sendsCreated: created.count,
         },
@@ -117,18 +117,18 @@ export class UserEditaisLinkingService {
       );
     }
 
-    if (editaisWithoutPdfs > 0) {
+    if (jobsWithoutPdfs > 0) {
       this.logger.warn(
         {
-          evt: 'user.link_editais.editais_without_pdfs',
+          evt: 'user.link_jobs.jobs_without_pdfs',
           userId,
-          editaisWithoutPdfs,
-          editaisCount: editaisId.length,
+          jobsWithoutPdfs,
+          jobsCount: jobsId.length,
         },
         'Editais sem PDF não geraram registro de envio',
       );
     }
 
-    return { sendsCreated, editaisWithoutPdfs };
+    return { sendsCreated, jobsWithoutPdfs };
   }
 }

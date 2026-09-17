@@ -1,17 +1,17 @@
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
-import { EditalService } from '../../edital/services/edital.service.js';
+import { JobsService } from '../../jobs/services/jobs.service.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
 import { formatDate } from '#src/utils/formate-date.js';
 
-@Processor('notifyNewEditais')
-export class NotifyNewEditaisConsumer extends WorkerHost {
+@Processor('notifyNewJobs')
+export class NotifyNewJobsConsumer extends WorkerHost {
   constructor(
-    private editalService: EditalService,
-    @InjectPinoLogger(NotifyNewEditaisConsumer.name)
+    private jobsService: JobsService,
+    @InjectPinoLogger(NotifyNewJobsConsumer.name)
     private readonly logger: PinoLogger,
     private readonly userService: UserService,
   ) {
@@ -26,9 +26,9 @@ export class NotifyNewEditaisConsumer extends WorkerHost {
 
     this.logger.debug(
       {
-        evt: 'queue.notify_new_editais.job_start',
-        queue: 'notifyNewEditais',
-        jobId: job.id,
+        evt: 'queue.notify_new_jobs.job_start',
+        queue: 'notifyNewJobs',
+        queueJobId: job.id,
         attempt: job.attemptsMade + 1,
         userId: user.id,
       },
@@ -36,19 +36,19 @@ export class NotifyNewEditaisConsumer extends WorkerHost {
     );
 
     try {
-      const editaisAndamento = await this.editalService.findActive();
-      const newEditais = editaisAndamento.filter(
-        (e) => !user.sends.some((uSends) => uSends.editalId === e.id),
+      const jobsAndamento = await this.jobsService.findActive();
+      const newJobs = jobsAndamento.filter(
+        (e) => !user.sends.some((uSends) => uSends.jobId === e.id),
       );
 
-      if (newEditais.length === 0) {
+      if (newJobs.length === 0) {
         this.logger.debug(
           {
-            evt: 'queue.notify_new_editais.nothing_new',
-            queue: 'notifyNewEditais',
-            jobId: job.id,
+            evt: 'queue.notify_new_jobs.nothing_new',
+            queue: 'notifyNewJobs',
+            queueJobId: job.id,
             userId: user.id,
-            activeCount: editaisAndamento.length,
+            activeCount: jobsAndamento.length,
             durationMs: Date.now() - startedAt,
           },
           'Nenhum edital novo para o usuário',
@@ -56,51 +56,55 @@ export class NotifyNewEditaisConsumer extends WorkerHost {
         return;
       }
 
-      const editaisLines = newEditais.map((edital, index) => {
-        const pdfLines = edital.pdfs
+      const jobsLines = newJobs.map((newJob, index) => {
+        const pdfLines = (newJob.edital?.pdfs ?? [])
           .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
           .join('\n');
 
+        const subscriptionLine = newJob.edital
+          ? `🗓️ Inscrições até: ${formatDate(newJob.edital.subscriptionUntil)}\n`
+          : '';
+
         return (
-          `*${index + 1}. ${edital.title}*\n` +
-          `🗓️ Inscrições até: ${formatDate(edital.subscriptionUntil)}\n` +
-          `🔗 ${edital.link}\n` +
+          `*${index + 1}. ${newJob.title}*\n` +
+          subscriptionLine +
+          `🔗 ${newJob.link}\n` +
           `${pdfLines}\n` +
-          `${edital.summary}`
+          `${newJob.summary}`
         );
       });
 
-      const body = editaisLines.join('\n\n');
+      const body = jobsLines.join('\n\n');
 
       const sendStartedAt = Date.now();
       await client.sendMessage(user.chatId, body);
 
       this.logger.info(
         {
-          evt: 'queue.notify_new_editais.message_sent',
-          queue: 'notifyNewEditais',
-          jobId: job.id,
+          evt: 'queue.notify_new_jobs.message_sent',
+          queue: 'notifyNewJobs',
+          queueJobId: job.id,
           userId: user.id,
-          newEditaisCount: newEditais.length,
+          newJobsCount: newJobs.length,
           messageLength: body.length,
           durationMs: Date.now() - sendStartedAt,
         },
         'Mensagem de novos editais enviada',
       );
 
-      await this.userService.updateEditaisUser({
+      await this.userService.updateJobsUser({
         contact: user.contact,
-        editaisId: newEditais.map((e) => e.id),
+        jobsId: newJobs.map((e) => e.id),
       });
 
       this.logger.info(
         {
-          evt: 'queue.notify_new_editais.job_done',
-          queue: 'notifyNewEditais',
-          jobId: job.id,
+          evt: 'queue.notify_new_jobs.job_done',
+          queue: 'notifyNewJobs',
+          queueJobId: job.id,
           attempt: job.attemptsMade + 1,
           userId: user.id,
-          newEditaisCount: newEditais.length,
+          newJobsCount: newJobs.length,
           durationMs: Date.now() - startedAt,
         },
         'Usuário notificado sobre novos editais',
@@ -108,9 +112,9 @@ export class NotifyNewEditaisConsumer extends WorkerHost {
     } catch (e: unknown) {
       this.logger.error(
         {
-          evt: 'queue.notify_new_editais.job_failed',
-          queue: 'notifyNewEditais',
-          jobId: job.id,
+          evt: 'queue.notify_new_jobs.job_failed',
+          queue: 'notifyNewJobs',
+          queueJobId: job.id,
           attempt: job.attemptsMade + 1,
           userId: user.id,
           durationMs: Date.now() - startedAt,

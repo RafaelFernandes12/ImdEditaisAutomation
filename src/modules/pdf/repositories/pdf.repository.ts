@@ -3,6 +3,12 @@ import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { PdfTipo, Prisma } from '../../../../generated/prisma/client.js';
 import { CreatePdf } from '../dto/pdf.dto.js';
 
+const withJob = {
+  edital: { include: { job: true } },
+} satisfies Prisma.PdfInclude;
+
+export type PdfWithJob = Prisma.PdfGetPayload<{ include: typeof withJob }>;
+
 @Injectable()
 export class PdfRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,7 +29,7 @@ export class PdfRepository {
         text: { contains: userName, mode: 'insensitive' },
         type: 'RESULTADO',
       },
-      include: { edital: true },
+      include: withJob,
     });
     return pdf;
   }
@@ -33,17 +39,17 @@ export class PdfRepository {
   ) {
     const pdf = await tx.pdf.findMany({
       where: {
-        edital: { isActive: true },
+        edital: { job: { isActive: true } },
         text: { contains: userName, mode: 'insensitive' },
       },
-      include: { edital: true },
+      include: withJob,
     });
     return pdf;
   }
 
   async findByLabel(type: PdfTipo, tx: Prisma.TransactionClient = this.prisma) {
     const pdf = await tx.pdf.findMany({
-      where: { type, edital: { isActive: true } },
+      where: { type, edital: { job: { isActive: true } } },
     });
     return pdf;
   }
@@ -52,11 +58,8 @@ export class PdfRepository {
     return pdf;
   }
 
-  async findByEditalId(
-    editalId: number,
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
-    const pdfs = await tx.pdf.findMany({ where: { editalId } });
+  async findByJobId(jobId: number, tx: Prisma.TransactionClient = this.prisma) {
+    const pdfs = await tx.pdf.findMany({ where: { editalId: jobId } });
     return pdfs;
   }
 }

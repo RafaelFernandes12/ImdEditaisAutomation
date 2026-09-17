@@ -2,10 +2,10 @@ export class CreateUser {
   chatId: string;
   contact: string;
   name: string;
-  editaisId: number[];
+  jobsId: number[];
 }
 
-export class UpdateEditaisUser {
+export class UpdateJobsUser {
   contact: string;
-  editaisId: number[];
+  jobsId: number[];
 }

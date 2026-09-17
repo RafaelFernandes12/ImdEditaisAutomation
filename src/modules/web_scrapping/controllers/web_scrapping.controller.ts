@@ -1,17 +1,19 @@
 import { Controller, Get } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { NotifyNewEditaisProvider } from '../providers/notify-new-editais.provider.js';
-import { GetNewEditaisProvider } from '../providers/get-new-editais.provider.js';
+import { NotifyNewJobsProvider } from '../providers/notify-new-jobs.provider.js';
+import { GetNewJobsProvider } from '../providers/get-new-jobs.provider.js';
 import { NotifyPdfsProvider } from '../providers/notify-pdfs.provider.js';
-import { FinishEditaisProvider } from '../providers/finish-editais.provider.js';
+import { FinishJobsProvider } from '../providers/finish-jobs.provider.js';
+import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 
-@Controller('editais')
+@Controller('jobs')
 export class WebScrappingController {
   constructor(
-    private readonly notifyNewEditaisProvider: NotifyNewEditaisProvider,
-    private readonly getNewEditaisProvider: GetNewEditaisProvider,
+    private readonly notifyNewJobsProvider: NotifyNewJobsProvider,
+    private readonly getNewJobsProvider: GetNewJobsProvider,
+    private readonly jerimunScraperService: JerimunScraperService,
     private readonly notifyPdfsProvider: NotifyPdfsProvider,
-    private readonly finishEditaisProvider: FinishEditaisProvider,
+    private readonly finishJobsProvider: FinishJobsProvider,
     @InjectPinoLogger(WebScrappingController.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -23,10 +25,15 @@ export class WebScrappingController {
     );
   }
 
-  @Get('/finishEditais')
-  async finishEditais() {
-    this.trigger('finishEditais');
-    return await this.finishEditaisProvider.execute();
+  @Get('/finishJobs')
+  async getJerimumJobs() {
+    this.trigger('finishJobs');
+    return await this.finishJobsProvider.execute();
+  }
+  @Get('/jerimumJobs')
+  async finishJobs() {
+    this.trigger('jerimumJobs');
+    return await this.jerimunScraperService.execute();
   }
 
   @Get('/notifyPdfs')
@@ -35,15 +42,15 @@ export class WebScrappingController {
     return await this.notifyPdfsProvider.execute();
   }
 
-  @Get('/notifyNewEditais')
-  async notifyNewEditais() {
-    this.trigger('notifyNewEditais');
-    return await this.notifyNewEditaisProvider.execute();
+  @Get('/notifyNewJobs')
+  async notifyNewJobs() {
+    this.trigger('notifyNewJobs');
+    return await this.notifyNewJobsProvider.execute();
   }
 
-  @Get('/getNewEditais')
-  async getNewEditais() {
-    this.trigger('getNewEditais');
-    return await this.getNewEditaisProvider.execute();
+  @Get('/getNewJobs')
+  async getNewJobs() {
+    this.trigger('getNewJobs');
+    return await this.getNewJobsProvider.execute();
   }
 }

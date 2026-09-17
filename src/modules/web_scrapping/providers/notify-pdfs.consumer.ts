@@ -28,7 +28,7 @@ export class NotifyNewPdf extends WorkerHost {
       {
         evt: 'queue.notify_pdfs.job_start',
         queue: 'sendPdf',
-        jobId: job.id,
+        queueJobId: job.id,
         attempt: job.attemptsMade + 1,
         userId: user.id,
       },
@@ -42,7 +42,7 @@ export class NotifyNewPdf extends WorkerHost {
         {
           evt: 'queue.notify_pdfs.matched',
           queue: 'sendPdf',
-          jobId: job.id,
+          queueJobId: job.id,
           userId: user.id,
           count: pdfs.length,
         },
@@ -52,14 +52,14 @@ export class NotifyNewPdf extends WorkerHost {
       await Promise.all(
         pdfs.map(async (pdf) => {
           await this.sendsService.createMany([
-            { userId: user.id, editalId: pdf.editalId, pdfId: pdf.id },
+            { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
           ]);
           await client.sendMessage(
             user.chatId,
-            `${pdf.edital.title} - ${pdf.edital.badge}
-Seu nome foi mencionado no edital: ${pdf.edital.link}
+            `${pdf.edital.job.title}
+Seu nome foi mencionado no edital: ${pdf.edital.job.link}
 Neste pdf de ${pdf.type}: ${pdf.link}
-${pdf.edital.summary}
+${pdf.edital.job.summary}
 `,
           );
 
@@ -67,10 +67,10 @@ ${pdf.edital.summary}
             {
               evt: 'queue.notify_pdfs.message_sent',
               queue: 'sendPdf',
-              jobId: job.id,
+              queueJobId: job.id,
               userId: user.id,
               pdfId: pdf.id,
-              editalId: pdf.editalId,
+              jobId: pdf.editalId,
               pdfType: pdf.type,
             },
             'PDF que cita o usuário enviado',
@@ -82,7 +82,7 @@ ${pdf.edital.summary}
         {
           evt: 'queue.notify_pdfs.job_done',
           queue: 'sendPdf',
-          jobId: job.id,
+          queueJobId: job.id,
           attempt: job.attemptsMade + 1,
           userId: user.id,
           count: pdfs.length,
@@ -95,7 +95,7 @@ ${pdf.edital.summary}
         {
           evt: 'queue.notify_pdfs.job_failed',
           queue: 'sendPdf',
-          jobId: job.id,
+          queueJobId: job.id,
           attempt: job.attemptsMade + 1,
           userId: user.id,
           durationMs: Date.now() - startedAt,

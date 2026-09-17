@@ -6,11 +6,11 @@ import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class NotifyNewEditaisProvider {
+export class NotifyNewJobsProvider {
   constructor(
     private userService: UserService,
-    @InjectQueue('notifyNewEditais') private queue: Queue,
-    @InjectPinoLogger(NotifyNewEditaisProvider.name)
+    @InjectQueue('notifyNewJobs') private queue: Queue,
+    @InjectPinoLogger(NotifyNewJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
 
@@ -19,7 +19,7 @@ export class NotifyNewEditaisProvider {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'cron.notify_new_editais.start', cron: true },
+      { evt: 'cron.notify_new_jobs.start', cron: true },
       'Enfileirando notificação de novos editais',
     );
 
@@ -27,12 +27,12 @@ export class NotifyNewEditaisProvider {
       const users = await this.userService.findManyUsers();
 
       await this.queue.addBulk(
-        users.map((user) => ({ name: 'notifyNewEditais', data: user })),
+        users.map((user) => ({ name: 'notifyNewJobs', data: user })),
       );
 
       this.logger.info(
         {
-          evt: 'cron.notify_new_editais.done',
+          evt: 'cron.notify_new_jobs.done',
           cron: true,
           enqueued: users.length,
           durationMs: Date.now() - startedAt,
@@ -42,7 +42,7 @@ export class NotifyNewEditaisProvider {
     } catch (error: unknown) {
       this.logger.error(
         {
-          evt: 'cron.notify_new_editais.failed',
+          evt: 'cron.notify_new_jobs.failed',
           cron: true,
           durationMs: Date.now() - startedAt,
           err: error,
