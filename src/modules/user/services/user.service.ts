@@ -1,30 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserRepository } from '../repositories/user.repository.js';
-import { CreateUser, UpdateEditaisUser } from '../dto/user.dto.js';
-import { UserEditaisLinkingService } from './user-editais-linking.service.js';
+import { CreateUser, UpdateJobsUser } from '../dto/user.dto.js';
+import { UserJobsLinkingService } from './user-jobs-linking.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
 
 @Injectable()
 export class UserService {
   constructor(
     private userRepository: UserRepository,
-    private userEditaisLinkingService: UserEditaisLinkingService,
+    private userJobsLinkingService: UserJobsLinkingService,
     @InjectPinoLogger(UserService.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async updateEditaisUser(data: UpdateEditaisUser) {
+  async updateJobsUser(data: UpdateJobsUser) {
     const startedAt = Date.now();
 
     try {
-      const user = await this.userEditaisLinkingService.updateEditaisUser(data);
+      const user = await this.userJobsLinkingService.updateJobsUser(data);
 
       this.logger.info(
         {
-          evt: 'user.editais.update.done',
+          evt: 'user.jobs.update.done',
           userId: user.id,
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           durationMs: Date.now() - startedAt,
         },
         'Editais do usuário atualizados',
@@ -34,9 +34,9 @@ export class UserService {
     } catch (error: unknown) {
       this.logger.error(
         {
-          evt: 'user.editais.update.failed',
+          evt: 'user.jobs.update.failed',
           contact: maskContact(data.contact),
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           durationMs: Date.now() - startedAt,
           err: error,
         },
@@ -50,13 +50,13 @@ export class UserService {
     const startedAt = Date.now();
 
     try {
-      const user = await this.userEditaisLinkingService.createUser(data);
+      const user = await this.userJobsLinkingService.createUser(data);
 
       this.logger.info(
         {
           evt: 'user.create.done',
           userId: user.id,
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           durationMs: Date.now() - startedAt,
         },
         'Usuário criado',
@@ -68,7 +68,7 @@ export class UserService {
         {
           evt: 'user.create.failed',
           contact: maskContact(data.contact),
-          editaisCount: data.editaisId.length,
+          jobsCount: data.jobsId.length,
           durationMs: Date.now() - startedAt,
           err: error,
         },

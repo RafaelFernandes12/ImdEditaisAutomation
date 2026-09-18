@@ -3,88 +3,93 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as cheerio from 'cheerio';
 import { PdfService } from '../../pdf/services/pdf.service.js';
 import { formatDateBrToUs } from '#src/utils/formate-date.js';
+import { JobType } from '../../../../generated/prisma/client.js';
 
 const SITE_BASE_URL = 'https://www.metropoledigital.ufrn.br';
-const EDITAIS_LIST_URL = `${SITE_BASE_URL}/portal/editais`;
+const JOBS_LIST_URL = `${SITE_BASE_URL}/portal/editais`;
 
-export interface EditaisUrl {
+function joinTitleAndBadge(title: string, badge: string) {
+  const trimmedTitle = title.trim();
+  const trimmedBadge = badge.trim();
+  return trimmedBadge ? `${trimmedTitle} - ${trimmedBadge}` : trimmedTitle;
+}
+
+export interface JobUrl {
   href: string;
-  badge: string;
   title: string;
+  type: JobType;
   subscriptionUntil: Date;
 }
 
-export interface EditalPdfLink {
+export interface JobPdfLink {
   label: string;
   link: string;
 }
 
-export interface EditalWithPdfLinks extends Omit<EditaisUrl, 'href'> {
+export interface JobWithPdfLinks extends Omit<JobUrl, 'href'> {
   link: string;
-  href: EditalPdfLink[];
+  href: JobPdfLink[];
 }
 
 @Injectable()
-export class EditaisScraperService {
+export class ImdScraperService {
   constructor(
     private readonly pdfService: PdfService,
-    @InjectPinoLogger(EditaisScraperService.name)
+    @InjectPinoLogger(ImdScraperService.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async getEditaisEmAndamento(): Promise<EditaisUrl[]> {
-    return this.getEditais('.box-editais-andamentos', 'em_andamento');
+  async getImdEditaisEmAndamento(): Promise<JobUrl[]> {
+    return this.getJobs('.box-editais-andamentos', 'em_andamento');
   }
 
-  async getEditaisFinished(): Promise<EditaisUrl[]> {
-    return this.getEditais('.box-editais-encerrados', 'encerrados');
+  async getImdEditaisFinished(): Promise<JobUrl[]> {
+    return this.getJobs('.box-editais-encerrados', 'encerrados');
   }
 
-  async getEditaisPdfs(
-    editaisUrl: EditaisUrl[],
-  ): Promise<EditalWithPdfLinks[]> {
+  async getJobsPdfs(jobsUrl: JobUrl[]): Promise<JobWithPdfLinks[]> {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'scraper.pdf_links.batch_start', count: editaisUrl.length },
+      { evt: 'scraper.pdf_links.batch_start', count: jobsUrl.length },
       'Buscando links de PDF dos editais',
     );
 
     const result = await Promise.all(
-      editaisUrl.map(async (url) => {
-        const editalStartedAt = Date.now();
+      jobsUrl.map(async (url) => {
+        const jobStartedAt = Date.now();
 
         try {
-          const edital = await fetch(url.href);
+          const jobPage = await fetch(url.href);
 
-          if (!edital.ok) {
+          if (!jobPage.ok) {
             this.logger.warn(
               {
-                evt: 'scraper.edital_page.http_not_ok',
-                status: edital.status,
-                editalUrl: url.href,
-                editalTitle: url.title,
+                evt: 'scraper.job_page.http_not_ok',
+                status: jobPage.status,
+                jobUrl: url.href,
+                jobTitle: url.title,
               },
               'Página do edital respondeu com status inesperado',
             );
           }
 
-          const editalHTML = await edital.text();
+          const jobHTML = await jobPage.text();
 
-          const $editaisLoaded = cheerio.load(editalHTML);
+          const $jobsLoaded = cheerio.load(jobHTML);
 
-          const editalRow = $editaisLoaded('table.tb_noticias tr');
+          const jobRow = $jobsLoaded('table.tb_noticias tr');
 
-          const downloadHref = editalRow
+          const downloadHref = jobRow
             .find('a')
             .map((i, el) => ({
-              label: $editaisLoaded(el)
+              label: $jobsLoaded(el)
                 .closest('tr')
                 .find('td')
                 .eq(1)
                 .text()
                 .trim(),
-              link: `${SITE_BASE_URL}${$editaisLoaded(el).attr('href')}`,
+              link: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
             }))
             .get();
 
@@ -92,9 +97,9 @@ export class EditaisScraperService {
             this.logger.warn(
               {
                 evt: 'scraper.pdf_links.empty',
-                editalUrl: url.href,
-                editalTitle: url.title,
-                rowCount: editalRow.length,
+                jobUrl: url.href,
+                jobTitle: url.title,
+                rowCount: jobRow.length,
               },
               'Nenhum link de PDF encontrado na página do edital',
             );
@@ -103,8 +108,8 @@ export class EditaisScraperService {
           this.logger.debug(
             {
               evt: 'scraper.pdf_links.found',
-              editalUrl: url.href,
-              editalTitle: url.title,
+              jobUrl: url.href,
+              jobTitle: url.title,
               count: downloadHref.length,
               labels: downloadHref.map((d) => d.label),
             },
@@ -118,11 +123,11 @@ export class EditaisScraperService {
 
           this.logger.debug(
             {
-              evt: 'scraper.edital_page.done',
-              editalUrl: url.href,
-              editalTitle: url.title,
+              evt: 'scraper.job_page.done',
+              jobUrl: url.href,
+              jobTitle: url.title,
               count: downloadHref.length,
-              durationMs: Date.now() - editalStartedAt,
+              durationMs: Date.now() - jobStartedAt,
             },
             'Página do edital processada',
           );
@@ -135,10 +140,10 @@ export class EditaisScraperService {
         } catch (error: unknown) {
           this.logger.error(
             {
-              evt: 'scraper.edital_page.failed',
-              editalUrl: url.href,
-              editalTitle: url.title,
-              durationMs: Date.now() - editalStartedAt,
+              evt: 'scraper.job_page.failed',
+              jobUrl: url.href,
+              jobTitle: url.title,
+              durationMs: Date.now() - jobStartedAt,
               err: error,
             },
             'Falha ao processar a página do edital',
@@ -163,54 +168,57 @@ export class EditaisScraperService {
     return result;
   }
 
-  private async getEditais(
+  private async getJobs(
     boxName: string,
 
     listType: 'em_andamento' | 'encerrados',
-  ): Promise<EditaisUrl[]> {
+  ): Promise<JobUrl[]> {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'scraper.list.start', listType, url: EDITAIS_LIST_URL },
+      { evt: 'scraper.list.start', listType, url: JOBS_LIST_URL },
       'Buscando listagem de editais',
     );
 
     try {
-      const editais = await fetch(EDITAIS_LIST_URL);
+      const jobsList = await fetch(JOBS_LIST_URL);
 
-      if (!editais.ok) {
+      if (!jobsList.ok) {
         this.logger.warn(
           {
             evt: 'scraper.list.http_not_ok',
             listType,
-            status: editais.status,
+            status: jobsList.status,
           },
           'Listagem de editais respondeu com status inesperado',
         );
       }
 
-      const editaisHTML = await editais.text();
-      const $editaisLoaded = cheerio.load(editaisHTML);
+      const jobsHTML = await jobsList.text();
+      const $jobsLoaded = cheerio.load(jobsHTML);
 
-      const editaisHref: EditaisUrl[] = $editaisLoaded(boxName)
+      const jobsHref: JobUrl[] = $jobsLoaded(boxName)
         .find('a')
         .map((_, el) => ({
-          href: `${SITE_BASE_URL}${$editaisLoaded(el).attr('href')}`,
-          badge: $editaisLoaded(el).find('.badge').first().text(),
-          title: $editaisLoaded(el).find('h5').text(),
+          href: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
+          type: JobType.IMD,
+          title: joinTitleAndBadge(
+            $jobsLoaded(el).find('h5').text(),
+            $jobsLoaded(el).find('.badge').first().text(),
+          ),
           subscriptionUntil: formatDateBrToUs(
-            $editaisLoaded(el).find('p').text().trim().substring(15, 25),
+            $jobsLoaded(el).find('p').text().trim().substring(15, 25),
           ),
         }))
         .get();
 
-      if (editaisHref.length === 0) {
+      if (jobsHref.length === 0) {
         this.logger.warn(
           {
             evt: 'scraper.list.empty',
             listType,
             boxName,
-            htmlLength: editaisHTML.length,
+            htmlLength: jobsHTML.length,
           },
           'Listagem retornou zero editais — possível mudança no HTML do site',
         );
@@ -220,14 +228,14 @@ export class EditaisScraperService {
         {
           evt: 'scraper.list.done',
           listType,
-          count: editaisHref.length,
-          htmlLength: editaisHTML.length,
+          count: jobsHref.length,
+          htmlLength: jobsHTML.length,
           durationMs: Date.now() - startedAt,
         },
         'Listagem de editais obtida',
       );
 
-      return editaisHref;
+      return jobsHref;
     } catch (error: unknown) {
       this.logger.error(
         {

@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EditalService } from '../../edital/services/edital.service.js';
+import { JobsService } from '../../jobs/services/jobs.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { formatDate } from '#src/utils/formate-date.js';
 
 @Injectable()
-export class GetEditaisAndamento {
+export class GetJobsAndamento {
   constructor(
-    private editalService: EditalService,
-    @InjectPinoLogger(GetEditaisAndamento.name)
+    private jobsService: JobsService,
+    @InjectPinoLogger(GetJobsAndamento.name)
     private readonly logger: PinoLogger,
   ) {}
 
   async execute(message: pkg.Message) {
     const startedAt = Date.now();
-    const activeEditais = await this.editalService.findActive();
+    const activeJobs = await this.jobsService.findActive();
 
-    if (activeEditais.length === 0) {
+    if (activeJobs.length === 0) {
       this.logger.warn(
         {
-          evt: 'wa.editais_andamento.empty',
+          evt: 'wa.jobs_andamento.empty',
           chatId: maskContact(message.from),
           durationMs: Date.now() - startedAt,
         },
@@ -30,18 +30,22 @@ export class GetEditaisAndamento {
       return;
     }
 
-    const body = activeEditais
-      .map((edital, index) => {
-        const pdfLines = edital.pdfs
+    const body = activeJobs
+      .map((job, index) => {
+        const pdfLines = (job.edital?.pdfs ?? [])
           .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
           .join('\n');
 
+        const subscriptionLine = job.edital
+          ? `🗓️ Inscrições até: ${formatDate(job.edital.subscriptionUntil)}\n`
+          : '';
+
         return (
-          `*${index + 1}. ${edital.title}*\n` +
-          `🗓️ Inscrições até: ${formatDate(edital.subscriptionUntil)}\n` +
-          `🔗 ${edital.link}\n` +
+          `*${index + 1}. ${job.title}*\n` +
+          subscriptionLine +
+          `🔗 ${job.link}\n` +
           `${pdfLines}\n` +
-          `${edital.summary}`
+          `${job.summary}`
         );
       })
       .join('\n\n');
@@ -50,10 +54,13 @@ export class GetEditaisAndamento {
 
     this.logger.info(
       {
-        evt: 'wa.editais_andamento.done',
+        evt: 'wa.jobs_andamento.done',
         chatId: maskContact(message.from),
-        count: activeEditais.length,
-        pdfCount: activeEditais.reduce((acc, e) => acc + e.pdfs.length, 0),
+        count: activeJobs.length,
+        pdfCount: activeJobs.reduce(
+          (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
+          0,
+        ),
         messageLength: body.length,
         durationMs: Date.now() - startedAt,
       },

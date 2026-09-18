@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EditalService } from '../../edital/services/edital.service.js';
-import { GetEditaisAndamento } from './getEditaisAndamento.js';
+import { JobsService } from '../../jobs/services/jobs.service.js';
+import { GetJobsAndamento } from './getJobsAndamento.js';
 import { UserService } from '../../user/services/user.service.js';
 import { client } from '../../../config/whatsapp/client.js';
 import { maskContact } from '../../../utils/log-redact.js';
@@ -18,9 +18,9 @@ type loginData = {
 @Injectable()
 export class LoginService {
   constructor(
-    private editalService: EditalService,
+    private jobsService: JobsService,
     private userService: UserService,
-    private getEditaisAndamento: GetEditaisAndamento,
+    private getJobsAndamento: GetJobsAndamento,
     @InjectPinoLogger(LoginService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -109,9 +109,7 @@ export class LoginService {
   private async completeLogin(message: pkg.Message, data: loginData) {
     const startedAt = Date.now();
 
-    const editaisId = (await this.editalService.findActive()).map(
-      (id) => id.id,
-    );
+    const jobsId = (await this.jobsService.findActive()).map((id) => id.id);
 
     const contact = await getFormattedContact(client, message);
 
@@ -119,7 +117,7 @@ export class LoginService {
       chatId: message.from,
       contact,
       name: data.name!,
-      editaisId,
+      jobsId,
     });
 
     this.logger.info(
@@ -127,13 +125,13 @@ export class LoginService {
         evt: 'login.completed',
         chatId: maskContact(message.from),
         contact: maskContact(contact),
-        editaisCount: editaisId.length,
+        jobsCount: jobsId.length,
         nameLength: data.name?.length ?? 0,
         durationMs: Date.now() - startedAt,
       },
       'Login concluído',
     );
 
-    await this.getEditaisAndamento.execute(message);
+    await this.getJobsAndamento.execute(message);
   }
 }

@@ -2,37 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { PDFParse } from 'pdf-parse';
 import { PdfService } from '../../pdf/services/pdf.service.js';
-import {
-  EditaisScraperService,
-  EditaisUrl,
-} from './editais-scraper.service.js';
+import { ImdScraperService, JobUrl } from './imd-scraper.service.js';
 
 @Injectable()
 export class PdfExtractorService {
   constructor(
-    private editaisScraperService: EditaisScraperService,
+    private imdScraperService: ImdScraperService,
     private pdfService: PdfService,
     @InjectPinoLogger(PdfExtractorService.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async execute(editaisUrl: EditaisUrl[]) {
+  async execute(jobsUrl: JobUrl[]) {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'pdf_extract.batch_start', count: editaisUrl.length },
+      { evt: 'pdf_extract.batch_start', count: jobsUrl.length },
       'Iniciando download e extração de PDFs',
     );
 
-    const editais = await this.editaisScraperService.getEditaisPdfs(editaisUrl);
+    const jobs = await this.imdScraperService.getJobsPdfs(jobsUrl);
 
     let downloaded = 0;
     let skipped = 0;
 
     const result = await Promise.all(
-      editais.map(async (edital) => {
+      jobs.map(async (job) => {
         const pdfs = await Promise.all(
-          edital.href.map(async (e) => {
+          job.href.map(async (e) => {
             const foundLink = await this.pdfService.findByLink(e.link);
             if (foundLink) {
               skipped += 1;
@@ -78,7 +75,7 @@ export class PdfExtractorService {
                   evt: 'pdf_extract.done',
                   pdfLink: e.link,
                   pdfLabel: e.label,
-                  editalTitle: edital.title,
+                  jobTitle: job.title,
                   bytes: buffer.byteLength,
                   textLength: text.length,
                   downloadMs: downloadedAt - pdfStartedAt,
@@ -107,7 +104,7 @@ export class PdfExtractorService {
                   evt: 'pdf_extract.failed',
                   pdfLink: e.link,
                   pdfLabel: e.label,
-                  editalTitle: edital.title,
+                  jobTitle: job.title,
                   durationMs: Date.now() - pdfStartedAt,
                   err: error,
                 },
@@ -119,18 +116,16 @@ export class PdfExtractorService {
         );
 
         return {
-          badge: edital.badge,
-          title: edital.title,
-          link: edital.link,
-          subscriptionUntil: edital.subscriptionUntil,
+          title: job.title,
+          type: job.type,
+          link: job.link,
+          subscriptionUntil: job.subscriptionUntil,
           pdfs: pdfs.filter((p) => p !== undefined),
         };
       }),
     );
 
-    const editaisWithNoNewPdfs = result.filter(
-      (r) => r.pdfs.length === 0,
-    ).length;
+    const jobsWithNoNewPdfs = result.filter((r) => r.pdfs.length === 0).length;
 
     this.logger.info(
       {
@@ -138,7 +133,7 @@ export class PdfExtractorService {
         count: result.length,
         downloaded,
         skipped,
-        editaisWithNoNewPdfs,
+        jobsWithNoNewPdfs,
         durationMs: Date.now() - startedAt,
       },
       'Extração de PDFs concluída',

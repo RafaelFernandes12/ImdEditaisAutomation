@@ -12,13 +12,19 @@ datasource db {
   provider = "postgresql"
 }
 
-enum StatusEdital {
+enum StatusJob {
   SENDED
   HOMOLOGACAO
   ENTREVISTA
   RESERVA
   SUCESS
   FAILED
+}
+
+enum JobType {
+  IMD
+  JERIMUM
+  STI
 }
 
 enum PdfTipo {
@@ -29,23 +35,40 @@ enum PdfTipo {
   RESULTADO
 }
 
+model Job {
+  id         Int       @id @default(autoincrement())
+  title      String    @unique
+  link       String    @unique
+  type       JobType
+  isActive   Boolean
+  finishedAt DateTime?
+  summary    String
+  keyWords   String
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @updatedAt() @db.Timestamp(6)
+
+  edital  Edital?
+  jerimum Jerimum?
+
+  sends             Sends[]
+  UserSubscriptions UserSubscriptions[]
+}
+
 model Edital {
-  id                Int       @id @default(autoincrement())
-  badge             String    @unique
-  title             String
-  link              String    @unique
-  isActive          Boolean
+  jobId Int @id
+  job   Job @relation(fields: [jobId], references: [id])
+
   subscriptionUntil DateTime
   validUntil        DateTime?
-  finishedAt        DateTime?
-  summary           String
-  keyWords          String
-  created_at        DateTime  @default(now()) @db.Timestamp(6)
-  updated_at        DateTime  @updatedAt() @db.Timestamp(6)
 
   pdfs Pdf[]
+}
 
-  sends Sends[]
+model Jerimum {
+  jobId Int @id
+  job   Job @relation(fields: [jobId], references: [id])
+
+  description String
 }
 
 model Pdf {
@@ -59,7 +82,7 @@ model Pdf {
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
   editalId Int
-  edital   Edital  @relation(fields: [editalId], references: [id])
+  edital   Edital  @relation(fields: [editalId], references: [jobId])
   sends    Sends[]
 }
 
@@ -73,22 +96,38 @@ model User {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  sends     Sends[]
-  reminders Reminders[]
+  sends             Sends[]
+  reminders         Reminders[]
+  UserSubscriptions UserSubscriptions[]
+}
+
+model UserSubscriptions {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  jobId  Int
+
+  status StatusJob
+
+  user User @relation(fields: [userId], references: [id])
+  job  Job  @relation(fields: [jobId], references: [id])
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
 }
 
 model Sends {
-  pdf    Pdf    @relation(fields: [pdfId], references: [id])
-  edital Edital @relation(fields: [editalId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  pdf  Pdf  @relation(fields: [pdfId], references: [id])
+  job  Job  @relation(fields: [jobId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
   pdfId      Int
-  editalId   Int
+  jobId      Int
   userId     Int
 
-  @@id([pdfId, editalId, userId])
+  @@id([pdfId, jobId, userId])
 }
 
 model Reminders {

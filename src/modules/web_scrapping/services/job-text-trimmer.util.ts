@@ -10,7 +10,7 @@ function stripPageBoilerplate(text: string): string {
   return text.replace(PAGE_BOILERPLATE, '').replace(/\n{3,}/g, '\n\n');
 }
 
-export function trimEditalForSummary(text: string): string {
+export function trimJobForSummary(text: string): string {
   const stripped = stripPageBoilerplate(text);
 
   const anexo = stripped.match(ANEXO_HEADING);

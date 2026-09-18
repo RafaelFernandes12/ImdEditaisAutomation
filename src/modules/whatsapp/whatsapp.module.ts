@@ -4,9 +4,9 @@ import { PrismaService } from '../../config/prisma/prisma.service.js';
 import { WhatsappService } from './services/whatsapp.service.js';
 import { WhatsappController } from './controllers/whatsapp.controller.js';
 import { UserModule } from '../user/user.module.js';
-import { EditalModule } from '../edital/edital.module.js';
+import { JobsModule } from '../jobs/jobs.module.js';
 import { LoginService } from './services/login.service.js';
-import { GetEditaisAndamento } from './services/getEditaisAndamento.js';
+import { GetJobsAndamento } from './services/getJobsAndamento.js';
 import { FilesModule } from '../files/files.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
@@ -17,7 +17,7 @@ import { ReactiveUser } from './services/reactiveUser.js';
   imports: [
     PrismaModule,
     UserModule,
-    EditalModule,
+    JobsModule,
     FilesModule,
     AiChatModule,
     PdfModule,
@@ -28,7 +28,7 @@ import { ReactiveUser } from './services/reactiveUser.js';
     WhatsappService,
     DeactiveUser,
     LoginService,
-    GetEditaisAndamento,
+    GetJobsAndamento,
     ReactiveUser,
     DeactiveUser,
   ],
