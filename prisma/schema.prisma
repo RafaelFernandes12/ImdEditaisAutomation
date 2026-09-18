@@ -117,17 +117,19 @@ model UserSubscriptions {
 }
 
 model Sends {
-  pdf  Pdf  @relation(fields: [pdfId], references: [id])
+  id Int @id @default(autoincrement())
+
+  pdf  Pdf? @relation(fields: [pdfId], references: [id])
   job  Job  @relation(fields: [jobId], references: [id])
   user User @relation(fields: [userId], references: [id])
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
-  pdfId      Int
+  pdfId      Int?
   jobId      Int
   userId     Int
 
-  @@id([pdfId, jobId, userId])
+  @@unique([userId, jobId, pdfId])
 }
 
 model Reminders {
