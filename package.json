@@ -105,8 +105,31 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "moduleNameMapper": {
+      "^#src/(.*)\\.js$": "<rootDir>/$1.ts",
+      "^#generated/(.*)\\.js$": "<rootDir>/../generated/$1.ts",
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "module": "commonjs",
+            "moduleResolution": "node",
+            "isolatedModules": false,
+            "baseUrl": ".",
+            "paths": {
+              "#src/*": [
+                "./src/*"
+              ],
+              "#generated/*": [
+                "./generated/*"
+              ]
+            }
+          }
+        }
+      ]
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

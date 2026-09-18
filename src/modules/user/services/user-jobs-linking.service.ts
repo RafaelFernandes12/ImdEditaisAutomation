@@ -5,6 +5,7 @@ import { Prisma } from '../../../../generated/prisma/client.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { PdfRepository } from '../../pdf/repositories/pdf.repository.js';
 import { SendsRepository } from '../../sends/repositories/sends.repository.js';
+import { CreateSend } from '../../sends/dto/sends.dto.js';
 import { CreateUser, UpdateJobsUser } from '../dto/user.dto.js';
 import { maskContact } from '../../../utils/log-redact.js';
 
@@ -94,14 +95,22 @@ export class UserJobsLinkingService {
     for (const jobId of jobsId) {
       const pdfs = await this.pdfRepository.findByJobId(jobId, tx);
 
-      if (pdfs.length === 0) {
+      let data: CreateSend[];
+
+      if (pdfs.length > 0) {
+        data = pdfs.map((pdf) => ({ userId, jobId, pdfId: pdf.id }));
+      } else {
+        // Vagas sem PDF (JERIMUM) geram um registro em nível de vaga.
         jobsWithoutPdfs += 1;
+        const alreadySent = await this.sendsRepository.findJobLevel(
+          userId,
+          jobId,
+          tx,
+        );
+        data = alreadySent ? [] : [{ userId, jobId, pdfId: null }];
       }
 
-      const created = await this.sendsRepository.createMany(
-        pdfs.map((pdf) => ({ userId, jobId, pdfId: pdf.id })),
-        tx,
-      );
+      const created = await this.sendsRepository.createMany(data, tx);
 
       sendsCreated += created.count;
 
@@ -113,19 +122,19 @@ export class UserJobsLinkingService {
           pdfCount: pdfs.length,
           sendsCreated: created.count,
         },
-        'Edital vinculado ao usuário',
+        'Vaga vinculada ao usuário',
       );
     }
 
     if (jobsWithoutPdfs > 0) {
-      this.logger.warn(
+      this.logger.debug(
         {
           evt: 'user.link_jobs.jobs_without_pdfs',
           userId,
           jobsWithoutPdfs,
           jobsCount: jobsId.length,
         },
-        'Editais sem PDF não geraram registro de envio',
+        'Vagas sem PDF registradas em nível de vaga',
       );
     }
 

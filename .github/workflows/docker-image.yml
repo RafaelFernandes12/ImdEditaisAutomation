@@ -25,12 +25,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: rafaelfernn/imd_editais
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name == 'push' }}
-          tags: rafaelfernn/imd_editais:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -47,6 +58,11 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd /home/ubuntu/ImdEditaisAutomation
+            # Pin the deploy to this commit's immutable tag (compose reads IMAGE_TAG from .env)
+            grep -v '^IMAGE_TAG=' .env > .env.tmp 2>/dev/null || true
+            echo "IMAGE_TAG=sha-${{ github.sha }}" >> .env.tmp
+            mv .env.tmp .env
             docker compose pull app
             docker compose up -d app

@@ -54,9 +54,26 @@ export class NotifyNewPdf extends WorkerHost {
           const pdfStartedAt = Date.now();
 
           try {
-            await this.sendsService.createMany([
+            const recorded = await this.sendsService.createMany([
               { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
             ]);
+
+            // `createMany` com skipDuplicates é atômico: count 0 significa que
+            // outro processo (ou uma execução anterior do cron) já enviou este PDF.
+            if (recorded.count === 0) {
+              this.logger.debug(
+                {
+                  evt: 'queue.notify_pdfs.already_sent',
+                  queue: 'sendPdf',
+                  queueJobId: job.id,
+                  userId: user.id,
+                  pdfId: pdf.id,
+                  jobId: pdf.editalId,
+                },
+                'PDF já enviado anteriormente para o usuário',
+              );
+              return;
+            }
 
             this.logger.debug(
               {

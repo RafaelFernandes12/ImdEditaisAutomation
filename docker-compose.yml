@@ -61,7 +61,7 @@ services:
       - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
 
   app:
-    image: rafaelfernn/imd_editais:latest
+    image: rafaelfernn/imd_editais:${IMAGE_TAG:-latest}
     restart: unless-stopped
     hostname: projeto-ai-app
     depends_on:

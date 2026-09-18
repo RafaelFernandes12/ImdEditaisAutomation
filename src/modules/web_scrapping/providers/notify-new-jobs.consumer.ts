@@ -76,18 +76,24 @@ export class NotifyNewJobsConsumer extends WorkerHost {
         );
       });
 
-      const jerimunLines = jerimunJobs.map((newJob) => {
+      const jerimunLines = jerimunJobs.map((newJob, index) => {
         return (
-          `${newJob.title}*\n` + `🔗 ${newJob.link}\n` + `${newJob.summary}`
+          `*${index + 1}. ${newJob.title}*\n` +
+          `🔗 ${newJob.link}\n` +
+          `${newJob.summary}`
         );
       });
 
-      const bodyImd = imdLines.join('\n\n');
-      const bodyJerimum = jerimunLines.join('\n\n');
+      const bodyImd = imdLines.join('\n');
+      const bodyJerimum = jerimunLines.join('\n');
 
       const sendStartedAt = Date.now();
-      await client.sendMessage(user.chatId, bodyImd);
-      await client.sendMessage(user.chatId, bodyJerimum);
+      if (imdLines.length > 0) {
+        await client.sendMessage(user.chatId, bodyImd);
+      }
+      if (jerimunLines.length > 0) {
+        await client.sendMessage(user.chatId, bodyJerimum);
+      }
 
       this.logger.info(
         {
@@ -96,10 +102,13 @@ export class NotifyNewJobsConsumer extends WorkerHost {
           queueJobId: job.id,
           userId: user.id,
           newJobsCount: newJobs.length,
-          messageLength: bodyImd.length,
+          imdCount: imdLines.length,
+          jerimumCount: jerimunLines.length,
+          imdLength: bodyImd.length,
+          jerimumLength: bodyJerimum.length,
           durationMs: Date.now() - sendStartedAt,
         },
-        'Mensagem de novos editais enviada',
+        'Mensagem de novas vagas enviada',
       );
 
       await this.userService.updateJobsUser({
