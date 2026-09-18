@@ -5,13 +5,14 @@ import { PdfExtractorService } from '../services/pdf-extractor.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
+import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 
 @Injectable()
 export class GetNewJobsProvider {
   constructor(
     private imdScraperService: ImdScraperService,
     private pdfExtractorService: PdfExtractorService,
-
+    private readonly jerimunScraperService: JerimunScraperService,
     @InjectQueue('getNewJobs') private getNewJobs: Queue,
     @InjectPinoLogger(GetNewJobsProvider.name)
     private readonly logger: PinoLogger,
@@ -27,11 +28,16 @@ export class GetNewJobsProvider {
     );
 
     try {
-      const resEmAndamento = await this.pdfExtractorService.execute(
-        await this.imdScraperService.getJobsEmAndamento(),
+      const editaisImdAndamento = await this.pdfExtractorService.execute(
+        await this.imdScraperService.getImdEditaisEmAndamento(),
       );
+      const jerimumJobs = await this.jerimunScraperService.execute();
 
-      const jobs = resEmAndamento.map((r) => ({ ...r, isActive: true }));
+      const editaisImdJobs = editaisImdAndamento.map((r) => ({
+        ...r,
+        isActive: true,
+      }));
+      const jobs = [...editaisImdJobs, ...jerimumJobs];
       await this.getNewJobs.addBulk(
         jobs.map((job) => ({ name: 'getNewJobs', data: job })),
       );
@@ -41,6 +47,8 @@ export class GetNewJobsProvider {
           evt: 'cron.get_new_jobs.done',
           cron: true,
           enqueued: jobs.length,
+          enqueuedImd: editaisImdJobs.length,
+          enqueuedJerimum: jerimumJobs.length,
           durationMs: Date.now() - startedAt,
         },
         'Coleta de novos editais finalizada',

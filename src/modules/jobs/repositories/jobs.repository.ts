@@ -62,7 +62,7 @@ export class JobsRepository {
   async deactivateMany(
     data: {
       id: number;
-      validUntil: number;
+      validUntil?: number;
     }[],
     tx: Prisma.TransactionClient = this.prisma,
   ) {
@@ -78,7 +78,7 @@ export class JobsRepository {
 
         // updateMany é no-op quando o job não tem filho Edital (ex.: jerimum),
         // enquanto `edital: { update: ... }` aninhado lançaria P2025.
-        if (!Number.isNaN(d.validUntil)) {
+        if (d.validUntil !== undefined && !Number.isNaN(d.validUntil)) {
           await tx.edital.updateMany({
             where: { jobId: d.id },
             data: {

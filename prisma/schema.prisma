@@ -68,8 +68,7 @@ model Jerimum {
   jobId Int @id
   job   Job @relation(fields: [jobId], references: [id])
 
-  description  String
-  contractType String
+  description String
 }
 
 model Pdf {

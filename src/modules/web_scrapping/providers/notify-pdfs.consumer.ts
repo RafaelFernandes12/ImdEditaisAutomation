@@ -51,30 +51,64 @@ export class NotifyNewPdf extends WorkerHost {
 
       await Promise.all(
         pdfs.map(async (pdf) => {
-          await this.sendsService.createMany([
-            { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
-          ]);
-          await client.sendMessage(
-            user.chatId,
-            `${pdf.edital.job.title}
+          const pdfStartedAt = Date.now();
+
+          try {
+            await this.sendsService.createMany([
+              { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
+            ]);
+
+            this.logger.debug(
+              {
+                evt: 'queue.notify_pdfs.send_recorded',
+                queue: 'sendPdf',
+                queueJobId: job.id,
+                userId: user.id,
+                pdfId: pdf.id,
+                jobId: pdf.editalId,
+              },
+              'Envio registrado antes do disparo no WhatsApp',
+            );
+
+            await client.sendMessage(
+              user.chatId,
+              `${pdf.edital.job.title}
 Seu nome foi mencionado no edital: ${pdf.edital.job.link}
 Neste pdf de ${pdf.type}: ${pdf.link}
 ${pdf.edital.job.summary}
 `,
-          );
+            );
 
-          this.logger.info(
-            {
-              evt: 'queue.notify_pdfs.message_sent',
-              queue: 'sendPdf',
-              queueJobId: job.id,
-              userId: user.id,
-              pdfId: pdf.id,
-              jobId: pdf.editalId,
-              pdfType: pdf.type,
-            },
-            'PDF que cita o usuário enviado',
-          );
+            this.logger.info(
+              {
+                evt: 'queue.notify_pdfs.message_sent',
+                queue: 'sendPdf',
+                queueJobId: job.id,
+                userId: user.id,
+                pdfId: pdf.id,
+                jobId: pdf.editalId,
+                pdfType: pdf.type,
+                durationMs: Date.now() - pdfStartedAt,
+              },
+              'PDF que cita o usuário enviado',
+            );
+          } catch (e: unknown) {
+            this.logger.error(
+              {
+                evt: 'queue.notify_pdfs.pdf_failed',
+                queue: 'sendPdf',
+                queueJobId: job.id,
+                userId: user.id,
+                pdfId: pdf.id,
+                jobId: pdf.editalId,
+                pdfType: pdf.type,
+                durationMs: Date.now() - pdfStartedAt,
+                err: e,
+              },
+              'Falha ao enviar PDF que cita o usuário',
+            );
+            throw e;
+          }
         }),
       );
 

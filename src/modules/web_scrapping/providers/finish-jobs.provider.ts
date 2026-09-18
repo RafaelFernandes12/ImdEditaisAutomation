@@ -3,12 +3,15 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
 import { ImdScraperService } from '../services/imd-scraper.service.js';
 import { Cron } from '@nestjs/schedule';
+import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
+import { JobType } from '../../../../generated/prisma/client.js';
 
 @Injectable()
 export class FinishJobsProvider {
   constructor(
     private imdScraperService: ImdScraperService,
     private jobsService: JobsService,
+    private readonly jerimunScraperService: JerimunScraperService,
     @InjectPinoLogger(FinishJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -23,24 +26,29 @@ export class FinishJobsProvider {
     );
 
     try {
-      const jobsFinished = await this.imdScraperService.getJobsFinished();
-      const dbActiveJobs = await this.jobsService.findActive();
+      const imdEditaisFinished =
+        await this.imdScraperService.getImdEditaisFinished();
+
+      const listedJerimumJobs =
+        await this.jerimunScraperService.getListedJobs();
+      const dbActiveimdEditais = await this.jobsService.findActive();
 
       this.logger.debug(
         {
           evt: 'cron.finish_jobs.candidates',
           cron: true,
-          finishedOnSite: jobsFinished.length,
-          activeInDb: dbActiveJobs.length,
+          finishedOnSite: imdEditaisFinished.length,
+          jerimumListedOnSite: listedJerimumJobs.length,
+          activeInDb: dbActiveimdEditais.length,
         },
         'Comparando editais encerrados com os ativos no banco',
       );
 
       let unparsedValidUntil = 0;
 
-      const jobsToFinish = dbActiveJobs
+      const jobsToFinish = dbActiveimdEditais
         .flatMap((ef) =>
-          jobsFinished.flatMap((dae) => {
+          imdEditaisFinished.flatMap((dae) => {
             if (dae.href === ef.link) {
               if (!ef.edital) return;
 
@@ -77,15 +85,50 @@ export class FinishJobsProvider {
         )
         .filter((f) => f !== undefined);
 
-      await this.jobsService.deactivateMany(jobsToFinish);
+      const listedJerimumLinks = new Set(
+        listedJerimumJobs.map((job) => job.href),
+      );
+      const dbActiveJerimumJobs = dbActiveimdEditais.filter(
+        (job) => job.type === JobType.JERIMUM,
+      );
+
+      // Uma listagem vazia normalmente significa site fora do ar ou mudança no
+      // HTML, não que todas as vagas encerraram — desativar tudo seria irreversível.
+      const skipJerimum =
+        listedJerimumJobs.length === 0 && dbActiveJerimumJobs.length > 0;
+
+      if (skipJerimum) {
+        this.logger.warn(
+          {
+            evt: 'cron.finish_jobs.jerimum_listing_empty',
+            cron: true,
+            activeInDb: dbActiveJerimumJobs.length,
+          },
+          'Listagem do jerimun jobs veio vazia — nenhuma vaga será encerrada nesta execução',
+        );
+      }
+
+      const jerimumJobsToFinish = skipJerimum
+        ? []
+        : dbActiveJerimumJobs
+            .filter((job) => !listedJerimumLinks.has(job.link))
+            .map((job) => ({ id: job.id }));
+
+      await this.jobsService.deactivateMany([
+        ...jobsToFinish,
+        ...jerimumJobsToFinish,
+      ]);
 
       this.logger.info(
         {
           evt: 'cron.finish_jobs.done',
           cron: true,
-          finishedOnSite: jobsFinished.length,
-          activeInDb: dbActiveJobs.length,
-          deactivated: jobsToFinish.length,
+          finishedOnSite: imdEditaisFinished.length,
+          jerimumListedOnSite: listedJerimumJobs.length,
+          activeInDb: dbActiveimdEditais.length,
+          deactivated: jobsToFinish.length + jerimumJobsToFinish.length,
+          deactivatedImd: jobsToFinish.length,
+          deactivatedJerimum: jerimumJobsToFinish.length,
           unparsedValidUntil,
           durationMs: Date.now() - startedAt,
         },

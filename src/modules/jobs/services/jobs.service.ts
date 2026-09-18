@@ -18,7 +18,7 @@ export class JobsService {
     return await this.jobsRepository.findActive();
   }
 
-  async deactivateMany(data: { id: number; validUntil: number }[]) {
+  async deactivateMany(data: { id: number; validUntil?: number }[]) {
     return await this.jobsRepository.deactivateMany(data);
   }
 }

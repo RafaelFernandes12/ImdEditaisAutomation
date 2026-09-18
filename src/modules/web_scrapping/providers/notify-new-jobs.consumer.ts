@@ -51,12 +51,14 @@ export class NotifyNewJobsConsumer extends WorkerHost {
             activeCount: jobsAndamento.length,
             durationMs: Date.now() - startedAt,
           },
-          'Nenhum edital novo para o usuário',
+          'Nenhuma vaga nova para o usuário',
         );
         return;
       }
 
-      const jobsLines = newJobs.map((newJob, index) => {
+      const imdEditais = newJobs.filter((job) => job.type === 'IMD');
+      const jerimunJobs = newJobs.filter((job) => job.type === 'JERIMUM');
+      const imdLines = imdEditais.map((newJob, index) => {
         const pdfLines = (newJob.edital?.pdfs ?? [])
           .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
           .join('\n');
@@ -74,10 +76,18 @@ export class NotifyNewJobsConsumer extends WorkerHost {
         );
       });
 
-      const body = jobsLines.join('\n\n');
+      const jerimunLines = jerimunJobs.map((newJob) => {
+        return (
+          `${newJob.title}*\n` + `🔗 ${newJob.link}\n` + `${newJob.summary}`
+        );
+      });
+
+      const bodyImd = imdLines.join('\n\n');
+      const bodyJerimum = jerimunLines.join('\n\n');
 
       const sendStartedAt = Date.now();
-      await client.sendMessage(user.chatId, body);
+      await client.sendMessage(user.chatId, bodyImd);
+      await client.sendMessage(user.chatId, bodyJerimum);
 
       this.logger.info(
         {
@@ -86,7 +96,7 @@ export class NotifyNewJobsConsumer extends WorkerHost {
           queueJobId: job.id,
           userId: user.id,
           newJobsCount: newJobs.length,
-          messageLength: body.length,
+          messageLength: bodyImd.length,
           durationMs: Date.now() - sendStartedAt,
         },
         'Mensagem de novos editais enviada',

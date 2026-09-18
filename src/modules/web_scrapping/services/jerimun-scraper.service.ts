@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { PDFParse } from 'pdf-parse';
-import { PdfService } from '../../pdf/services/pdf.service.js';
-import { ImdScraperService, JobUrl } from './imd-scraper.service.js';
-import { formatDateBrToUs } from '#src/utils/formate-date.js';
+import { JobUrl } from './imd-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { Agent, fetch } from 'undici';
 import { JobsService } from '../../jobs/services/jobs.service.js';
@@ -21,36 +18,125 @@ export class JerimunScraperService {
   ) {}
 
   async execute() {
-    const jobs = await this.getJobs();
+    const startedAt = Date.now();
+    const listedJobs = await this.getListedJobs();
+
+    const existingJobs = await this.jobsService.findManyByLink(
+      listedJobs.map((job) => job.href),
+    );
+    const existingLinks = new Set(existingJobs.map((j) => j.link));
+    const jobs = listedJobs.filter((job) => !existingLinks.has(job.href));
+
+    this.logger.info(
+      {
+        evt: 'scraper.jerimun.detail.batch_start',
+        count: jobs.length,
+        listedCount: listedJobs.length,
+        knownCount: listedJobs.length - jobs.length,
+      },
+      'Buscando detalhes das vagas novas do jerimun jobs',
+    );
 
     const insecureAgent = new Agent({
       connect: { rejectUnauthorized: false },
     });
-    const fetch2 = await fetch(jobs[0].href, { dispatcher: insecureAgent });
 
-    const jobsHTML = await fetch2.text();
-    console.log('JOBSHTML', jobsHTML);
-    await Promise.all(
-      jobs.map(async (job) => {
-        const jobFetch = await fetch(job.href, {
-          dispatcher: insecureAgent,
-        });
+    try {
+      const detailedJobs = await Promise.all(
+        jobs.map(async (job) => {
+          const jobStartedAt = Date.now();
 
-        const jobsHTML = await jobFetch.text();
-        const $jobLoaded = cheerio.load(jobsHTML);
+          try {
+            const jobFetch = await fetch(job.href, {
+              dispatcher: insecureAgent,
+            });
 
-        const jobText = $jobLoaded('left-container');
-        const downloadHref = jobText
-          .find('a')
-          .map((i, el) => ({
-            label: $jobLoaded(el).closest('tr').find('td').eq(1).text().trim(),
-            link: `${SITE_BASE_URL}${$jobLoaded(el).attr('href')}`,
-          }))
-          .get();
-      }),
-    );
+            if (!jobFetch.ok) {
+              this.logger.warn(
+                {
+                  evt: 'scraper.jerimun.detail.http_not_ok',
+                  url: job.href,
+                  status: jobFetch.status,
+                },
+                'Página da vaga respondeu com status inesperado',
+              );
+            }
+
+            const jobsHTML = await jobFetch.text();
+            const $jobLoaded = cheerio.load(jobsHTML);
+
+            const jobText = $jobLoaded('.left-container');
+            const title = jobText.find('h1').text();
+            const text = jobText.text();
+
+            if (text.length === 0) {
+              this.logger.warn(
+                {
+                  evt: 'scraper.jerimun.detail.empty',
+                  url: job.href,
+                  htmlLength: jobsHTML.length,
+                },
+                'Página da vaga não retornou texto — possível mudança no HTML do site',
+              );
+            }
+
+            this.logger.debug(
+              {
+                evt: 'scraper.jerimun.detail.done',
+                url: job.href,
+                jobTitle: title,
+                textLength: text.length,
+                durationMs: Date.now() - jobStartedAt,
+              },
+              'Detalhes da vaga obtidos',
+            );
+
+            return {
+              title,
+              type: 'JERIMUM',
+              link: job.href,
+              text,
+              isActive: true,
+            };
+          } catch (error: unknown) {
+            this.logger.error(
+              {
+                evt: 'scraper.jerimun.detail.failed',
+                url: job.href,
+                durationMs: Date.now() - jobStartedAt,
+                err: error,
+              },
+              'Falha ao buscar os detalhes da vaga',
+            );
+            throw error;
+          }
+        }),
+      );
+
+      this.logger.info(
+        {
+          evt: 'scraper.jerimun.detail.batch_done',
+          count: detailedJobs.length,
+          durationMs: Date.now() - startedAt,
+        },
+        'Detalhes das vagas do jerimun jobs obtidos',
+      );
+
+      return detailedJobs;
+    } catch (error: unknown) {
+      this.logger.error(
+        {
+          evt: 'scraper.jerimun.detail.batch_failed',
+          count: jobs.length,
+          durationMs: Date.now() - startedAt,
+          err: error,
+        },
+        'Falha ao buscar os detalhes das vagas do jerimun jobs',
+      );
+      throw error;
+    }
   }
-  private async getJobs(): Promise<JobUrl[]> {
+  async getListedJobs(): Promise<JobUrl[]> {
     const startedAt = Date.now();
 
     this.logger.info(
@@ -69,10 +155,10 @@ export class JerimunScraperService {
       if (!jobs.ok) {
         this.logger.warn(
           {
-            evt: 'scraper.list.http_not_oj',
+            evt: 'scraper.jerimun.list.http_not_ok',
             status: jobs.status,
           },
-          'Listagem de editais respondeu com status inesperado',
+          'Listagem de vagas respondeu com status inesperado',
         );
       }
 
@@ -92,38 +178,31 @@ export class JerimunScraperService {
       if (jobsHref.length === 0) {
         this.logger.warn(
           {
-            evt: 'scraper.list.empty',
+            evt: 'scraper.jerimun.list.empty',
             htmlLength: jobsHTML.length,
           },
-          'Listagem retornou zero editais — possível mudança no HTML do site',
+          'Listagem retornou zero vagas — possível mudança no HTML do site',
         );
       }
-      const jobsLinks = jobsHref.map((job) => job.href);
-      const existingJobs = await this.jobsService.findManyByLink(jobsLinks);
-      const existingLinks = new Set(existingJobs.map((j) => j.link));
-      const filteredJobs = jobsHref.filter(
-        (job) => !existingLinks.has(job.href),
-      );
-
       this.logger.info(
         {
-          evt: 'scraper.list.done',
+          evt: 'scraper.jerimun.list.done',
           count: jobsHref.length,
           htmlLength: jobsHTML.length,
           durationMs: Date.now() - startedAt,
         },
-        'Listagem de editais obtida',
+        'Listagem de vagas obtida',
       );
 
-      return filteredJobs;
+      return jobsHref;
     } catch (error: unknown) {
       this.logger.error(
         {
-          evt: 'scraper.list.failed',
+          evt: 'scraper.jerimun.list.failed',
           durationMs: Date.now() - startedAt,
           err: error,
         },
-        'Falha ao buscar a listagem de editais',
+        'Falha ao buscar a listagem de vagas',
       );
       throw error;
     }

@@ -22,7 +22,6 @@ export class CreateJerimumJob extends CreateJobBase {
   type: Extract<JobType, 'JERIMUM'>;
   jerimum: {
     description: string;
-    contractType: string;
   };
 }
 

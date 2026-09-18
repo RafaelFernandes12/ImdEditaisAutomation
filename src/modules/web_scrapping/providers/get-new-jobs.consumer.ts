@@ -4,14 +4,23 @@ import { PdfService } from '../../pdf/services/pdf.service.js';
 import { resolvePdfTipo } from '../services/pdf-tipo.util.js';
 import { extractAllKeywords } from '../services/job-summary-parser.util.js';
 import { trimJobForSummary } from '../services/job-text-trimmer.util.js';
-import { SummarizeJob } from '../../../modules/ai_chat/services/summarize-job.service.js';
+import { SummarizeJobEditalImd } from '../../ai_chat/services/summarize-job-edital-imd.service.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { BadRequestException } from '@nestjs/common';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { EditalJobType } from '../../jobs/dto/jobs.dto.js';
+import { SummarizeJobJerimum } from '../../ai_chat/services/summarize-job-jerimum.service.js';
 
-interface getNewJobsResult {
+interface jerimumJobs {
+  title: string;
+  type: string;
+  link: string;
+  text: string;
+  isActive: boolean;
+}
+
+interface getNewImdEditais {
   isActive: boolean;
   title: string;
   type: JobType;
@@ -29,7 +38,8 @@ export class GetNewJobsConsumer extends WorkerHost {
   constructor(
     private jobsService: JobsService,
     private pdfService: PdfService,
-    private summarizeJob: SummarizeJob,
+    private summarizeJobEditalImd: SummarizeJobEditalImd,
+    private readonly summarizeJobJerimum: SummarizeJobJerimum,
     @InjectPinoLogger(GetNewJobsConsumer.name)
     private readonly logger: PinoLogger,
   ) {
@@ -37,8 +47,15 @@ export class GetNewJobsConsumer extends WorkerHost {
   }
 
   async process(job: Job) {
+    const newJob = job.data as getNewImdEditais | jerimumJobs;
+    if ('pdfs' in newJob) {
+      await this.processEditalImd(job, newJob);
+    } else {
+      await this.processJerimumJob(job, newJob);
+    }
+  }
+  private async processEditalImd(job: Job, newJobImd: getNewImdEditais) {
     const startedAt = Date.now();
-    const newJob = job.data as getNewJobsResult;
 
     this.logger.info(
       {
@@ -46,42 +63,42 @@ export class GetNewJobsConsumer extends WorkerHost {
         queue: 'getNewJobs',
         queueJobId: job.id,
         attempt: job.attemptsMade + 1,
-        jobTitle: newJob.title,
-        pdfCount: newJob.pdfs.length,
+        jobTitle: newJobImd.title,
+        pdfCount: newJobImd.pdfs.length,
       },
       'Processando novo edital',
     );
 
     try {
-      if (newJob.pdfs.length === 0) {
+      if (newJobImd.pdfs.length === 0) {
         this.logger.warn(
           {
             evt: 'queue.get_new_jobs.no_pdfs',
             queue: 'getNewJobs',
             queueJobId: job.id,
-            jobTitle: newJob.title,
+            jobTitle: newJobImd.title,
           },
           'Edital chegou na fila sem nenhum PDF',
         );
         return;
       }
 
-      const trimmed = trimJobForSummary(newJob.pdfs[0].text);
+      const trimmed = trimJobForSummary(newJobImd.pdfs[0].text);
 
       this.logger.debug(
         {
           evt: 'queue.get_new_jobs.trimmed',
           queue: 'getNewJobs',
           queueJobId: job.id,
-          jobTitle: newJob.title,
-          rawLength: newJob.pdfs[0].text.length,
+          jobTitle: newJobImd.title,
+          rawLength: newJobImd.pdfs[0].text.length,
           trimmedLength: trimmed.length,
         },
         'Texto do edital preparado para o resumo',
       );
 
       const summarizeStartedAt = Date.now();
-      const summary = await this.summarizeJob.execute(trimmed);
+      const summary = await this.summarizeJobEditalImd.execute(trimmed);
       const keyWords = extractAllKeywords(summary).join(', ');
 
       this.logger.info(
@@ -89,7 +106,7 @@ export class GetNewJobsConsumer extends WorkerHost {
           evt: 'queue.get_new_jobs.summarized',
           queue: 'getNewJobs',
           queueJobId: job.id,
-          jobTitle: newJob.title,
+          jobTitle: newJobImd.title,
           summaryLength: summary.length,
           keywordCount: keyWords ? keyWords.split(', ').length : 0,
           durationMs: Date.now() - summarizeStartedAt,
@@ -98,16 +115,16 @@ export class GetNewJobsConsumer extends WorkerHost {
       );
 
       const createdJob = await this.jobsService.createJob({
-        title: newJob.title,
-        type: newJob.type as EditalJobType,
-        link: newJob.link,
-        isActive: newJob.isActive,
-        edital: { subscriptionUntil: newJob.subscriptionUntil },
+        title: newJobImd.title,
+        type: newJobImd.type as EditalJobType,
+        link: newJobImd.link,
+        isActive: newJobImd.isActive,
+        edital: { subscriptionUntil: newJobImd.subscriptionUntil },
         keyWords,
         summary,
       });
 
-      const pdfCreate = newJob.pdfs.map((pdf) => ({
+      const pdfCreate = newJobImd.pdfs.map((pdf) => ({
         ...pdf,
         editalId: createdJob.id,
         type: resolvePdfTipo(pdf.label),
@@ -122,7 +139,7 @@ export class GetNewJobsConsumer extends WorkerHost {
           queueJobId: job.id,
           attempt: job.attemptsMade + 1,
           jobId: createdJob.id,
-          jobTitle: newJob.title,
+          jobTitle: newJobImd.title,
           pdfCount: pdfCreate.length,
           pdfTypes: pdfCreate.map((p) => p.type),
           durationMs: Date.now() - startedAt,
@@ -136,11 +153,96 @@ export class GetNewJobsConsumer extends WorkerHost {
           queue: 'getNewJobs',
           queueJobId: job.id,
           attempt: job.attemptsMade + 1,
-          jobTitle: newJob.title,
+          jobTitle: newJobImd.title,
           durationMs: Date.now() - startedAt,
           err: e,
         },
         'Falha ao processar novo edital',
+      );
+      throw new BadRequestException(e);
+    }
+  }
+  private async processJerimumJob(job: Job, newJobJerimum: jerimumJobs) {
+    const startedAt = Date.now();
+
+    this.logger.info(
+      {
+        evt: 'queue.get_new_jobs.jerimum.job_start',
+        queue: 'getNewJobs',
+        queueJobId: job.id,
+        attempt: job.attemptsMade + 1,
+        jobTitle: newJobJerimum.title,
+        link: newJobJerimum.link,
+      },
+      'Processando nova vaga do jerimun jobs',
+    );
+
+    try {
+      const trimmed = trimJobForSummary(newJobJerimum.text);
+
+      this.logger.debug(
+        {
+          evt: 'queue.get_new_jobs.jerimum.trimmed',
+          queue: 'getNewJobs',
+          queueJobId: job.id,
+          jobTitle: newJobJerimum.title,
+          rawLength: newJobJerimum.text.length,
+          trimmedLength: trimmed.length,
+        },
+        'Texto da vaga preparado para o resumo',
+      );
+
+      const summarizeStartedAt = Date.now();
+      const summary = await this.summarizeJobJerimum.execute(trimmed);
+      const keyWords = extractAllKeywords(summary).join(', ');
+
+      this.logger.info(
+        {
+          evt: 'queue.get_new_jobs.jerimum.summarized',
+          queue: 'getNewJobs',
+          queueJobId: job.id,
+          jobTitle: newJobJerimum.title,
+          summaryLength: summary.length,
+          keywordCount: keyWords ? keyWords.split(', ').length : 0,
+          durationMs: Date.now() - summarizeStartedAt,
+        },
+        'Vaga resumida pela LLM',
+      );
+
+      const createdJob = await this.jobsService.createJob({
+        title: newJobJerimum.title,
+        type: 'JERIMUM',
+        link: newJobJerimum.link,
+        isActive: newJobJerimum.isActive,
+        jerimum: { description: newJobJerimum.text },
+        keyWords,
+        summary,
+      });
+
+      this.logger.info(
+        {
+          evt: 'queue.get_new_jobs.jerimum.job_done',
+          queue: 'getNewJobs',
+          queueJobId: job.id,
+          attempt: job.attemptsMade + 1,
+          jobId: createdJob.id,
+          jobTitle: newJobJerimum.title,
+          durationMs: Date.now() - startedAt,
+        },
+        'Vaga do jerimun jobs gravada',
+      );
+    } catch (e: unknown) {
+      this.logger.error(
+        {
+          evt: 'queue.get_new_jobs.jerimum.job_failed',
+          queue: 'getNewJobs',
+          queueJobId: job.id,
+          attempt: job.attemptsMade + 1,
+          jobTitle: newJobJerimum.title,
+          durationMs: Date.now() - startedAt,
+          err: e,
+        },
+        'Falha ao processar nova vaga do jerimun jobs',
       );
       throw new BadRequestException(e);
     }

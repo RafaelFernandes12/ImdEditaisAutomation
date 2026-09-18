@@ -39,11 +39,11 @@ export class ImdScraperService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async getJobsEmAndamento(): Promise<JobUrl[]> {
+  async getImdEditaisEmAndamento(): Promise<JobUrl[]> {
     return this.getJobs('.box-editais-andamentos', 'em_andamento');
   }
 
-  async getJobsFinished(): Promise<JobUrl[]> {
+  async getImdEditaisFinished(): Promise<JobUrl[]> {
     return this.getJobs('.box-editais-encerrados', 'encerrados');
   }
 
