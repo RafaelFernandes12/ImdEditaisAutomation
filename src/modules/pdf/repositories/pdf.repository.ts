@@ -33,6 +33,17 @@ export class PdfRepository {
     });
     return pdf;
   }
+  async findAllByUserName(
+    userName: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const pdf = await tx.pdf.findMany({
+      where: { text: { contains: userName, mode: 'insensitive' } },
+      include: withJob,
+      orderBy: { created_at: 'desc' },
+    });
+    return pdf;
+  }
   async findAllActiveByUserName(
     userName: string,
     tx: Prisma.TransactionClient = this.prisma,
