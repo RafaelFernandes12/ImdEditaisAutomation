@@ -12,6 +12,7 @@ import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
 import { DeactiveUser } from './services/deactiveUser.js';
 import { ReactiveUser } from './services/reactiveUser.js';
+import { GetNamesCitados } from './services/getNamesCitados.js';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { ReactiveUser } from './services/reactiveUser.js';
     LoginService,
     GetJobsAndamento,
     ReactiveUser,
-    DeactiveUser,
+    GetNamesCitados,
   ],
   controllers: [WhatsappController],
 })

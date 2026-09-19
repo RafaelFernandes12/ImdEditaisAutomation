@@ -9,6 +9,7 @@ import { UserService } from '../../user/services/user.service.js';
 import { DeactiveUser } from './deactiveUser.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { ReactiveUser } from './reactiveUser.js';
+import { GetNamesCitados } from './getNamesCitados.js';
 
 const READY_TIMEOUT_MS = 90_000;
 const MAX_RESTART_ATTEMPTS = 2;
@@ -41,6 +42,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     private readonly logger: PinoLogger,
     private readonly deactiveUser: DeactiveUser,
     private readonly reactiveUser: ReactiveUser,
+    private readonly getNamesCitados: GetNamesCitados,
   ) {}
 
   private diagnosticsTimer?: NodeJS.Timeout;
@@ -347,6 +349,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       this.deactiveUser.execute(client, message),
     '!reativar': (_client, message) =>
       this.reactiveUser.execute(client, message),
+    '!citado': (_client, message) => this.getNamesCitados.execute(message),
   };
 
   private registerMessageHandler(client: pkg.Client) {
