@@ -39,6 +39,7 @@ O cadastro acontece dentro da própria conversa: o aluno manda `!login`, informa
 |---|---|
 | `!login` | Inicia o cadastro (pede apenas o nome) e assina os editais ativos |
 | `!editais andamento` | Lista os editais em andamento |
+| `!citado` | Lista os editais em que seu nome foi citado |
 | `!desativar` | Para de receber notificações |
 | `!reativar` | Volta a receber notificações |
 | `!ping` | Responde `pong`, útil para checar se o bot está no ar |
