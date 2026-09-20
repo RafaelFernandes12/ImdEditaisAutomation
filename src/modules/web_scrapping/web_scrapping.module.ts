@@ -18,6 +18,7 @@ import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
 import { NotifyNewPdf } from './providers/notify-pdfs.consumer.js';
 import { SendsModule } from '../sends/sends.module.js';
 import { JerimunScraperService } from './services/jerimun-scraper.service.js';
+import { StiScraperService } from './services/sti-scraper.service.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { JerimunScraperService } from './services/jerimun-scraper.service.js';
     GetNewJobsProvider,
     GetNewJobsConsumer,
     JerimunScraperService,
+    StiScraperService,
   ],
   controllers: [WebScrappingController],
 })
