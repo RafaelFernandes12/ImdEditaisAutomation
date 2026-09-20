@@ -30,7 +30,10 @@ export class GetJobsAndamento {
       return;
     }
 
-    const body = activeJobs
+    const imdEditais = activeJobs.filter((job) => job.type === 'IMD');
+    const jerimunJobs = activeJobs.filter((job) => job.type === 'JERIMUM');
+
+    const imdLines = imdEditais
       .map((job, index) => {
         const pdfLines = (job.edital?.pdfs ?? [])
           .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
@@ -48,9 +51,23 @@ export class GetJobsAndamento {
           `${job.summary}`
         );
       })
-      .join('\n\n');
+      .join('\n');
+    const jerimunLines = jerimunJobs
+      .map((newJob, index) => {
+        return (
+          `*${index + 1}. ${newJob.title}*\n` +
+          `🔗 ${newJob.link}\n` +
+          `${newJob.summary}`
+        );
+      })
+      .join('\n');
 
-    await message.reply(`📢 *Editais em andamento*\n\n${body}`);
+    if (imdLines.length > 0) {
+      await message.reply(`Editais imd:\n${imdLines}`);
+    }
+    if (jerimunLines.length > 0) {
+      await message.reply(`Oportunidades Jerimun:\n ${jerimunLines}`);
+    }
 
     this.logger.info(
       {
@@ -61,7 +78,8 @@ export class GetJobsAndamento {
           (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
           0,
         ),
-        messageLength: body.length,
+        messageLengthImd: imdLines.length,
+        messageLengthJerimum: jerimunLines.length,
         durationMs: Date.now() - startedAt,
       },
       'Editais em andamento enviados',
