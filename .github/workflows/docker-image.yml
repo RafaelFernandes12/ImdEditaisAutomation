@@ -32,7 +32,6 @@ jobs:
           images: rafaelfernn/imd_editais
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,format=long
             type=raw,value={{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
 
       - name: Build and push
