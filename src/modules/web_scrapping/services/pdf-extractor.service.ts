@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { PDFParse } from 'pdf-parse';
 import { PdfService } from '../../pdf/services/pdf.service.js';
-import { ImdScraperService, JobUrl } from './imd-scraper.service.js';
+import {
+  ImdScraperService,
+  JobUrl,
+  JobWithPdfLinks,
+} from './imd-scraper.service.js';
 
 @Injectable()
 export class PdfExtractorService {
@@ -14,14 +18,16 @@ export class PdfExtractorService {
   ) {}
 
   async execute(jobsUrl: JobUrl[]) {
+    return this.extractPdfs(await this.imdScraperService.getJobsPdfs(jobsUrl));
+  }
+
+  async extractPdfs(jobs: JobWithPdfLinks[]) {
     const startedAt = Date.now();
 
     this.logger.info(
-      { evt: 'pdf_extract.batch_start', count: jobsUrl.length },
+      { evt: 'pdf_extract.batch_start', count: jobs.length },
       'Iniciando download e extração de PDFs',
     );
-
-    const jobs = await this.imdScraperService.getJobsPdfs(jobsUrl);
 
     let downloaded = 0;
     let skipped = 0;
