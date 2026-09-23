@@ -23,7 +23,7 @@ export class JobsRepository {
         : { jerimum: { create: data.jerimum } };
 
     const job = await tx.job.upsert({
-      where: { title: data.link },
+      where: { link: data.link },
       create: {
         title: data.title,
         type: data.type,
