@@ -1,18 +1,13 @@
-// `generated/prisma/client.ts` usa `import.meta.url` e instancia o PrismaClient,
-// o que o Jest (CommonJS) não consegue carregar. O serviço só precisa do enum
-// `JobType`, que mora em `enums.ts` — um módulo sem efeito colateral.
 jest.mock('../../../../generated/prisma/client.js', () =>
   jest.requireActual('../../../../generated/prisma/enums.js'),
 );
 
-// Evita puxar PdfRepository -> PrismaService -> PrismaClient só por causa do
-// metadata de DI do construtor. O teste injeta um dublê manual.
-jest.mock('../../pdf/services/pdf.service.js', () => ({
+jest.mock('../../../../src/modules/pdf/services/pdf.service.js', () => ({
   PdfService: class PdfService {},
 }));
 
-import { ImdScraperService } from './imd-scraper.service.js';
-import type { PdfService } from '../../pdf/services/pdf.service.js';
+import { ImdScraperService } from '../../../../src/modules/web_scrapping/services/imd-scraper.service.js';
+import type { PdfService } from '../../../../src/modules/pdf/services/pdf.service.js';
 import type { PinoLogger } from 'nestjs-pino';
 import { JobType } from '../../../../generated/prisma/client.js';
 
@@ -53,7 +48,10 @@ function listPageHtml({
     </body></html>`;
 }
 
-function mockFetchOnce(html: string, init: { ok?: boolean; status?: number } = {}) {
+function mockFetchOnce(
+  html: string,
+  init: { ok?: boolean; status?: number } = {},
+) {
   const response = {
     ok: init.ok ?? true,
     status: init.status ?? 200,
@@ -66,7 +64,9 @@ function mockFetchOnce(html: string, init: { ok?: boolean; status?: number } = {
 describe('ImdScraperService', () => {
   let service: ImdScraperService;
   let pdfService: jest.Mocked<Pick<PdfService, 'findByLink'>>;
-  let logger: jest.Mocked<Pick<PinoLogger, 'info' | 'warn' | 'debug' | 'error'>>;
+  let logger: jest.Mocked<
+    Pick<PinoLogger, 'info' | 'warn' | 'debug' | 'error'>
+  >;
 
   beforeEach(() => {
     global.fetch = jest.fn() as unknown as typeof fetch;
@@ -242,7 +242,10 @@ describe('ImdScraperService', () => {
     it('extrai rótulo e link absoluto de cada PDF, preservando os dados do edital', async () => {
       mockFetchOnce(
         detailPageHtml([
-          { label: 'Edital de Seleção', href: '/portal/download?nome=abc&id=1' },
+          {
+            label: 'Edital de Seleção',
+            href: '/portal/download?nome=abc&id=1',
+          },
           { label: 'Resultado Final', href: '/portal/download?nome=def&id=1' },
         ]),
       );

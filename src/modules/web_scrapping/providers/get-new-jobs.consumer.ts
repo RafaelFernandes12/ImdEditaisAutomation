@@ -162,6 +162,7 @@ export class GetNewJobsConsumer extends WorkerHost {
       throw new BadRequestException(e);
     }
   }
+
   private async processJerimumJob(job: Job, newJobJerimum: jerimumJobs) {
     const startedAt = Date.now();
 

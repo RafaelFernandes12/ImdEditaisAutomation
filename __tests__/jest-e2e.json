@@ -1,0 +1,29 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "roots": ["<rootDir>/__tests__/e2e"],
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "moduleNameMapper": {
+    "^#src/(.*)\\.js$": "<rootDir>/src/$1.ts",
+    "^#generated/(.*)\\.js$": "<rootDir>/generated/$1.ts",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node",
+          "isolatedModules": false,
+          "baseUrl": ".",
+          "paths": {
+            "#src/*": ["./src/*"],
+            "#generated/*": ["./generated/*"]
+          }
+        }
+      }
+    ]
+  }
+}
