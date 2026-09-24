@@ -3,7 +3,7 @@ import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { PdfService } from '../../pdf/services/pdf.service.js';
-import type { PdfWithJob } from '../../pdf/repositories/pdf.repository.js';
+import type { PdfWithJobAndEditalPdf } from '../../pdf/repositories/pdf.repository.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { formatDate } from '#src/utils/formate-date.js';
 
@@ -44,7 +44,7 @@ export class GetNamesCitados {
     }
 
     // Um mesmo edital pode citar o nome em vários PDFs (homologação, resultado...)
-    const byEdital = new Map<number, PdfWithJob[]>();
+    const byEdital = new Map<number, PdfWithJobAndEditalPdf[]>();
     for (const pdf of pdfs) {
       const group = byEdital.get(pdf.editalId) ?? [];
       group.push(pdf);
@@ -72,7 +72,7 @@ export class GetNamesCitados {
     );
   }
 
-  private formatEdital(pdfs: PdfWithJob[]) {
+  private formatEdital(pdfs: PdfWithJobAndEditalPdf[]) {
     const { edital } = pdfs[0];
     const { job } = edital;
 
@@ -90,13 +90,17 @@ export class GetNamesCitados {
       .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
       .join('\n');
 
+    const editalPdfLine = edital.pdfs
+      .map((pdf) => `📑 Edital: ${pdf.link}\n`)
+      .join('');
+
     return (
       `*${job.title}*\n` +
       `${statusLine}\n` +
       dateLine +
       `🔗 ${job.link}\n` +
-      `📄 Citado em:\n${pdfLines}\n\n` +
-      `${job.summary}`
+      editalPdfLine +
+      `📄 Citado em:\n${pdfLines}`
     );
   }
 }
