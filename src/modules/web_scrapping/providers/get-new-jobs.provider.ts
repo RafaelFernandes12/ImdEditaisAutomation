@@ -6,6 +6,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
+import { StiScraperService } from '../services/sti-scraper.service.js';
 
 @Injectable()
 export class GetNewJobsProvider {
@@ -13,6 +14,7 @@ export class GetNewJobsProvider {
     private imdScraperService: ImdScraperService,
     private pdfExtractorService: PdfExtractorService,
     private readonly jerimunScraperService: JerimunScraperService,
+    private readonly stiScraperService: StiScraperService,
     @InjectQueue('getNewJobs') private getNewJobs: Queue,
     @InjectPinoLogger(GetNewJobsProvider.name)
     private readonly logger: PinoLogger,
@@ -37,7 +39,8 @@ export class GetNewJobsProvider {
         ...r,
         isActive: true,
       }));
-      const jobs = [...editaisImdJobs, ...jerimumJobs];
+      const editaisStiJobs = await this.getEditaisSti();
+      const jobs = [...editaisImdJobs, ...jerimumJobs, ...editaisStiJobs];
       await this.getNewJobs.addBulk(
         jobs.map((job) => ({ name: 'getNewJobs', data: job })),
       );
@@ -49,6 +52,7 @@ export class GetNewJobsProvider {
           enqueued: jobs.length,
           enqueuedImd: editaisImdJobs.length,
           enqueuedJerimum: jerimumJobs.length,
+          enqueuedSti: editaisStiJobs.length,
           durationMs: Date.now() - startedAt,
         },
         'Coleta de novos editais finalizada',
@@ -64,6 +68,22 @@ export class GetNewJobsProvider {
         'Falha na coleta de novos editais',
       );
       throw error;
+    }
+  }
+
+  // Falha na STI não deve impedir a coleta do IMD/Jerimum.
+  private async getEditaisSti() {
+    try {
+      const editaisSti = await this.pdfExtractorService.extractPdfs(
+        await this.stiScraperService.getEditaisEmAndamento(),
+      );
+      return editaisSti.map((r) => ({ ...r, isActive: true }));
+    } catch (error: unknown) {
+      this.logger.error(
+        { evt: 'cron.get_new_jobs.sti_failed', cron: true, err: error },
+        'Falha na coleta de editais da STI — seguindo sem eles',
+      );
+      return [];
     }
   }
 }
