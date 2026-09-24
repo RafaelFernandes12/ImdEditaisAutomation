@@ -20,19 +20,7 @@ export class PdfRepository {
     const pdf = await tx.pdf.createMany({ data });
     return pdf;
   }
-  async findAllResultadosByUserName(
-    userName: string,
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
-    const pdf = await tx.pdf.findMany({
-      where: {
-        text: { contains: userName, mode: 'insensitive' },
-        type: 'RESULTADO',
-      },
-      include: withJob,
-    });
-    return pdf;
-  }
+
   async findAllByUserName(
     userName: string,
     tx: Prisma.TransactionClient = this.prisma,
