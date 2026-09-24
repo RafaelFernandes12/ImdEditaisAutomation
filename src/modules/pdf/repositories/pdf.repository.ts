@@ -9,6 +9,14 @@ const withJob = {
 
 export type PdfWithJob = Prisma.PdfGetPayload<{ include: typeof withJob }>;
 
+const withJobAndEditalPdf = {
+  edital: { include: { job: true, pdfs: { where: { type: 'EDITAL' } } } },
+} satisfies Prisma.PdfInclude;
+
+export type PdfWithJobAndEditalPdf = Prisma.PdfGetPayload<{
+  include: typeof withJobAndEditalPdf;
+}>;
+
 @Injectable()
 export class PdfRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,7 +35,7 @@ export class PdfRepository {
   ) {
     const pdf = await tx.pdf.findMany({
       where: { text: { contains: userName, mode: 'insensitive' } },
-      include: withJob,
+      include: withJobAndEditalPdf,
       orderBy: { created_at: 'desc' },
     });
     return pdf;
