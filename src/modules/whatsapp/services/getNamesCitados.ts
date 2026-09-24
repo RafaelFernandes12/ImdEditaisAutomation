@@ -51,12 +51,21 @@ export class GetNamesCitados {
       byEdital.set(pdf.editalId, group);
     }
 
-    await message.reply(
-      `📢 *Seu nome foi citado em ${byEdital.size} edital(is)*`,
-    );
+    const groups = [...byEdital.values()];
+    const imdGroups = groups.filter((g) => g[0].edital.job.type === 'IMD');
+    const stiGroups = groups.filter((g) => g[0].edital.job.type === 'STI');
 
-    for (const group of byEdital.values()) {
-      await message.reply(this.formatEdital(group));
+    if (imdGroups.length > 0) {
+      await message.reply(
+        `📢 *Editais IMD*\n\n` +
+          imdGroups.map((g) => this.formatEdital(g)).join('\n\n'),
+      );
+    }
+    if (stiGroups.length > 0) {
+      await message.reply(
+        `📢 *Editais STI*\n\n` +
+          stiGroups.map((g) => this.formatEdital(g)).join('\n\n'),
+      );
     }
 
     this.logger.info(
@@ -66,6 +75,8 @@ export class GetNamesCitados {
         userId: user.id,
         pdfCount: pdfs.length,
         editalCount: byEdital.size,
+        imdCount: imdGroups.length,
+        stiCount: stiGroups.length,
         durationMs: Date.now() - startedAt,
       },
       'Editais citando o usuário enviados',
