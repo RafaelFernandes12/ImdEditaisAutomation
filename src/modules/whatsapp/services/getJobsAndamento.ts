@@ -3,7 +3,10 @@ import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
-import { formatDate } from '#src/utils/formate-date.js';
+import {
+  formatEditalLines,
+  formatJerimumLines,
+} from '#src/utils/format-job-lines.js';
 
 @Injectable()
 export class GetJobsAndamento {
@@ -33,34 +36,8 @@ export class GetJobsAndamento {
     const imdEditais = activeJobs.filter((job) => job.type === 'IMD');
     const jerimunJobs = activeJobs.filter((job) => job.type === 'JERIMUM');
 
-    const imdLines = imdEditais
-      .map((job, index) => {
-        const pdfLines = (job.edital?.pdfs ?? [])
-          .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
-          .join('\n');
-
-        const subscriptionLine = job.edital
-          ? `🗓️ Inscrições até: ${formatDate(job.edital.subscriptionUntil)}\n`
-          : '';
-
-        return (
-          `*${index + 1}. ${job.title}*\n` +
-          subscriptionLine +
-          `🔗 ${job.link}\n` +
-          `${pdfLines}\n` +
-          `${job.summary}`
-        );
-      })
-      .join('\n');
-    const jerimunLines = jerimunJobs
-      .map((newJob, index) => {
-        return (
-          `*${index + 1}. ${newJob.title}*\n` +
-          `🔗 ${newJob.link}\n` +
-          `${newJob.summary}`
-        );
-      })
-      .join('\n');
+    const imdLines = formatEditalLines(imdEditais);
+    const jerimunLines = formatJerimumLines(jerimunJobs);
 
     if (imdLines.length > 0) {
       await message.reply(`Editais imd:\n${imdLines}`);

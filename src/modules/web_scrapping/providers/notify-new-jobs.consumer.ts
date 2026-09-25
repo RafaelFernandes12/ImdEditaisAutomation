@@ -5,7 +5,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
-import { formatDate } from '#src/utils/formate-date.js';
+import {
+  formatEditalLines,
+  formatJerimumLines,
+} from '#src/utils/format-job-lines.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -58,40 +61,15 @@ export class NotifyNewJobsConsumer extends WorkerHost {
 
       const imdEditais = newJobs.filter((job) => job.type === 'IMD');
       const jerimunJobs = newJobs.filter((job) => job.type === 'JERIMUM');
-      const imdLines = imdEditais.map((newJob, index) => {
-        const pdfLines = (newJob.edital?.pdfs ?? [])
-          .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
-          .join('\n');
 
-        const subscriptionLine = newJob.edital
-          ? `🗓️ Inscrições até: ${formatDate(newJob.edital.subscriptionUntil)}\n`
-          : '';
-
-        return (
-          `*${index + 1}. ${newJob.title}*\n` +
-          subscriptionLine +
-          `🔗 ${newJob.link}\n` +
-          `${pdfLines}\n` +
-          `${newJob.summary}`
-        );
-      });
-
-      const jerimunLines = jerimunJobs.map((newJob, index) => {
-        return (
-          `*${index + 1}. ${newJob.title}*\n` +
-          `🔗 ${newJob.link}\n` +
-          `${newJob.summary}`
-        );
-      });
-
-      const bodyImd = imdLines.join('\n');
-      const bodyJerimum = jerimunLines.join('\n');
+      const bodyImd = formatEditalLines(imdEditais);
+      const bodyJerimum = formatJerimumLines(jerimunJobs);
 
       const sendStartedAt = Date.now();
-      if (imdLines.length > 0) {
+      if (imdEditais.length > 0) {
         await client.sendMessage(user.chatId, bodyImd);
       }
-      if (jerimunLines.length > 0) {
+      if (jerimunJobs.length > 0) {
         await client.sendMessage(user.chatId, bodyJerimum);
       }
 
@@ -102,8 +80,8 @@ export class NotifyNewJobsConsumer extends WorkerHost {
           queueJobId: job.id,
           userId: user.id,
           newJobsCount: newJobs.length,
-          imdCount: imdLines.length,
-          jerimumCount: jerimunLines.length,
+          imdCount: imdEditais.length,
+          jerimumCount: jerimunJobs.length,
           imdLength: bodyImd.length,
           jerimumLength: bodyJerimum.length,
           durationMs: Date.now() - sendStartedAt,
