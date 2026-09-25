@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
-import { ImdScraperService } from '../services/imd-scraper.service.js';
+import {
+  ImdScraperService,
+  JobWithPdfLinks,
+} from '../services/imd-scraper.service.js';
 import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
+import { StiScraperService } from '../services/sti-scraper.service.js';
 
 @Injectable()
 export class FinishJobsProvider {
@@ -12,6 +16,7 @@ export class FinishJobsProvider {
     private imdScraperService: ImdScraperService,
     private jobsService: JobsService,
     private readonly jerimunScraperService: JerimunScraperService,
+    private readonly stiScraperService: StiScraperService,
     @InjectPinoLogger(FinishJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -31,6 +36,10 @@ export class FinishJobsProvider {
 
       const listedJerimumJobs =
         await this.jerimunScraperService.getListedJobs();
+      // Falha na API da STI (já logada no scraper) cai no guard de listagem vazia.
+      const listedStiEditais = await this.stiScraperService
+        .getEditaisEmAndamento()
+        .catch((): JobWithPdfLinks[] => []);
       const dbActiveimdEditais = await this.jobsService.findActive();
 
       this.logger.debug(
@@ -114,9 +123,36 @@ export class FinishJobsProvider {
             .filter((job) => !listedJerimumLinks.has(job.link))
             .map((job) => ({ id: job.id }));
 
+      const listedStiLinks = new Set(listedStiEditais.map((job) => job.link));
+      const dbActiveStiEditais = dbActiveimdEditais.filter(
+        (job) => job.type === JobType.STI,
+      );
+
+      // Mesmo raciocínio do jerimum: listagem vazia provavelmente é falha na API.
+      const skipSti =
+        listedStiEditais.length === 0 && dbActiveStiEditais.length > 0;
+
+      if (skipSti) {
+        this.logger.warn(
+          {
+            evt: 'cron.finish_jobs.sti_listing_empty',
+            cron: true,
+            activeInDb: dbActiveStiEditais.length,
+          },
+          'Listagem da STI veio vazia — nenhum edital será encerrado nesta execução',
+        );
+      }
+
+      const stiEditaisToFinish = skipSti
+        ? []
+        : dbActiveStiEditais
+            .filter((job) => !listedStiLinks.has(job.link))
+            .map((job) => ({ id: job.id }));
+
       await this.jobsService.deactivateMany([
         ...jobsToFinish,
         ...jerimumJobsToFinish,
+        ...stiEditaisToFinish,
       ]);
 
       this.logger.info(
@@ -126,9 +162,14 @@ export class FinishJobsProvider {
           finishedOnSite: imdEditaisFinished.length,
           jerimumListedOnSite: listedJerimumJobs.length,
           activeInDb: dbActiveimdEditais.length,
-          deactivated: jobsToFinish.length + jerimumJobsToFinish.length,
+          stiListedOnSite: listedStiEditais.length,
+          deactivated:
+            jobsToFinish.length +
+            jerimumJobsToFinish.length +
+            stiEditaisToFinish.length,
           deactivatedImd: jobsToFinish.length,
           deactivatedJerimum: jerimumJobsToFinish.length,
+          deactivatedSti: stiEditaisToFinish.length,
           unparsedValidUntil,
           durationMs: Date.now() - startedAt,
         },
