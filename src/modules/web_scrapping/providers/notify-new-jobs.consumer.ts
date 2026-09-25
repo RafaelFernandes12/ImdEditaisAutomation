@@ -61,9 +61,11 @@ export class NotifyNewJobsConsumer extends WorkerHost {
 
       const imdEditais = newJobs.filter((job) => job.type === 'IMD');
       const jerimunJobs = newJobs.filter((job) => job.type === 'JERIMUM');
+      const stiEditais = newJobs.filter((job) => job.type === 'STI');
 
       const bodyImd = formatEditalLines(imdEditais);
       const bodyJerimum = formatJerimumLines(jerimunJobs);
+      const bodySti = formatEditalLines(stiEditais);
 
       const sendStartedAt = Date.now();
       if (imdEditais.length > 0) {
@@ -71,6 +73,9 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       }
       if (jerimunJobs.length > 0) {
         await client.sendMessage(user.chatId, bodyJerimum);
+      }
+      if (stiEditais.length > 0) {
+        await client.sendMessage(user.chatId, `Editais STI:\n${bodySti}`);
       }
 
       this.logger.info(
@@ -82,8 +87,10 @@ export class NotifyNewJobsConsumer extends WorkerHost {
           newJobsCount: newJobs.length,
           imdCount: imdEditais.length,
           jerimumCount: jerimunJobs.length,
+          stiCount: stiEditais.length,
           imdLength: bodyImd.length,
           jerimumLength: bodyJerimum.length,
+          stiLength: bodySti.length,
           durationMs: Date.now() - sendStartedAt,
         },
         'Mensagem de novas vagas enviada',

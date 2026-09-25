@@ -35,15 +35,20 @@ export class GetJobsAndamento {
 
     const imdEditais = activeJobs.filter((job) => job.type === 'IMD');
     const jerimunJobs = activeJobs.filter((job) => job.type === 'JERIMUM');
+    const stiEditais = activeJobs.filter((job) => job.type === 'STI');
 
     const imdLines = formatEditalLines(imdEditais);
     const jerimunLines = formatJerimumLines(jerimunJobs);
+    const stiLines = formatEditalLines(stiEditais);
 
     if (imdLines.length > 0) {
       await message.reply(`Editais imd:\n${imdLines}`);
     }
     if (jerimunLines.length > 0) {
       await message.reply(`Oportunidades Jerimun:\n ${jerimunLines}`);
+    }
+    if (stiLines.length > 0) {
+      await message.reply(`Editais STI:\n${stiLines}`);
     }
 
     this.logger.info(
@@ -57,6 +62,7 @@ export class GetJobsAndamento {
         ),
         messageLengthImd: imdLines.length,
         messageLengthJerimum: jerimunLines.length,
+        messageLengthSti: stiLines.length,
         durationMs: Date.now() - startedAt,
       },
       'Editais em andamento enviados',
