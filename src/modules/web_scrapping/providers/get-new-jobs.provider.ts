@@ -20,7 +20,7 @@ export class GetNewJobsProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron('0 8,17 * * 1-5', { timeZone: 'America/Sao_Paulo' })
+  @Cron('0 */2 * * *', { timeZone: 'America/Sao_Paulo' })
   async execute() {
     const startedAt = Date.now();
 
