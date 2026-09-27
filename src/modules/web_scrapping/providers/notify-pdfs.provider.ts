@@ -3,7 +3,6 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class NotifyPdfsProvider {
@@ -14,7 +13,6 @@ export class NotifyPdfsProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron('15 8,17 * * 1-5', { timeZone: 'America/Sao_Paulo' })
   async execute() {
     const startedAt = Date.now();
 

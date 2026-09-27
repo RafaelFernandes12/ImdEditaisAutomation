@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { ImdScraperService } from '../services/imd-scraper.service.js';
 import { PdfExtractorService } from '../services/pdf-extractor.service.js';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { InjectFlowProducer } from '@nestjs/bullmq';
+import { FlowProducer } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
@@ -15,7 +15,7 @@ export class GetNewJobsProvider {
     private pdfExtractorService: PdfExtractorService,
     private readonly jerimunScraperService: JerimunScraperService,
     private readonly stiScraperService: StiScraperService,
-    @InjectQueue('getNewJobs') private getNewJobs: Queue,
+    @InjectFlowProducer('notifyAll') private flowProducer: FlowProducer,
     @InjectPinoLogger(GetNewJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -41,9 +41,16 @@ export class GetNewJobsProvider {
       }));
       const editaisStiJobs = await this.getEditaisSti();
       const jobs = [...editaisImdJobs, ...jerimumJobs, ...editaisStiJobs];
-      await this.getNewJobs.addBulk(
-        jobs.map((job) => ({ name: 'getNewJobs', data: job })),
-      );
+      await this.flowProducer.add({
+        name: 'notifyAll',
+        queueName: 'notifyAll',
+        children: jobs.map((job) => ({
+          name: 'getNewJobs',
+          queueName: 'getNewJobs',
+          data: job,
+          opts: { ignoreDependencyOnFailure: true },
+        })),
+      });
 
       this.logger.info(
         {
