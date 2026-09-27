@@ -44,12 +44,19 @@ export class GetNewJobsProvider {
       await this.flowProducer.add({
         name: 'notifyAll',
         queueName: 'notifyAll',
-        children: jobs.map((job) => ({
-          name: 'getNewJobs',
-          queueName: 'getNewJobs',
-          data: job,
-          opts: { ignoreDependencyOnFailure: true },
-        })),
+        children: [
+          ...jobs.map((job) => ({
+            name: 'getNewJobs',
+            queueName: 'getNewJobs',
+            data: job,
+            opts: { ignoreDependencyOnFailure: true },
+          })),
+          {
+            name: 'finishJobs',
+            queueName: 'finishJobs',
+            opts: { ignoreDependencyOnFailure: true },
+          },
+        ],
       });
 
       this.logger.info(

@@ -20,6 +20,7 @@ import { SendsModule } from '../sends/sends.module.js';
 import { JerimunScraperService } from './services/jerimun-scraper.service.js';
 import { StiScraperService } from './services/sti-scraper.service.js';
 import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
+import { FinishJobsConsumer } from './providers/finish-jobs.consumer.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
     BullModule.registerQueue({ name: 'notifyNewJobs' }),
     BullModule.registerQueue({ name: 'getNewJobs' }),
     BullModule.registerQueue({ name: 'notifyAll' }),
+    BullModule.registerQueue({ name: 'finishJobs' }),
     BullModule.registerFlowProducer({
       name: 'notifyAll',
     }),
@@ -40,6 +42,7 @@ import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
   providers: [
     PrismaService,
     FinishJobsProvider,
+    FinishJobsConsumer,
     ImdScraperService,
     PdfExtractorService,
     NotifyNewJobsProvider,

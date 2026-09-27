@@ -5,7 +5,6 @@ import {
   ImdScraperService,
   JobWithPdfLinks,
 } from '../services/imd-scraper.service.js';
-import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
@@ -21,7 +20,7 @@ export class FinishJobsProvider {
     private readonly logger: PinoLogger,
   ) {}
 
-  @Cron('10 8,17 * * 1-5', { timeZone: 'America/Sao_Paulo' })
+  // Disparado pelo FinishJobsConsumer, dentro do flow da coleta de editais.
   async execute() {
     const startedAt = Date.now();
 
