@@ -19,6 +19,7 @@ import { NotifyNewPdf } from './providers/notify-pdfs.consumer.js';
 import { SendsModule } from '../sends/sends.module.js';
 import { JerimunScraperService } from './services/jerimun-scraper.service.js';
 import { StiScraperService } from './services/sti-scraper.service.js';
+import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { StiScraperService } from './services/sti-scraper.service.js';
     BullModule.registerQueue({ name: 'sendPdf' }),
     BullModule.registerQueue({ name: 'notifyNewJobs' }),
     BullModule.registerQueue({ name: 'getNewJobs' }),
+    BullModule.registerQueue({ name: 'notifyAll' }),
+    BullModule.registerFlowProducer({
+      name: 'notifyAll',
+    }),
   ],
   providers: [
     PrismaService,
@@ -45,6 +50,7 @@ import { StiScraperService } from './services/sti-scraper.service.js';
     GetNewJobsConsumer,
     JerimunScraperService,
     StiScraperService,
+    NotifyAllConsumer,
   ],
   controllers: [WebScrappingController],
 })
