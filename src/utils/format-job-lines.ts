@@ -17,7 +17,7 @@ export function formatEditalLines(editais: ActiveJob[]) {
         subscriptionLine +
         `🔗 ${job.link}\n` +
         `${pdfLines}\n` +
-        `${job.summary}`
+        `${job.summary}\n`
       );
     })
     .join('\n');
@@ -29,7 +29,7 @@ export function formatJerimumLines(jobs: ActiveJob[]) {
       (job, index) =>
         `*${index + 1}. ${job.title}*\n` +
         `🔗 ${job.link}\n` +
-        `${job.summary}`,
+        `${job.summary}\n`,
     )
     .join('\n');
 }
