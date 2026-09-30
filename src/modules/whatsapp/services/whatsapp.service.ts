@@ -4,7 +4,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import qrcode from 'qrcode-terminal';
 import { client } from '../../../config/whatsapp/client.js';
 import { LoginService } from './login.service.js';
-import { GetJobsAndamento } from './getJobsAndamento.js';
+import { GetJobs } from './getJobs.js';
 import { UserService } from '../../user/services/user.service.js';
 import { DeactiveUser } from './deactiveUser.js';
 import { maskContact } from '../../../utils/log-redact.js';
@@ -36,7 +36,7 @@ type SyncProbe = {
 export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private loginService: LoginService,
-    private getJobsAndamento: GetJobsAndamento,
+    private getJobs: GetJobs,
     private userService: UserService,
     @InjectPinoLogger(WhatsappService.name)
     private readonly logger: PinoLogger,
@@ -343,8 +343,9 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     (client: pkg.Client, message: pkg.Message) => Promise<void>
   > = {
     '!ping': (_client, message) => this.ping(message),
-    '!editais andamento': (_client, message) =>
-      this.getJobsAndamento.execute(message),
+    '!vagas': (_client, message) => this.getJobs.execute(message, false),
+    '!vagas andamento': (_client, message) =>
+      this.getJobs.execute(message, true),
     '!desativar': (_client, message) =>
       this.deactiveUser.execute(client, message),
     '!reativar': (_client, message) =>

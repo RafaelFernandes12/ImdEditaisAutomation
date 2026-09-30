@@ -6,7 +6,7 @@ import { WhatsappController } from './controllers/whatsapp.controller.js';
 import { UserModule } from '../user/user.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { LoginService } from './services/login.service.js';
-import { GetJobsAndamento } from './services/getJobsAndamento.js';
+import { GetJobs } from './services/getJobs.js';
 import { FilesModule } from '../files/files.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
@@ -29,7 +29,7 @@ import { GetNamesCitados } from './services/getNamesCitados.js';
     WhatsappService,
     DeactiveUser,
     LoginService,
-    GetJobsAndamento,
+    GetJobs,
     ReactiveUser,
     GetNamesCitados,
   ],

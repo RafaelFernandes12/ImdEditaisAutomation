@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
-import { GetJobsAndamento } from './getJobsAndamento.js';
+import { GetJobs } from './getJobs.js';
 import { UserService } from '../../user/services/user.service.js';
 import { client } from '../../../config/whatsapp/client.js';
 import { maskContact } from '../../../utils/log-redact.js';
@@ -20,7 +20,7 @@ export class LoginService {
   constructor(
     private jobsService: JobsService,
     private userService: UserService,
-    private getJobsAndamento: GetJobsAndamento,
+    private getJobsAndamento: GetJobs,
     @InjectPinoLogger(LoginService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -109,7 +109,7 @@ export class LoginService {
   private async completeLogin(message: pkg.Message, data: loginData) {
     const startedAt = Date.now();
 
-    const jobsId = (await this.jobsService.findActive()).map((id) => id.id);
+    const jobsId = (await this.jobsService.findActive(true)).map((id) => id.id);
 
     const contact = await getFormattedContact(client, message);
 
@@ -132,6 +132,6 @@ export class LoginService {
       'Login concluído',
     );
 
-    await this.getJobsAndamento.execute(message);
+    await this.getJobsAndamento.execute(message, true);
   }
 }

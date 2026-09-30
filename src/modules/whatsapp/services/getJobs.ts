@@ -9,16 +9,16 @@ import {
 } from '#src/utils/format-job-lines.js';
 
 @Injectable()
-export class GetJobsAndamento {
+export class GetJobs {
   constructor(
     private jobsService: JobsService,
-    @InjectPinoLogger(GetJobsAndamento.name)
+    @InjectPinoLogger(GetJobs.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async execute(message: pkg.Message) {
+  async execute(message: pkg.Message, stillActive: boolean) {
     const startedAt = Date.now();
-    const activeJobs = await this.jobsService.findActive();
+    const activeJobs = await this.jobsService.findActive(stillActive);
 
     if (activeJobs.length === 0) {
       this.logger.warn(
