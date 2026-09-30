@@ -4,7 +4,9 @@ import { Prisma } from '../../../../generated/prisma/client.js';
 import { CreateJob } from '../dto/jobs.dto.js';
 
 const activeJobInclude = {
-  edital: { include: { pdfs: true } },
+  edital: {
+    include: { pdfs: true },
+  },
   jerimum: true,
 } satisfies Prisma.JobInclude;
 
@@ -49,10 +51,16 @@ export class JobsRepository {
     return jobs;
   }
   async findActive(
+    stillActive: boolean,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<ActiveJob[]> {
     const jobs = await tx.job.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(stillActive && {
+          edital: { subscriptionUntil: { gt: new Date() } },
+        }),
+      },
       include: activeJobInclude,
       orderBy: [{ edital: { subscriptionUntil: 'desc' } }, { id: 'desc' }],
     });

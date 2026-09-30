@@ -14,8 +14,8 @@ export class JobsService {
   async findManyByLink(links: string[]) {
     return await this.jobsRepository.findManyByLink(links);
   }
-  async findActive() {
-    return await this.jobsRepository.findActive();
+  async findActive(stillActive: boolean = false) {
+    return await this.jobsRepository.findActive(stillActive);
   }
 
   async deactivateMany(data: { id: number; validUntil?: number }[]) {
