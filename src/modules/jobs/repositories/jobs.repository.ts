@@ -57,13 +57,16 @@ export class JobsRepository {
     const jobs = await tx.job.findMany({
       where: {
         isActive: true,
+        ...(stillActive && {
+          OR: [
+            { edital: { subscriptionUntil: { gt: new Date() } } },
+            { edital: null },
+          ],
+        }),
       },
       include: {
         edital: {
           include: { pdfs: true },
-          ...(stillActive && {
-            edital: { subscriptionUntil: { gt: new Date() } },
-          }),
         },
         jerimum: true,
       },
