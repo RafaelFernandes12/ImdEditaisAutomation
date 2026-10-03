@@ -8,6 +8,7 @@ import { client } from '../../../config/whatsapp/client.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { getFormattedContact } from './util.service.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { ECOSYSTEMS } from '#src/modules/web_scrapping/models/ecossystems.js';
 
 type loginData = {
   name?: string;
@@ -34,11 +35,15 @@ export class LoginService {
       prompt: 'Escreva seu nome completo: (Obrigatorio)',
       type: 'text',
     },
-    {
-      key: 'keywords',
-      prompt: 'Escreva palavras chaves para ajudar no filtro de vagas',
-      type: 'text',
-    },
+    // {
+    //   key: 'keywords',
+    //   prompt: `Escreva palavras chaves para ajudar no filtro de vagas:\n ${Object.values(
+    //     ECOSYSTEMS,
+    //   )
+    //     .map((v, i) => `${i + 1}: ${v.label}`)
+    //     .join('\n')}`,
+    //   type: 'text',
+    // },
   ];
   private pendingLogin = new Map<
     string,
