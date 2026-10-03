@@ -13,6 +13,7 @@ import { PdfModule } from '../pdf/pdf.module.js';
 import { DeactiveUser } from './services/deactiveUser.js';
 import { ReactiveUser } from './services/reactiveUser.js';
 import { GetNamesCitados } from './services/getNamesCitados.js';
+import { WhatsappCommandsService } from './services/whatsapp-commands.service.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { GetNamesCitados } from './services/getNamesCitados.js';
     GetJobs,
     ReactiveUser,
     GetNamesCitados,
+    WhatsappCommandsService,
   ],
   controllers: [WhatsappController],
 })
