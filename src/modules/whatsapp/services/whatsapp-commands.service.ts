@@ -24,7 +24,7 @@ export class WhatsappCommandsService {
   ) {}
 
   execute(client: pkg.Client) {
-    client.on('message_create', (message) => {
+    client.on('message', (message) => {
       this.handleMessage(client, message).catch((err: unknown) =>
         this.logger.error(
           {
