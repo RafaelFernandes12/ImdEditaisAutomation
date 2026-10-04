@@ -10,6 +10,15 @@ import { maskContact } from '../../../utils/log-redact.js';
 import { ReactiveUser } from './reactiveUser.js';
 import { GetNamesCitados } from './getNamesCitados.js';
 
+const commands = [
+  '!ping',
+  '!vagas',
+  '!vagas andamento',
+  '!desativar',
+  '!reativar',
+  '!citado',
+];
+
 @Injectable()
 export class WhatsappCommandsService {
   constructor(
@@ -74,11 +83,19 @@ export class WhatsappCommandsService {
     }
 
     const command = this.commands[message.body];
-    if (!command) {
+    const user = await this.userService.findByChatId(message.from);
+    if (!commands.includes(message.body) && user) {
+      await message.reply(`Essa é a lista de comandos: 
+'!ping': pinga o servidor
+'!vagas': Verifica todas as vagas abertas
+'!vagas andamento': Verifica todas as vagas em andamento
+'!desativar': Desativa usuário, você para de receber as mensagens automáticas,
+'!reativar': Reativa usuário,
+'!citado': Pega editais em que o seu nome foi mencionado
+`);
       return;
     }
 
-    const user = await this.userService.findByChatId(message.from);
     if (!user) {
       this.logger.info(
         {
