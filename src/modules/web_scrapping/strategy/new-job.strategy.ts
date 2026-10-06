@@ -26,6 +26,11 @@ export interface VagaJobPayload extends NewJobPayloadBase {
 }
 export type NewJobPayload = EditalJobPayload | VagaJobPayload;
 
+export interface JobSummary {
+  summary: string;
+  keyWords: string[];
+}
+
 export interface PersistedJob {
   jobId: number;
   logContext?: Record<string, unknown>;
@@ -33,7 +38,7 @@ export interface PersistedJob {
 
 export interface NewJobStrategy<T extends NewJobPayload> {
   getText(job: T): string | null;
-  summarize(text: string): Promise<string>;
+  summarize(text: string): Promise<JobSummary>;
   persist(job: T, summary: string, keyWords: string): Promise<PersistedJob>;
 }
 

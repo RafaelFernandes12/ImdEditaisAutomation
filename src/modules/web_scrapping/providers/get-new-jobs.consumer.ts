@@ -1,5 +1,4 @@
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { extractAllKeywords } from '../utils/job-summary-parser.util.js';
 import { trimJobForSummary } from '../utils/job-text-trimmer.util.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -93,14 +92,13 @@ export class GetNewJobsConsumer extends WorkerHost {
       const trimmed = trimJobForSummary(text);
 
       const summarizeStartedAt = Date.now();
-      const summary = await strategy.summarize(trimmed);
+      const { summary, keyWords } = await strategy.summarize(trimmed);
       const summarizeMs = Date.now() - summarizeStartedAt;
-      const keyWords = extractAllKeywords(summary).join(', ');
 
       const { jobId, logContext } = await strategy.persist(
         newJob,
         summary,
-        keyWords,
+        keyWords.join(', '),
       );
 
       this.logger.info(

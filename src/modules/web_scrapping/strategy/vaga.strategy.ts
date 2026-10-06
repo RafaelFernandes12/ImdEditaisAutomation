@@ -3,6 +3,7 @@ import { JobsService } from '../../jobs/services/jobs.service.js';
 import { BadRequestException } from '@nestjs/common';
 import { SummarizeJobVaga } from '../../ai_chat/services/summarize-job-vaga.service.js';
 import { VagaJobPayload, NewJobStrategy } from './new-job.strategy.js';
+import { formatVagaSummary, vagaKeywords } from '../utils/vaga-summary.util.js';
 
 export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
   constructor(
@@ -16,7 +17,11 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
     return job.vaga.description?.trim() || null;
   }
   async summarize(text: string) {
-    return await this.summarizeJobVaga.execute(text);
+    const resumo = await this.summarizeJobVaga.execute(text);
+    return {
+      summary: formatVagaSummary(resumo),
+      keyWords: vagaKeywords(resumo),
+    };
   }
 
   async persist(job: VagaJobPayload, summary: string, keyWords: string) {

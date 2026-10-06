@@ -3,6 +3,7 @@ import { JobsService } from '../../jobs/services/jobs.service.js';
 import { EditalJobPayload, NewJobStrategy } from './new-job.strategy.js';
 import { SummarizeJobEditalImd } from '#src/modules/ai_chat/services/summarize-job-edital-imd.service.js';
 import { resolvePdfTipo } from '../utils/pdf-tipo.util.js';
+import { extractAllKeywords } from '../utils/job-summary-parser.util.js';
 import { PdfService } from '#src/modules/pdf/services/pdf.service.js';
 
 export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
@@ -19,7 +20,8 @@ export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
   }
 
   async summarize(text: string) {
-    return await this.summarizeJobEditalImd.execute(text);
+    const summary = await this.summarizeJobEditalImd.execute(text);
+    return { summary, keyWords: extractAllKeywords(summary) };
   }
 
   async persist(job: EditalJobPayload, summary: string, keyWords: string) {
