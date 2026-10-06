@@ -60,7 +60,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "undici": "^8.10.2",
-    "whatsapp-web.js": "^1.34.7"
+    "whatsapp-web.js": "^1.34.7",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@bull-board/api": "^9.6.0",
