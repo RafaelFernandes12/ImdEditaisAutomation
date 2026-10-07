@@ -8,6 +8,7 @@ import {
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
+import { GithubService } from '../services/github.service.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class FinishJobsProvider {
     private jobsService: JobsService,
     private readonly jerimunScraperService: JerimunScraperService,
     private readonly stiScraperService: StiScraperService,
+    private readonly githubService: GithubService,
     @InjectPinoLogger(FinishJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -39,6 +41,10 @@ export class FinishJobsProvider {
       const listedStiEditais = await this.stiScraperService
         .getEditaisEmAndamento()
         .catch((): JobWithPdfLinks[] => []);
+      // Falha na API do GitHub (já logada no service) pula o encerramento delas.
+      const githubListings = await this.githubService
+        .getListedJobs()
+        .catch(() => null);
       const dbActiveimdEditais = await this.jobsService.findActive();
 
       log.debug(
@@ -140,10 +146,45 @@ export class FinishJobsProvider {
             .filter((job) => !listedStiLinks.has(job.link))
             .map((job) => ({ id: job.id }));
 
+      if (githubListings === null) {
+        log.warn(
+          'github_listing_failed',
+          'Falha ao listar as issues do GitHub — nenhuma vaga será encerrada nesta execução',
+        );
+      }
+
+      // Vaga do GitHub encerra quando a issue fecha, ou seja, some da listagem.
+      // Listagem truncada ou vazia não é confiável, como no jerimum e na STI.
+      const githubJobsToFinish = (githubListings ?? []).flatMap(
+        ({ repo, type, jobs, truncated }) => {
+          const dbActiveGithubJobs = dbActiveimdEditais.filter(
+            (job) => job.type === type,
+          );
+
+          if (
+            truncated ||
+            (jobs.length === 0 && dbActiveGithubJobs.length > 0)
+          ) {
+            log.warn(
+              'github_listing_unreliable',
+              'Listagem do GitHub incompleta ou vazia — nenhuma vaga do repo será encerrada nesta execução',
+              { repo, truncated, activeInDb: dbActiveGithubJobs.length },
+            );
+            return [];
+          }
+
+          const listedGithubLinks = new Set(jobs.map((job) => job.link));
+          return dbActiveGithubJobs
+            .filter((job) => !listedGithubLinks.has(job.link))
+            .map((job) => ({ id: job.id }));
+        },
+      );
+
       await this.jobsService.deactivateMany([
         ...jobsToFinish,
         ...jerimumJobsToFinish,
         ...stiEditaisToFinish,
+        ...githubJobsToFinish,
       ]);
 
       timer.info('done', 'Editais encerrados atualizados', {
@@ -151,13 +192,19 @@ export class FinishJobsProvider {
         jerimumListedOnSite: listedJerimumJobs.length,
         activeInDb: dbActiveimdEditais.length,
         stiListedOnSite: listedStiEditais.length,
+        githubListedOnSite: githubListings?.reduce(
+          (total, listing) => total + listing.jobs.length,
+          0,
+        ),
         deactivated:
           jobsToFinish.length +
           jerimumJobsToFinish.length +
-          stiEditaisToFinish.length,
+          stiEditaisToFinish.length +
+          githubJobsToFinish.length,
         deactivatedImd: jobsToFinish.length,
         deactivatedJerimum: jerimumJobsToFinish.length,
         deactivatedSti: stiEditaisToFinish.length,
+        deactivatedGithub: githubJobsToFinish.length,
         unparsedValidUntil,
       });
     } catch (err: unknown) {
