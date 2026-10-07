@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
-import { Prisma } from '../../../../generated/prisma/client.js';
+import { JobType, Prisma } from '../../../../generated/prisma/client.js';
 import { CreateJob } from '../dto/jobs.dto.js';
 
 const activeJobInclude = {
@@ -52,11 +52,13 @@ export class JobsRepository {
   }
   async findActive(
     stillActive: boolean,
+    types?: JobType[],
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<ActiveJob[]> {
     const jobs = await tx.job.findMany({
       where: {
         isActive: true,
+        ...(types && { type: { in: types } }),
         ...(stillActive && {
           OR: [
             { edital: { subscriptionUntil: { gt: new Date() } } },
@@ -64,12 +66,7 @@ export class JobsRepository {
           ],
         }),
       },
-      include: {
-        edital: {
-          include: { pdfs: true },
-        },
-        vaga: true,
-      },
+      include: activeJobInclude,
       orderBy: [{ edital: { subscriptionUntil: 'desc' } }, { id: 'desc' }],
     });
     return jobs;
