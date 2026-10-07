@@ -2,25 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { PDFParse } from 'pdf-parse';
 import { PdfService } from '../../pdf/services/pdf.service.js';
-import {
-  ImdScraperService,
-  JobUrl,
-  JobWithPdfLinks,
-} from './imd-scraper.service.js';
+import { JobWithPdfLinks } from '../models/sources.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class PdfExtractorService {
   constructor(
-    private imdScraperService: ImdScraperService,
     private pdfService: PdfService,
     @InjectPinoLogger(PdfExtractorService.name)
     private readonly logger: PinoLogger,
   ) {}
-
-  async execute(jobsUrl: JobUrl[]) {
-    return this.extractPdfs(await this.imdScraperService.getJobsPdfs(jobsUrl));
-  }
 
   async extractPdfs(jobs: JobWithPdfLinks[]) {
     const log = new ScopedLogger(this.logger, 'pdf_extract');

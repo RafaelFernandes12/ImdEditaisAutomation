@@ -2,7 +2,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
 import { EditalJobPayload, NewJobStrategy } from './new-job.strategy.js';
 import { SummarizeJobEditalImd } from '#src/modules/ai_chat/services/summarize-job-edital-imd.service.js';
-import { resolvePdfTipo } from '../services/pdf-tipo.util.js';
+import { resolvePdfTipo } from '../utils/pdf-tipo.util.js';
 import { PdfService } from '#src/modules/pdf/services/pdf.service.js';
 
 export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
