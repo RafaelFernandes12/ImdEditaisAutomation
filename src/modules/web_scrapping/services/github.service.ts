@@ -35,23 +35,8 @@ export class GithubService {
     );
 
     try {
-      const results = await Promise.all(
-        REPOS.map(({ repo, type }) =>
-          this.getOpenIssues(log.child({ repo, jobType: type }), repo),
-        ),
-      );
-
-      const toJob = (issue: GithubIssue, type: GithubJobType) => ({
-        title: issue.title,
-        type: type,
-        link: issue.html_url,
-        vaga: { description: issue.body },
-        isActive: true,
-      });
-
-      const listedJobs = REPOS.flatMap(({ type }, i) =>
-        results[i].map((v) => toJob(v, type)),
-      );
+      const listings = await this.getListedJobs(log);
+      const listedJobs = listings.flatMap((listing) => listing.jobs);
 
       const existingJobs = await this.jobsService.findManyByLink(
         listedJobs.map((job) => job.link),
@@ -64,7 +49,7 @@ export class GithubService {
         listedCount: listedJobs.length,
         knownCount: listedJobs.length - jobs.length,
         countByRepo: Object.fromEntries(
-          REPOS.map(({ repo }, i) => [repo, results[i].length]),
+          listings.map(({ repo, jobs }) => [repo, jobs.length]),
         ),
       });
 
@@ -75,6 +60,24 @@ export class GithubService {
       });
       throw err;
     }
+  }
+
+  // Todas as issues abertas de cada repo, inclusive as já gravadas no banco.
+  async getListedJobs(log = new ScopedLogger(this.logger, 'scraper.github')) {
+    return await Promise.all(
+      REPOS.map(async ({ repo, type }) => {
+        const { issues, truncated } = await this.getOpenIssues(
+          log.child({ repo, jobType: type }),
+          repo,
+        );
+        return {
+          repo,
+          type,
+          truncated,
+          jobs: issues.map((issue) => toJob(issue, type)),
+        };
+      }),
+    );
   }
 
   private async getOpenIssues(log: ScopedLogger, repo: string) {
@@ -135,7 +138,7 @@ export class GithubService {
         pages,
       });
 
-      return issues;
+      return { issues, truncated: url !== null };
     } catch (err: unknown) {
       timer.error('list.failed', 'Falha ao buscar as issues do repo', {
         err,
@@ -143,6 +146,16 @@ export class GithubService {
       throw err;
     }
   }
+}
+
+function toJob(issue: GithubIssue, type: GithubJobType) {
+  return {
+    title: issue.title,
+    type,
+    link: issue.html_url,
+    vaga: { description: issue.body },
+    isActive: true,
+  };
 }
 
 // Header `Link` da API do GitHub: `<url>; rel="next", <url>; rel="last"`.
