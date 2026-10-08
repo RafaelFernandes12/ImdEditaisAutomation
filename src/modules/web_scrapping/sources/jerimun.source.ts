@@ -1,56 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { JobUrl } from './imd-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { Agent, fetch } from 'undici';
-import { JobsService } from '../../jobs/services/jobs.service.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JobUrl } from '../models/sources.js';
+import { JobSource } from './job.source.js';
+import { VagaJobPayload } from '../strategy/new-job.strategy.js';
 
 const SITE_BASE_URL = 'https://jerimumjobs.imd.ufrn.br';
 const JOBS_LIST = `${SITE_BASE_URL}/jerimumjobs/oportunidade/listar`;
 
 @Injectable()
-export class JerimunScraperService {
+export class JerimunSource implements JobSource<JobUrl> {
+  readonly name = 'jerimum';
+  readonly types: JobType[] = ['JERIMUM'];
   constructor(
-    @InjectPinoLogger(JerimunScraperService.name)
+    @InjectPinoLogger(JerimunSource.name)
     private readonly logger: PinoLogger,
-    private readonly jobsService: JobsService,
   ) {}
 
-  async execute() {
+  async list(): Promise<JobUrl[]> {
+    return await this.getListedJobs();
+  }
+
+  async fetchDetails(jobs: JobUrl[]): Promise<VagaJobPayload[]> {
     const log = new ScopedLogger(this.logger, 'scraper.jerimun.detail');
     const timer = log.timed();
-    const listedJobs = await this.getListedJobs();
 
-    const existingJobs = await this.jobsService.findManyByLink(
-      listedJobs.map((job) => job.href),
-    );
-    const existingLinks = new Set(existingJobs.map((j) => j.link));
-    const jobs = listedJobs.filter((job) => !existingLinks.has(job.href));
-
-    log.info(
-      'batch_start',
-      'Buscando detalhes das vagas novas do jerimun jobs',
-      {
-        count: jobs.length,
-        listedCount: listedJobs.length,
-        knownCount: listedJobs.length - jobs.length,
-      },
-    );
+    log.info('batch_start', 'Buscando detalhes das vagas do jerimun jobs', {
+      count: jobs.length,
+    });
 
     const insecureAgent = new Agent({
       connect: { rejectUnauthorized: false },
     });
 
     try {
-      const detailedJobs = await Promise.all(
+      const detailedJobs: VagaJobPayload[] = await Promise.all(
         jobs.map(async (job) => {
-          const jobLog = log.child({ url: job.href });
+          const jobLog = log.child({ url: job.link });
           const jobTimer = jobLog.timed();
 
           try {
-            const jobFetch = await fetch(job.href, {
+            const jobFetch = await fetch(job.link, {
               dispatcher: insecureAgent,
             });
 
@@ -85,8 +78,8 @@ export class JerimunScraperService {
             return {
               title,
               type: 'JERIMUM',
-              link: job.href,
-              text,
+              link: job.link,
+              vaga: { description: text },
               isActive: true,
             };
           } catch (err: unknown) {
@@ -112,7 +105,8 @@ export class JerimunScraperService {
       throw err;
     }
   }
-  async getListedJobs(): Promise<JobUrl[]> {
+
+  private async getListedJobs(): Promise<JobUrl[]> {
     const log = new ScopedLogger(this.logger, 'scraper.jerimun.list');
     const timer = log.start(
       'start',
@@ -142,7 +136,7 @@ export class JerimunScraperService {
       const jobsHref: JobUrl[] = $jobsLoaded('#vagas-filtradas')
         .find('a')
         .map((_, el) => ({
-          href: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
+          link: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
           type: JobType.JERIMUM,
           title: $jobsLoaded(el).find('h6').text(),
           subscriptionUntil: new Date(),
