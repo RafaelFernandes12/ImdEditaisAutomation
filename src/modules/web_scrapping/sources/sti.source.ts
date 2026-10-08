@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as cheerio from 'cheerio';
 import { JobType } from '../../../../generated/prisma/client.js';
-import { JobWithPdfLinks } from './imd-scraper.service.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JobWithPdfLinks, StiEdital } from '../models/sources.js';
+import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
+import { JobSource } from './job.source.js';
+import { EditalJobPayload } from '../strategy/new-job.strategy.js';
 
 // A página pública (sti.ufrn.br) é uma SPA em Vue que consome esta API do
 // WordPress — o HTML servido vem vazio, então lemos o JSON direto.
@@ -13,32 +16,34 @@ const EDITAIS_EM_ANDAMENTO_URL = `${API_BASE_URL}/editais-em-andamento`;
 const PUBLIC_EDITAL_URL =
   'https://sti.ufrn.br/oportunidades/processos-seletivos-edital';
 
-interface StiArquivo {
-  title?: { rendered?: string | null };
-  acf?: { anexo?: string | null };
-}
-
-interface StiEdital {
-  id: number;
-  title: { rendered: string };
-  acf: {
-    fim_das_inscricoes: string;
-    arquivos?: StiArquivo[] | false | null;
-  };
-}
-
 function decodeHtml(text: string) {
   return cheerio.load(text).text().trim();
 }
 
 @Injectable()
-export class StiScraperService {
+export class StiSource implements JobSource<JobWithPdfLinks> {
+  readonly name = 'sti';
+  readonly types: JobType[] = ['STI'];
   constructor(
-    @InjectPinoLogger(StiScraperService.name)
+    @InjectPinoLogger(StiSource.name)
     private readonly logger: PinoLogger,
+    private readonly pdfExtractorService: PdfExtractorService,
   ) {}
 
-  async getEditaisEmAndamento(): Promise<JobWithPdfLinks[]> {
+  async list(): Promise<JobWithPdfLinks[]> {
+    return await this.getEditaisEmAndamento();
+  }
+
+  async fetchDetails(jobs: JobWithPdfLinks[]): Promise<EditalJobPayload[]> {
+    const editais = await this.pdfExtractorService.extractPdfs(jobs);
+    return editais.map((edital) => ({
+      ...edital,
+      type: 'STI',
+      isActive: true,
+    }));
+  }
+
+  private async getEditaisEmAndamento(): Promise<JobWithPdfLinks[]> {
     const log = new ScopedLogger(this.logger, 'scraper.sti.list', {
       url: EDITAIS_EM_ANDAMENTO_URL,
     });
