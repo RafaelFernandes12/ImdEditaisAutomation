@@ -17,7 +17,7 @@ REGRAS RÍGIDAS DE FORMATAÇÃO (MANDATÓRIO):
 
 *Vaga:* [Nome da Vaga]
 *Qtd vagas:* [Número][+ qtd CR se houver]
-*Remuneração:* [R$ Valor] ([X]h semanais / [Turno] / [Presencial/Híbrido/Remoto])
+*Remuneração:* [R$ Valor] ([X]h semanais / [Turno] / [Presencial/Híbrido/Remoto] / [PJ/CLT])
 *Palavras-chaves:* [5 a 10 hard skills/tecnologias/ferramentas separadas por vírgula]
 
 (Separe apenas uma vaga da outra com 1 linha em branco).
