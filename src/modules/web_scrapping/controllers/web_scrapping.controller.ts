@@ -4,21 +4,23 @@ import { NotifyNewJobsProvider } from '../providers/notify-new-jobs.provider.js'
 import { GetNewJobsProvider } from '../providers/get-new-jobs.provider.js';
 import { NotifyPdfsProvider } from '../providers/notify-pdfs.provider.js';
 import { FinishJobsProvider } from '../providers/finish-jobs.provider.js';
-import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
-import { GithubService } from '../services/github.service.js';
+import { JerimunSource } from '../sources/jerimun.source.js';
+import { GithubSource } from '../sources/github.source.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { ImdSource } from '../sources/imd.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
   constructor(
     private readonly notifyNewJobsProvider: NotifyNewJobsProvider,
-    private readonly githubService: GithubService,
+    private readonly githubSource: GithubSource,
     private readonly getNewJobsProvider: GetNewJobsProvider,
-    private readonly jerimunScraperService: JerimunScraperService,
+    private readonly jerimunSource: JerimunSource,
     private readonly notifyPdfsProvider: NotifyPdfsProvider,
     private readonly finishJobsProvider: FinishJobsProvider,
     @InjectPinoLogger(WebScrappingController.name)
     private readonly logger: PinoLogger,
+    private readonly imdSource: ImdSource,
   ) {}
 
   private trigger(provider: string) {
@@ -37,7 +39,7 @@ export class WebScrappingController {
   @Get('/jerimumJobs')
   async finishJobs() {
     this.trigger('jerimumJobs');
-    return await this.jerimunScraperService.execute();
+    return await this.getNewJobsProvider.collect(this.jerimunSource);
   }
 
   @Get('/notifyPdfs')
@@ -55,11 +57,17 @@ export class WebScrappingController {
   @Get('/githubJobs')
   async githubJobs() {
     this.trigger('githubJobs');
-    return await this.githubService.execute();
+    return await this.getNewJobsProvider.collect(this.githubSource);
   }
   @Get('/getNewJobs')
   async getNewJobs() {
     this.trigger('getNewJobs');
     return await this.getNewJobsProvider.execute();
+  }
+
+  @Get('/getImdSource')
+  async getImdSource() {
+    this.trigger('getImdSource');
+    return await this.getNewJobsProvider.collect(this.imdSource);
   }
 }
