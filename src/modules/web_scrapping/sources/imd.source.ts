@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as cheerio from 'cheerio';
-import { PdfService } from '../../pdf/services/pdf.service.js';
 import { formatDateBrToUs } from '#src/utils/formate-date.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JobUrl, JobWithPdfLinks } from '../models/sources.js';
+import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
+import { EditalJobPayload } from '../strategy/new-job.strategy.js';
+import { JobSource, JobToFinish } from './job.source.js';
+import type { ActiveJob } from '../../jobs/services/jobs.service.js';
 
 const SITE_BASE_URL = 'https://www.metropoledigital.ufrn.br';
 const JOBS_LIST_URL = `${SITE_BASE_URL}/portal/editais`;
@@ -15,40 +19,71 @@ function joinTitleAndBadge(title: string, badge: string) {
   return trimmedBadge ? `${trimmedTitle} - ${trimmedBadge}` : trimmedTitle;
 }
 
-export interface JobUrl {
-  href: string;
-  title: string;
-  type: JobType;
-  subscriptionUntil: Date;
-}
-
-export interface JobPdfLink {
-  label: string;
-  link: string;
-}
-
-export interface JobWithPdfLinks extends Omit<JobUrl, 'href'> {
-  link: string;
-  href: JobPdfLink[];
-}
-
 @Injectable()
-export class ImdScraperService {
+export class ImdSource implements JobSource<JobUrl> {
+  readonly name = 'imd';
+  readonly types: JobType[] = ['IMD'];
   constructor(
-    private readonly pdfService: PdfService,
-    @InjectPinoLogger(ImdScraperService.name)
+    @InjectPinoLogger(ImdSource.name)
     private readonly logger: PinoLogger,
+    private readonly pdfExtractorService: PdfExtractorService,
   ) {}
 
-  async getImdEditaisEmAndamento(): Promise<JobUrl[]> {
-    return this.getJobs('.box-editais-andamentos', 'em_andamento');
+  async list(): Promise<JobUrl[]> {
+    return await this.getJobs('.box-editais-andamentos', 'em_andamento');
   }
 
-  async getImdEditaisFinished(): Promise<JobUrl[]> {
-    return this.getJobs('.box-editais-encerrados', 'encerrados');
+  async fetchDetails(jobs: JobUrl[]): Promise<EditalJobPayload[]> {
+    const editais = await this.pdfExtractorService.extractPdfs(
+      await this.getJobsPdfs(jobs),
+    );
+    return editais.map((edital) => ({
+      ...edital,
+      type: 'IMD',
+      isActive: true,
+    }));
   }
 
-  async getJobsPdfs(jobsUrl: JobUrl[]): Promise<JobWithPdfLinks[]> {
+  // Edital do IMD encerra quando aparece na caixa de encerrados do site — sumir
+  // da caixa em andamento não basta. A validade (em meses) vem do PDF do edital.
+  async findFinished(active: ActiveJob[]): Promise<JobToFinish[]> {
+    const log = new ScopedLogger(this.logger, 'cron.finish_jobs', {
+      cron: true,
+    });
+
+    const finished = await this.getJobs(
+      '.box-editais-encerrados',
+      'encerrados',
+    );
+    const finishedLinks = new Set(finished.map((job) => job.link));
+
+    return active
+      .filter((job) => finishedLinks.has(job.link) && job.edital)
+      .map((job) => {
+        const editalPdf = job.edital?.pdfs?.find(
+          (pdf) => pdf.type === 'EDITAL',
+        );
+
+        const split = editalPdf?.text
+          .split('\n')
+          ?.find((v) => v.match('validade'))
+          ?.match(/(\d+)\s*(?:\([^)]*\)\s*)?m[eê]s(?:es)?/i)?.[1];
+
+        const validUntil = Number(split);
+
+        if (Number.isNaN(validUntil)) {
+          log.warn(
+            'valid_until_unparsed',
+            'Não foi possível extrair a validade do edital',
+            { jobId: job.id, jobTitle: job.title, hasPdf: Boolean(editalPdf) },
+          );
+        }
+
+        return { id: job.id, validUntil };
+      });
+  }
+
+  private async getJobsPdfs(jobsUrl: JobUrl[]): Promise<JobWithPdfLinks[]> {
     const log = new ScopedLogger(this.logger, 'scraper');
     const timer = log.start(
       'pdf_links.batch_start',
@@ -58,11 +93,11 @@ export class ImdScraperService {
 
     const result = await Promise.all(
       jobsUrl.map(async (url) => {
-        const jobLog = log.child({ jobUrl: url.href, jobTitle: url.title });
+        const jobLog = log.child({ jobUrl: url.link, jobTitle: url.title });
         const jobTimer = jobLog.timed();
 
         try {
-          const jobPage = await fetch(url.href);
+          const jobPage = await fetch(url.link);
 
           if (!jobPage.ok) {
             jobLog.warn(
@@ -108,20 +143,11 @@ export class ImdScraperService {
             },
           );
 
-          downloadHref.filter(
-            (download) =>
-              this.pdfService.findByLink(download.link) === undefined,
-          );
-
           jobTimer.debug('job_page.done', 'Página do edital processada', {
             count: downloadHref.length,
           });
 
-          return {
-            ...url,
-            link: url.href,
-            href: downloadHref,
-          };
+          return { ...url, href: downloadHref };
         } catch (err: unknown) {
           jobTimer.error(
             'job_page.failed',
@@ -170,7 +196,7 @@ export class ImdScraperService {
       const jobsHref: JobUrl[] = $jobsLoaded(boxName)
         .find('a')
         .map((_, el) => ({
-          href: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
+          link: `${SITE_BASE_URL}${$jobsLoaded(el).attr('href')}`,
           type: JobType.IMD,
           title: joinTitleAndBadge(
             $jobsLoaded(el).find('h5').text(),
