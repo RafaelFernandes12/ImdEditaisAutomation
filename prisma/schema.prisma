@@ -25,6 +25,8 @@ enum JobType {
   IMD
   JERIMUM
   STI
+  BACKEND_GITHUB
+  FRONTEND_GITHUB
 }
 
 enum PdfTipo {
