@@ -22,6 +22,9 @@ import { StiScraperService } from './services/sti-scraper.service.js';
 import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
 import { FinishJobsConsumer } from './providers/finish-jobs.consumer.js';
 import { GithubService } from './services/github.service.js';
+import { EditalStrategy } from './strategy/edital.strategy.js';
+import { GithubStrategy } from './strategy/github.strategy.js';
+import { JerimumStrategy } from './strategy/jerimum.strategy.js';
 
 @Module({
   imports: [
@@ -55,6 +58,9 @@ import { GithubService } from './services/github.service.js';
     GetNewJobsConsumer,
     JerimunScraperService,
     StiScraperService,
+    EditalStrategy,
+    GithubStrategy,
+    JerimumStrategy,
     NotifyAllConsumer,
   ],
   controllers: [WebScrappingController],
