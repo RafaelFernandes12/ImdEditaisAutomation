@@ -7,6 +7,7 @@ import { UserService } from '../../user/services/user.service.js';
 import { client } from '../../../config/whatsapp/client.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { getFormattedContact } from './util.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 type loginData = {
   name?: string;
@@ -48,7 +49,14 @@ export class LoginService {
     return this.pendingLogin.has(chatId);
   }
 
+  private logFor(message: pkg.Message) {
+    return new ScopedLogger(this.logger, 'login', {
+      chatId: maskContact(message.from),
+    });
+  }
+
   async handlePendingStep(message: pkg.Message) {
+    const log = this.logFor(message);
     try {
       const pending = this.pendingLogin.get(message.from);
       if (!pending) return;
@@ -56,17 +64,12 @@ export class LoginService {
       const currentStep = this.steps[pending.stepIndex];
       pending.data[currentStep.key] = message.body;
 
-      this.logger.debug(
-        {
-          evt: 'login.step.answered',
-          chatId: maskContact(message.from),
-          step: currentStep.key,
-          stepIndex: pending.stepIndex,
-          totalSteps: this.steps.length,
-          answerLength: message.body?.length ?? 0,
-        },
-        'Passo do login respondido',
-      );
+      log.debug('step.answered', 'Passo do login respondido', {
+        step: currentStep.key,
+        stepIndex: pending.stepIndex,
+        totalSteps: this.steps.length,
+        answerLength: message.body?.length ?? 0,
+      });
 
       const nextIndex = pending.stepIndex + 1;
       if (nextIndex < this.steps.length) {
@@ -78,39 +81,29 @@ export class LoginService {
       this.pendingLogin.delete(message.from);
       await this.completeLogin(message, pending.data);
     } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'login.step.failed',
-          chatId: maskContact(message.from),
-          err: error,
-        },
-        'Falha ao processar passo do login',
-      );
+      log.error('step.failed', 'Falha ao processar passo do login', {
+        err: error,
+      });
       throw new Error(String(error));
     }
   }
 
   async login(message: pkg.Message) {
-    this.logger.info(
-      {
-        evt: 'login.start',
-        chatId: maskContact(message.from),
-        totalSteps: this.steps.length,
-      },
-      'Fluxo de login iniciado',
-    );
+    const log = this.logFor(message);
+    log.info('start', 'Fluxo de login iniciado', {
+      totalSteps: this.steps.length,
+    });
 
     await message.reply(this.steps[0].prompt);
     this.pendingLogin.set(message.from, { stepIndex: 0, data: {} });
 
-    this.logger.debug(
-      { evt: 'login.pending.size', pendingCount: this.pendingLogin.size },
-      'Logins pendentes em memória',
-    );
+    log.debug('pending.size', 'Logins pendentes em memória', {
+      pendingCount: this.pendingLogin.size,
+    });
   }
 
   private async completeLogin(message: pkg.Message, data: loginData) {
-    const startedAt = Date.now();
+    const timer = this.logFor(message).timed();
 
     const jobsId = (await this.jobsService.findActive(true)).map((id) => id.id);
 
@@ -123,17 +116,11 @@ export class LoginService {
       jobsId,
     });
 
-    this.logger.info(
-      {
-        evt: 'login.completed',
-        chatId: maskContact(message.from),
-        contact: maskContact(contact),
-        jobsCount: jobsId.length,
-        nameLength: data.name?.length ?? 0,
-        durationMs: Date.now() - startedAt,
-      },
-      'Login concluído',
-    );
+    timer.info('completed', 'Login concluído', {
+      contact: maskContact(contact),
+      jobsCount: jobsId.length,
+      nameLength: data.name?.length ?? 0,
+    });
 
     await this.getJobsAndamento.execute(message, true);
   }

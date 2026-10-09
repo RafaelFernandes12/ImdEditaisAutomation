@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import qrcode from 'qrcode-terminal';
 import { client } from '../../../config/whatsapp/client.js';
 import { WhatsappCommandsService } from './whatsapp-commands.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 const READY_TIMEOUT_MS = 90_000;
 const MAX_RESTART_ATTEMPTS = 2;
@@ -36,88 +37,80 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private diagnosticsTimer?: NodeJS.Timeout;
   private instrumentedPage?: PupPage;
 
+  private get log() {
+    return new ScopedLogger(this.logger, 'wa');
+  }
+
   onModuleInit() {
     client.on('qr', (qr) => {
       qrcode.generate(qr, { small: true });
-      this.logger.info(
-        { evt: 'wa.qr.received', qrLength: qr.length },
-        'QR recebido, aguardando leitura',
-      );
+      this.log.info('qr.received', 'QR recebido, aguardando leitura', {
+        qrLength: qr.length,
+      });
       this.startPageDiagnostics();
     });
 
     client.on('authenticated', () => {
-      this.logger.info(
-        { evt: 'wa.authenticated' },
+      this.log.info(
+        'authenticated',
         'Cliente autenticado, aguardando sincronização',
       );
     });
 
     client.on('ready', () => {
-      this.logger.info({ evt: 'wa.ready' }, 'Cliente pronto');
+      this.log.info('ready', 'Cliente pronto');
       this.stopPageDiagnostics();
     });
 
     client.on('loading_screen', (percent, message) => {
-      this.logger.info(
-        { evt: 'wa.loading_screen', percent: Number(percent), message },
-        'Tela de carregamento do WhatsApp',
-      );
+      this.log.info('loading_screen', 'Tela de carregamento do WhatsApp', {
+        percent: Number(percent),
+        message,
+      });
       this.startPageDiagnostics();
     });
 
     client.on('change_state', (state) => {
-      this.logger.info(
-        { evt: 'wa.state_changed', state: String(state) },
-        'Estado do cliente alterado',
-      );
+      this.log.info('state_changed', 'Estado do cliente alterado', {
+        state: String(state),
+      });
     });
 
     client.on('disconnected', (reason) => {
-      this.logger.error(
-        { evt: 'wa.disconnected', reason: String(reason) },
-        'Cliente desconectado',
-      );
+      this.log.error('disconnected', 'Cliente desconectado', {
+        reason: String(reason),
+      });
     });
 
     client.on('auth_failure', (message) => {
-      this.logger.error(
-        { evt: 'wa.auth_failure', reason: String(message) },
-        'Falha de autenticação do cliente',
-      );
+      this.log.error('auth_failure', 'Falha de autenticação do cliente', {
+        reason: String(message),
+      });
     });
 
     this.whatsappCommandsService.execute(client);
 
     this.initializeWithWatchdog().catch((err: unknown) =>
-      this.logger.error(
-        { evt: 'wa.watchdog.crashed', err },
-        'Watchdog de inicialização abortou',
-      ),
+      this.log.error('watchdog.crashed', 'Watchdog de inicialização abortou', {
+        err,
+      }),
     );
   }
 
   async onModuleDestroy() {
-    this.logger.info({ evt: 'wa.shutdown.start' }, 'Encerrando cliente');
+    this.log.info('shutdown.start', 'Encerrando cliente');
     this.stopPageDiagnostics();
     await this.safeDestroy();
-    this.logger.info({ evt: 'wa.shutdown.done' }, 'Cliente encerrado');
+    this.log.info('shutdown.done', 'Cliente encerrado');
   }
 
   private async initializeWithWatchdog() {
-    const startedAt = Date.now();
+    const watchdogLog = this.log.timed();
 
     for (let attempt = 1; attempt <= MAX_RESTART_ATTEMPTS; attempt++) {
       const outcome = await this.tryInitialize(READY_TIMEOUT_MS);
       if (outcome === 'ready') {
-        this.logger.info(
-          {
-            evt: 'wa.init.done',
-            attempt,
-            durationMs: Date.now() - startedAt,
-          },
-          'Cliente inicializado',
-        );
+        watchdogLog.info('init.done', 'Cliente inicializado', { attempt });
         return;
       }
 
@@ -126,29 +119,26 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
           ? `not ready within ${READY_TIMEOUT_MS}ms`
           : 'failed to launch';
 
-      this.logger.warn(
+      this.log.warn(
+        'init.retry',
+        'Reiniciando cliente após tentativa malsucedida',
         {
-          evt: 'wa.init.retry',
           attempt,
           maxAttempts: MAX_RESTART_ATTEMPTS,
           outcome,
           cause,
           timeoutMs: READY_TIMEOUT_MS,
         },
-        'Reiniciando cliente após tentativa malsucedida',
       );
 
       await this.safeDestroy();
       await new Promise((r) => setTimeout(r, RETRY_BACKOFF_MS));
     }
 
-    this.logger.warn(
-      {
-        evt: 'wa.init.watchdog_exhausted',
-        maxAttempts: MAX_RESTART_ATTEMPTS,
-        durationMs: Date.now() - startedAt,
-      },
+    watchdogLog.warn(
+      'init.watchdog_exhausted',
       'Watchdog esgotado, aguardando cliente sem prazo',
+      { maxAttempts: MAX_RESTART_ATTEMPTS },
     );
 
     await this.tryInitialize(null);
@@ -158,11 +148,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     return new Promise<InitOutcome>((resolve) => {
       let settled = false;
       let timer: NodeJS.Timeout | undefined;
-      const startedAt = Date.now();
-
-      this.logger.info(
-        { evt: 'wa.init.start', timeoutMs },
+      const attemptLog = this.log.start(
+        'init.start',
         'Inicializando cliente do WhatsApp',
+        { timeoutMs },
       );
 
       const finish = (outcome: InitOutcome) => {
@@ -172,13 +161,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         client.removeListener('ready', onReady);
         client.removeListener('qr', onQr);
 
-        this.logger.info(
-          {
-            evt: 'wa.init.attempt_finished',
-            outcome,
-            durationMs: Date.now() - startedAt,
-          },
+        attemptLog.info(
+          'init.attempt_finished',
           'Tentativa de inicialização concluída',
+          { outcome },
         );
 
         resolve(outcome);
@@ -193,8 +179,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         if (timer) {
           clearTimeout(timer);
           timer = undefined;
-          this.logger.info(
-            { evt: 'wa.init.watchdog_paused' },
+          this.log.info(
+            'init.watchdog_paused',
             'QR aguardando leitura, watchdog pausado',
           );
         }
@@ -208,14 +194,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       }
 
       client.initialize().catch((err: unknown) => {
-        this.logger.error(
-          {
-            evt: 'wa.init.failed',
-            durationMs: Date.now() - startedAt,
-            err,
-          },
-          'client.initialize() falhou',
-        );
+        attemptLog.error('init.failed', 'client.initialize() falhou', { err });
         finish('failed');
       });
     });
@@ -226,8 +205,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
 
     const page = (client as unknown as { pupPage?: PupPage }).pupPage;
     if (!page) {
-      this.logger.debug(
-        { evt: 'wa.diagnostics.no_page' },
+      this.log.debug(
+        'diagnostics.no_page',
         'Sem página do puppeteer para instrumentar',
       );
       return;
@@ -235,18 +214,14 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
 
     if (this.instrumentedPage !== page) {
       page.on('pageerror', (err: unknown) => {
-        this.logger.error(
-          { evt: 'wa.page_error', err },
-          'Erro na página do WhatsApp Web',
-        );
+        this.log.error('page_error', 'Erro na página do WhatsApp Web', { err });
       });
       this.instrumentedPage = page;
     }
 
-    this.logger.debug(
-      { evt: 'wa.diagnostics.started', intervalMs: DIAGNOSTICS_INTERVAL_MS },
-      'Sonda de sincronização iniciada',
-    );
+    this.log.debug('diagnostics.started', 'Sonda de sincronização iniciada', {
+      intervalMs: DIAGNOSTICS_INTERVAL_MS,
+    });
 
     this.diagnosticsTimer = setInterval(() => {
       page
@@ -277,30 +252,26 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
           }
 
           if (!probe) {
-            this.logger.warn(
-              { evt: 'wa.sync_probe.unavailable', raw },
+            this.log.warn(
+              'sync_probe.unavailable',
               'Sonda de sincronização não retornou JSON',
+              { raw },
             );
             return;
           }
 
-          this.logger.info(
-            {
-              evt: 'wa.sync_probe',
-              state: probe.state,
-              stream: probe.stream,
-              hasSynced: probe.hasSynced,
-              offline: probe.offline,
-              wwebjs: probe.wwebjs,
-            },
-            'Sonda de sincronização',
-          );
+          this.log.info('sync_probe', 'Sonda de sincronização', {
+            state: probe.state,
+            stream: probe.stream,
+            hasSynced: probe.hasSynced,
+            offline: probe.offline,
+            wwebjs: probe.wwebjs,
+          });
         })
         .catch((err: unknown) => {
-          this.logger.warn(
-            { evt: 'wa.sync_probe.failed', err },
-            'Sonda de sincronização falhou',
-          );
+          this.log.warn('sync_probe.failed', 'Sonda de sincronização falhou', {
+            err,
+          });
         });
     }, DIAGNOSTICS_INTERVAL_MS);
   }
@@ -309,20 +280,14 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     if (!this.diagnosticsTimer) return;
     clearInterval(this.diagnosticsTimer);
     this.diagnosticsTimer = undefined;
-    this.logger.debug(
-      { evt: 'wa.diagnostics.stopped' },
-      'Sonda de sincronização encerrada',
-    );
+    this.log.debug('diagnostics.stopped', 'Sonda de sincronização encerrada');
   }
 
   private async safeDestroy() {
     try {
       await client.destroy();
     } catch (err: unknown) {
-      this.logger.warn(
-        { evt: 'wa.destroy.failed', err },
-        'Falha ao destruir o cliente',
-      );
+      this.log.warn('destroy.failed', 'Falha ao destruir o cliente', { err });
     }
   }
 }

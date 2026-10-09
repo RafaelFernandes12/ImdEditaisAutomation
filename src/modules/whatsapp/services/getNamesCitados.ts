@@ -6,6 +6,7 @@ import { PdfService } from '../../pdf/services/pdf.service.js';
 import type { PdfWithJobAndEditalPdf } from '../../pdf/repositories/pdf.repository.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import { formatDate } from '#src/utils/formate-date.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class GetNamesCitados {
@@ -17,7 +18,9 @@ export class GetNamesCitados {
   ) {}
 
   async execute(message: pkg.Message) {
-    const startedAt = Date.now();
+    const baseLog = new ScopedLogger(this.logger, 'wa.names_citados', {
+      chatId: maskContact(message.from),
+    }).timed();
 
     const user = await this.userService.findByChatId(message.from);
     if (!user) {
@@ -27,18 +30,11 @@ export class GetNamesCitados {
       return;
     }
 
+    const log = baseLog.child({ userId: user.id });
     const pdfs = await this.pdfService.findAllByUserName(user.name.trim());
 
     if (pdfs.length === 0) {
-      this.logger.info(
-        {
-          evt: 'wa.names_citados.empty',
-          chatId: maskContact(message.from),
-          userId: user.id,
-          durationMs: Date.now() - startedAt,
-        },
-        'Nenhum PDF citando o usuário',
-      );
+      log.info('empty', 'Nenhum PDF citando o usuário');
       await message.reply('Seu nome não foi citado em nenhum edital ainda.');
       return;
     }
@@ -68,19 +64,12 @@ export class GetNamesCitados {
       );
     }
 
-    this.logger.info(
-      {
-        evt: 'wa.names_citados.done',
-        chatId: maskContact(message.from),
-        userId: user.id,
-        pdfCount: pdfs.length,
-        editalCount: byEdital.size,
-        imdCount: imdGroups.length,
-        stiCount: stiGroups.length,
-        durationMs: Date.now() - startedAt,
-      },
-      'Editais citando o usuário enviados',
-    );
+    log.info('done', 'Editais citando o usuário enviados', {
+      pdfCount: pdfs.length,
+      editalCount: byEdital.size,
+      imdCount: imdGroups.length,
+      stiCount: stiGroups.length,
+    });
   }
 
   private formatEdital(pdfs: PdfWithJobAndEditalPdf[]) {

@@ -6,7 +6,8 @@ import { maskContact } from '../../../utils/log-redact.js';
 import {
   formatEditalLines,
   formatJobVagaLines,
-} from '#src/utils/format-job-lines.js';
+} from '../../../utils/format-job-lines.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class GetJobs {
@@ -17,18 +18,13 @@ export class GetJobs {
   ) {}
 
   async execute(message: pkg.Message, stillActive: boolean) {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'wa.jobs_andamento', {
+      chatId: maskContact(message.from),
+    }).timed();
     const activeJobs = await this.jobsService.findActive(stillActive);
 
     if (activeJobs.length === 0) {
-      this.logger.warn(
-        {
-          evt: 'wa.jobs_andamento.empty',
-          chatId: maskContact(message.from),
-          durationMs: Date.now() - startedAt,
-        },
-        'Nenhum edital em andamento para responder',
-      );
+      log.warn('empty', 'Nenhum edital em andamento para responder');
       await message.reply('Nenhum edital em andamento no momento.');
       return;
     }
@@ -51,21 +47,15 @@ export class GetJobs {
       await message.reply(`Editais STI:\n${stiLines}`);
     }
 
-    this.logger.info(
-      {
-        evt: 'wa.jobs_andamento.done',
-        chatId: maskContact(message.from),
-        count: activeJobs.length,
-        pdfCount: activeJobs.reduce(
-          (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
-          0,
-        ),
-        messageLengthImd: imdLines.length,
-        messageLengthJerimum: jerimunLines.length,
-        messageLengthSti: stiLines.length,
-        durationMs: Date.now() - startedAt,
-      },
-      'Editais em andamento enviados',
-    );
+    log.info('done', 'Editais em andamento enviados', {
+      count: activeJobs.length,
+      pdfCount: activeJobs.reduce(
+        (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
+        0,
+      ),
+      messageLengthImd: imdLines.length,
+      messageLengthJerimum: jerimunLines.length,
+      messageLengthSti: stiLines.length,
+    });
   }
 }
