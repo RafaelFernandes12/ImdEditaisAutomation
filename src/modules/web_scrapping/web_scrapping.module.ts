@@ -21,6 +21,7 @@ import { JerimunScraperService } from './services/jerimun-scraper.service.js';
 import { StiScraperService } from './services/sti-scraper.service.js';
 import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
 import { FinishJobsConsumer } from './providers/finish-jobs.consumer.js';
+import { GithubService } from './services/github.service.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { FinishJobsConsumer } from './providers/finish-jobs.consumer.js';
     PrismaService,
     FinishJobsProvider,
     FinishJobsConsumer,
+    GithubService,
     ImdScraperService,
     PdfExtractorService,
     NotifyNewJobsProvider,
