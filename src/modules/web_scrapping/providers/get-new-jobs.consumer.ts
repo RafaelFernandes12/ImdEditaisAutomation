@@ -54,6 +54,7 @@ export class GetNewJobsConsumer extends WorkerHost {
       await this.processJerimumJob(job, newJob);
     }
   }
+
   private async processEditalImd(job: Job, newJobImd: getNewImdEditais) {
     const startedAt = Date.now();
 

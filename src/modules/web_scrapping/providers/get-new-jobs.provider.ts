@@ -7,11 +7,13 @@ import { FlowProducer } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
+import { GithubService } from '../services/github.service.js';
 
 @Injectable()
 export class GetNewJobsProvider {
   constructor(
     private imdScraperService: ImdScraperService,
+    private readonly githubService: GithubService,
     private pdfExtractorService: PdfExtractorService,
     private readonly jerimunScraperService: JerimunScraperService,
     private readonly stiScraperService: StiScraperService,
@@ -40,7 +42,14 @@ export class GetNewJobsProvider {
         isActive: true,
       }));
       const editaisStiJobs = await this.getEditaisSti();
-      const jobs = [...editaisImdJobs, ...jerimumJobs, ...editaisStiJobs];
+      const githubJobs = await this.githubService.execute();
+
+      const jobs = [
+        ...editaisImdJobs,
+        ...jerimumJobs,
+        ...editaisStiJobs,
+        ...githubJobs,
+      ];
       await this.flowProducer.add({
         name: 'notifyAll',
         queueName: 'notifyAll',
