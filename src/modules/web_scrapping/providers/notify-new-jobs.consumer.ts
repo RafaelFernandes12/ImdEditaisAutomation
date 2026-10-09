@@ -7,7 +7,7 @@ import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
 import {
   formatEditalLines,
-  formatJerimumLines,
+  formatJobVagaLines,
 } from '#src/utils/format-job-lines.js';
 
 @Processor('notifyNewJobs')
@@ -64,7 +64,7 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       const stiEditais = newJobs.filter((job) => job.type === 'STI');
 
       const bodyImd = formatEditalLines(imdEditais);
-      const bodyJerimum = formatJerimumLines(jerimunJobs);
+      const bodyJerimum = formatJobVagaLines(jerimunJobs);
       const bodySti = formatEditalLines(stiEditais);
 
       const sendStartedAt = Date.now();

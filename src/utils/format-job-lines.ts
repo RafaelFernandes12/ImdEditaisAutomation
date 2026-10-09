@@ -23,7 +23,7 @@ export function formatEditalLines(editais: ActiveJob[]) {
     .join('\n');
 }
 
-export function formatJerimumLines(jobs: ActiveJob[]) {
+export function formatJobVagaLines(jobs: ActiveJob[]) {
   return jobs
     .map(
       (job, index) =>

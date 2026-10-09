@@ -5,7 +5,7 @@ import { JobsService } from '../../jobs/services/jobs.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
 import {
   formatEditalLines,
-  formatJerimumLines,
+  formatJobVagaLines,
 } from '#src/utils/format-job-lines.js';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class GetJobs {
     const stiEditais = activeJobs.filter((job) => job.type === 'STI');
 
     const imdLines = formatEditalLines(imdEditais);
-    const jerimunLines = formatJerimumLines(jerimunJobs);
+    const jerimunLines = formatJobVagaLines(jerimunJobs);
     const stiLines = formatEditalLines(stiEditais);
 
     if (imdLines.length > 0) {
