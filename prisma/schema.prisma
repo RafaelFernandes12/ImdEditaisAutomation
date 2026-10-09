@@ -49,8 +49,8 @@ model Job {
   created_at DateTime  @default(now()) @db.Timestamp(6)
   updated_at DateTime  @updatedAt() @db.Timestamp(6)
 
-  edital  Edital?
-  jerimum Jerimum?
+  edital Edital?
+  vaga   Vaga?
 
   sends             Sends[]
   UserSubscriptions UserSubscriptions[]
@@ -66,7 +66,7 @@ model Edital {
   pdfs Pdf[]
 }
 
-model Jerimum {
+model Vaga {
   jobId Int @id
   job   Job @relation(fields: [jobId], references: [id])
 
