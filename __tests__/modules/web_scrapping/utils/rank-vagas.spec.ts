@@ -90,7 +90,7 @@ describe('rankVagas', () => {
 });
 
 describe('formatRankedVagas', () => {
-  it('numera cada vaga e põe o link logo abaixo', () => {
+  it('numera cada vaga, põe a fonte na linha do cargo e o link logo abaixo', () => {
     const github = job({ link: 'https://github.com/issue/1' });
     const edital = job({
       kind: 'EDITAL',
@@ -102,7 +102,7 @@ describe('formatRankedVagas', () => {
         { link: 'https://imd/resultado.pdf' },
       ],
       vagas: [
-        vaga({ summary: '*Vaga:* Web' }),
+        vaga({ summary: '*Vaga:* Web | Natal/RN\n*Senioridade:* Júnior' }),
         vaga({ summary: '*Vaga:* Dados' }),
       ],
     });
@@ -114,9 +114,9 @@ describe('formatRankedVagas', () => {
     ]);
 
     expect(message).toBe(
-      '*1.* *Vaga:* Desenvolvedor\n🔗 https://github.com/issue/1\n\n' +
-        '*2.* *Vaga:* Web\n🗓️ Inscrições até: 30/10/2026\n🔗 https://imd/edital.pdf\n\n' +
-        '*3.* *Vaga:* Dados\n🗓️ Inscrições até: 30/10/2026\n🔗 https://imd/edital.pdf',
+      '*1.* *Vaga:* Desenvolvedor | GitHub Backend\n🔗 https://github.com/issue/1\n\n' +
+        '*2.* *Vaga:* Web | Natal/RN | IMD\n*Senioridade:* Júnior\n🗓️ Inscrições até: 30/10/2026\n🔗 https://imd/edital.pdf\n\n' +
+        '*3.* *Vaga:* Dados | IMD\n🗓️ Inscrições até: 30/10/2026\n🔗 https://imd/edital.pdf',
     );
   });
 });

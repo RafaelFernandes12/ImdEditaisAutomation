@@ -1,4 +1,5 @@
 import type { ActiveJob } from '../modules/jobs/services/jobs.service.js';
+import { JOB_TYPES } from '../modules/jobs/job-types.js';
 import { formatDate } from './formate-date.js';
 
 // Edital pode ter vários perfis: um resumo por vaga, separados por linha em branco.
@@ -11,7 +12,8 @@ export function formatVagasSummary({
 }
 
 // Uma vaga por item, na ordem recebida (do mais para o menos compatível).
-// Vaga de edital leva o link do edital (primeiro pdf), repetido em cada
+// A fonte vai no fim da linha do cargo (<vaga> | <cidade>/<UF> | <fonte>),
+// e a vaga de edital leva o link do edital (primeiro pdf), repetido em cada
 // perfil do mesmo edital.
 export function formatRankedVagas(
   ranked: { job: ActiveJob; vaga: { summary: string } }[],
@@ -25,7 +27,10 @@ export function formatRankedVagas(
           ? `🗓️ Inscrições até: ${formatDate(job.subscriptionUntil)}\n`
           : '';
 
-      return `*${index + 1}.* ${vaga.summary}\n${inscricoes}🔗 ${link}`;
+      const [titulo, ...resto] = vaga.summary.split('\n');
+      const summary = [`${titulo} | ${JOB_TYPES[job.type].source}`, ...resto];
+
+      return `*${index + 1}.* ${summary.join('\n')}\n${inscricoes}🔗 ${link}`;
     })
     .join('\n\n');
 }
