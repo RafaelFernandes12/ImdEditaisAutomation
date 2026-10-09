@@ -55,9 +55,9 @@ export class WhatsappCommandsService {
     '!vagas andamento': (_client, message) =>
       this.getJobs.execute(message, true),
     '!desativar': (_client, message) =>
-      this.deactiveUser.execute(client, message),
+      this.deactiveUser.execute(_client, message),
     '!reativar': (_client, message) =>
-      this.reactiveUser.execute(client, message),
+      this.reactiveUser.execute(_client, message),
     '!citado': (_client, message) => this.getNamesCitados.execute(message),
   };
 
