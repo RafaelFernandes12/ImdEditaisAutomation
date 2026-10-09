@@ -8,6 +8,7 @@ import { SendsRepository } from '../../sends/repositories/sends.repository.js';
 import { CreateSend } from '../../sends/dto/sends.dto.js';
 import { CreateUser, UpdateJobsUser } from '../dto/user.dto.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class UserJobsLinkingService {
@@ -20,8 +21,12 @@ export class UserJobsLinkingService {
     private readonly logger: PinoLogger,
   ) {}
 
+  private logWith(bindings: Record<string, unknown>) {
+    return new ScopedLogger(this.logger, 'user.link_jobs', bindings);
+  }
+
   async createUser(data: CreateUser) {
-    const startedAt = Date.now();
+    const log = this.logWith({ jobsCount: data.jobsId.length }).timed();
 
     return this.prisma.$transaction(async (tx) => {
       const user = await this.userRepository.create(
@@ -35,50 +40,38 @@ export class UserJobsLinkingService {
 
       const linked = await this.linkJobs(tx, user.id, data.jobsId);
 
-      this.logger.info(
-        {
-          evt: 'user.link_jobs.created',
-          userId: user.id,
-          jobsCount: data.jobsId.length,
-          sendsCreated: linked.sendsCreated,
-          durationMs: Date.now() - startedAt,
-        },
-        'Usuário criado e vinculado aos editais',
-      );
+      log.info('created', 'Usuário criado e vinculado aos editais', {
+        userId: user.id,
+        sendsCreated: linked.sendsCreated,
+      });
 
       return user;
     });
   }
 
   async updateJobsUser(data: UpdateJobsUser) {
-    const startedAt = Date.now();
+    const log = this.logWith({ jobsCount: data.jobsId.length });
+    const timer = log.timed();
 
     return this.prisma.$transaction(async (tx) => {
       const user = await this.userRepository.findByContact(data.contact, tx);
       if (!user) {
-        this.logger.warn(
-          {
-            evt: 'user.link_jobs.user_not_found',
-            contact: maskContact(data.contact),
-            jobsCount: data.jobsId.length,
-          },
+        log.warn(
+          'user_not_found',
           'Usuário não encontrado ao vincular editais',
+          {
+            contact: maskContact(data.contact),
+          },
         );
         throw new Error(`User with contact ${data.contact} not found`);
       }
 
       const linked = await this.linkJobs(tx, user.id, data.jobsId);
 
-      this.logger.info(
-        {
-          evt: 'user.link_jobs.updated',
-          userId: user.id,
-          jobsCount: data.jobsId.length,
-          sendsCreated: linked.sendsCreated,
-          durationMs: Date.now() - startedAt,
-        },
-        'Editais vinculados ao usuário',
-      );
+      timer.info('updated', 'Editais vinculados ao usuário', {
+        userId: user.id,
+        sendsCreated: linked.sendsCreated,
+      });
 
       return user;
     });
@@ -89,6 +82,7 @@ export class UserJobsLinkingService {
     userId: number,
     jobsId: number[],
   ) {
+    const log = this.logWith({ userId });
     let sendsCreated = 0;
     let jobsWithoutPdfs = 0;
 
@@ -114,27 +108,21 @@ export class UserJobsLinkingService {
 
       sendsCreated += created.count;
 
-      this.logger.debug(
-        {
-          evt: 'user.link_jobs.job',
-          userId,
-          jobId,
-          pdfCount: pdfs.length,
-          sendsCreated: created.count,
-        },
-        'Vaga vinculada ao usuário',
-      );
+      log.debug('job', 'Vaga vinculada ao usuário', {
+        jobId,
+        pdfCount: pdfs.length,
+        sendsCreated: created.count,
+      });
     }
 
     if (jobsWithoutPdfs > 0) {
-      this.logger.debug(
+      log.debug(
+        'jobs_without_pdfs',
+        'Vagas sem PDF registradas em nível de vaga',
         {
-          evt: 'user.link_jobs.jobs_without_pdfs',
-          userId,
           jobsWithoutPdfs,
           jobsCount: jobsId.length,
         },
-        'Vagas sem PDF registradas em nível de vaga',
       );
     }
 

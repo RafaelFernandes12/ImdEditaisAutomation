@@ -4,6 +4,7 @@ import { UserRepository } from '../repositories/user.repository.js';
 import { CreateUser, UpdateJobsUser } from '../dto/user.dto.js';
 import { UserJobsLinkingService } from './user-jobs-linking.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class UserService {
@@ -14,131 +15,91 @@ export class UserService {
     private readonly logger: PinoLogger,
   ) {}
 
+  private get log() {
+    return new ScopedLogger(this.logger, 'user');
+  }
+
   async updateJobsUser(data: UpdateJobsUser) {
-    const startedAt = Date.now();
+    const log = this.log.child({ jobsCount: data.jobsId.length }).timed();
 
     try {
       const user = await this.userJobsLinkingService.updateJobsUser(data);
 
-      this.logger.info(
-        {
-          evt: 'user.jobs.update.done',
-          userId: user.id,
-          jobsCount: data.jobsId.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Editais do usuário atualizados',
-      );
+      log.info('jobs.update.done', 'Editais do usuário atualizados', {
+        userId: user.id,
+      });
 
       return user;
     } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'user.jobs.update.failed',
-          contact: maskContact(data.contact),
-          jobsCount: data.jobsId.length,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao atualizar editais do usuário',
-      );
+      log.error('jobs.update.failed', 'Falha ao atualizar editais do usuário', {
+        contact: maskContact(data.contact),
+        err: error,
+      });
       throw error;
     }
   }
 
   async createUser(data: CreateUser) {
-    const startedAt = Date.now();
+    const log = this.log.child({ jobsCount: data.jobsId.length }).timed();
 
     try {
       const user = await this.userJobsLinkingService.createUser(data);
 
-      this.logger.info(
-        {
-          evt: 'user.create.done',
-          userId: user.id,
-          jobsCount: data.jobsId.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Usuário criado',
-      );
+      log.info('create.done', 'Usuário criado', {
+        userId: user.id,
+      });
 
       return user;
     } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'user.create.failed',
-          contact: maskContact(data.contact),
-          jobsCount: data.jobsId.length,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao criar usuário',
-      );
+      log.error('create.failed', 'Falha ao criar usuário', {
+        contact: maskContact(data.contact),
+        err: error,
+      });
       throw error;
     }
   }
 
   async findManyUsers() {
-    const startedAt = Date.now();
+    const log = this.log.timed();
     const users = await this.userRepository.findMany();
 
-    this.logger.debug(
-      {
-        evt: 'user.find_many.done',
-        count: users.length,
-        durationMs: Date.now() - startedAt,
-      },
-      'Usuários carregados',
-    );
+    log.debug('find_many.done', 'Usuários carregados', {
+      count: users.length,
+    });
 
     return users;
   }
   async reactiveUser(contact: string) {
-    const startedAt = Date.now();
+    const log = this.log.timed();
     const user = await this.userRepository.reactiveUser(contact);
 
-    this.logger.debug(
-      {
-        evt: 'user.reactive_user.done',
-        contact: maskContact(user?.contact),
-        found: user !== null,
-        userId: user?.id,
-        durationMs: Date.now() - startedAt,
-      },
-      'Usuário reativado',
-    );
+    log.debug('reactive_user.done', 'Usuário reativado', {
+      contact: maskContact(user?.contact),
+      found: user !== null,
+      userId: user?.id,
+    });
     return user;
   }
   async deactiveUser(contact: string) {
-    const startedAt = Date.now();
+    const log = this.log.timed();
     const user = await this.userRepository.deactiveUser(contact);
 
-    this.logger.debug(
-      {
-        evt: 'user.deactive_user.done',
-        contact: maskContact(user?.contact),
-        found: user !== null,
-        userId: user?.id,
-        durationMs: Date.now() - startedAt,
-      },
-      'Usuário desativado',
-    );
+    log.debug('deactive_user.done', 'Usuário desativado', {
+      contact: maskContact(user?.contact),
+      found: user !== null,
+      userId: user?.id,
+    });
     return user;
   }
   async findByChatId(chatId: string) {
-    const startedAt = Date.now();
+    const log = this.log.timed();
     const user = await this.userRepository.findByChatId(chatId);
 
-    this.logger.debug(
-      {
-        evt: 'user.find_by_chat_id.done',
-        chatId: maskContact(chatId),
-        found: user !== null,
-        userId: user?.id,
-        durationMs: Date.now() - startedAt,
-      },
-      'Busca de usuário por chatId',
-    );
+    log.debug('find_by_chat_id.done', 'Busca de usuário por chatId', {
+      chatId: maskContact(chatId),
+      found: user !== null,
+      userId: user?.id,
+    });
 
     return user;
   }
