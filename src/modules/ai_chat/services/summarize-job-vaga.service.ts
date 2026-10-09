@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { openAIClient } from '../../../config/openai/openai.service.js';
 
 @Injectable()
-export class SummarizeJobJerimum {
+export class SummarizeJobVaga {
   constructor() {}
   summarizePrompt = `Atue como um redator de vagas de emprego focado em comunicação ultradireta para WhatsApp. Seu objetivo é resumir as oportunidades do PDF em formato compacto, sem enrolação.
 
@@ -16,8 +16,10 @@ REGRAS RÍGIDAS DE FORMATAÇÃO (MANDATÓRIO):
 - Siga exatamente este formato para cada vaga:
 
 *Vaga:* [Nome da Vaga]
+*Senioridade:* [Estágio/Júnior/Pleno/Sênior/Tech Lead/Não informado]
 *Qtd vagas:* [Número][+ qtd CR se houver]
 *Remuneração:* [R$ Valor] ([X]h semanais / [Turno] / [Presencial/Híbrido/Remoto] / [PJ/CLT])
+*Localização:* [Estado] / [Cidade]
 *Palavras-chaves:* [5 a 10 hard skills/tecnologias/ferramentas separadas por vírgula]
 
 (Separe apenas uma vaga da outra com 1 linha em branco).
@@ -25,11 +27,11 @@ REGRAS RÍGIDAS DE FORMATAÇÃO (MANDATÓRIO):
 Aqui está o PDF:
 `;
 
-  async execute(pdfText: string) {
+  async execute(text: string) {
     try {
       const jobResume = await openAIClient.responses.create({
         model: process.env.LLM_MODEL ?? 'gpt-4o-mini',
-        input: this.summarizePrompt + pdfText,
+        input: this.summarizePrompt + text,
       });
 
       return jobResume.output_text;
