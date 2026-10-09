@@ -1,42 +1,44 @@
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { extractAllKeywords } from '../services/job-summary-parser.util.js';
-import { trimJobForSummary } from '../services/job-text-trimmer.util.js';
+import { extractAllKeywords } from '../utils/job-summary-parser.util.js';
+import { trimJobForSummary } from '../utils/job-text-trimmer.util.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { EditalStrategy } from '../strategy/edital.strategy.js';
-import { JerimumStrategy } from '../strategy/jerimum.strategy.js';
-import { GithubStrategy } from '../strategy/github.strategy.js';
+import { VagaStrategy } from '../strategy/vaga.strategy.js';
 import {
   NewJobPayload,
   NewJobStrategies,
   NewJobStrategy,
 } from '../strategy/new-job.strategy.js';
 import { BadRequestException } from '@nestjs/common';
+import { JOB_TYPES } from '../../jobs/job-types.js';
 
 @Processor('getNewJobs')
 export class GetNewJobsConsumer extends WorkerHost {
   private readonly strategies: NewJobStrategies;
   constructor(
     editalJobStrategy: EditalStrategy,
-    jerimumJobStrategy: JerimumStrategy,
-    githubJobStrategy: GithubStrategy,
+    vagaJobStrategy: VagaStrategy,
     @InjectPinoLogger(GetNewJobsConsumer.name)
     private readonly logger: PinoLogger,
   ) {
     super();
     this.strategies = {
-      IMD: editalJobStrategy,
-      STI: editalJobStrategy,
-      JERIMUM: jerimumJobStrategy,
-      BACKEND_GITHUB: githubJobStrategy,
-      FRONTEND_GITHUB: githubJobStrategy,
+      edital: editalJobStrategy,
+      vaga: vagaJobStrategy,
     };
   }
 
   async process(job: Job) {
     const newJob = job.data as NewJobPayload;
-    const strategy = this.strategies[newJob.type] as
-      NewJobStrategy<NewJobPayload> | undefined;
+    // O payload vem da fila: o tipo pode não existir mais no JOB_TYPES.
+    const kind = (
+      JOB_TYPES[newJob.type] as
+        (typeof JOB_TYPES)[typeof newJob.type] | undefined
+    )?.kind;
+    const strategy = kind
+      ? (this.strategies[kind] as NewJobStrategy<NewJobPayload>)
+      : undefined;
 
     if (!strategy) {
       this.logger.error(
