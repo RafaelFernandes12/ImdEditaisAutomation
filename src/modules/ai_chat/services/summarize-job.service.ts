@@ -41,7 +41,6 @@ export class SummarizeJob {
     cidade: z.string().nullable(),
     estado: z.string().nullable(),
     duracao: z.string().nullable(),
-    elegibilidade: z.string().nullable(),
     keywords: z.array(z.string()),
     ecossystems: z.array(z.enum(Object.keys(ECOSYSTEMS))).max(3),
   });
@@ -69,7 +68,6 @@ COMO PREENCHER CADA CAMPO:
 - cidade: nome da cidade onde a vaga é exercida, sem o estado. Se não achar, use null.
 - estado: sigla da UF (ex: "RN", "SP"). Se não achar, use null.
 - duracao: duração do contrato ou da bolsa, curta (ex: "12 meses", "6 meses, prorrogável"). Se o texto disser que não tem prazo definido, use "Indeterminado"; se não falar de duração, use null.
-- elegibilidade: requisitos obrigatórios para se candidatar, em uma frase curta (ex: "Graduandos do BTI com IRA a partir de 6", "3 anos de experiência com Node.js"). Não liste requisitos desejáveis nem diferenciais.
 - keywords: de 5 a 10 hard skills, tecnologias ou ferramentas pedidas na vaga, com a grafia oficial (ex: "Node.js", "PostgreSQL", "Python"). Não inclua soft skills nem termos genéricos como "programação" ou "tecnologia". Se o texto citar menos de 5, devolva só as citadas.
 - ecossystems: derive SOMENTE das keywords que você listou acima, no máximo 3, do mais para o menos relevante. Um ecossistema entra se alguma keyword for um dos termos dele (ignorando maiúsculas, versão e sufixos como ".js": "React.js" → react, "Python 3" → python). Não use o resto do texto e não escolha um ecossistema só por proximidade. Se nenhuma keyword casar, devolva lista vazia. Use só os nomes desta lista (cada nome seguido dos termos que o caracterizam):
 ${Object.entries(ECOSYSTEMS)

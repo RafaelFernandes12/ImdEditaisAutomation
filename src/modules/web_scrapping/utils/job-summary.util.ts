@@ -99,7 +99,6 @@ export function formatVaga(vaga: VagaResumida, cotacoes: Cotacoes = {}) {
     remuneracao,
     vaga.keywords.length > 0 &&
       `*Palavras-chaves:* ${vaga.keywords.join(', ')}`,
-    vaga.elegibilidade && `*Elegibilidade:* ${vaga.elegibilidade}`,
   ]
     .filter(Boolean)
     .join('\n');

@@ -18,7 +18,6 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     cidade: null,
     estado: null,
     duracao: null,
-    elegibilidade: null,
     keywords: [],
     ecossystems: [],
     ...overrides,

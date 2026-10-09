@@ -22,7 +22,6 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     cidade: 'Natal',
     estado: 'RN',
     duracao: null,
-    elegibilidade: '3 anos de experiência com Node.js',
     keywords: ['Node.js', 'PostgreSQL'],
     ecossystems: [],
     ...overrides,
@@ -42,7 +41,6 @@ function bolsa(overrides: Partial<VagaResumida> = {}): VagaResumida {
     formato: 'PRESENCIAL',
     modalidade: 'BOLSISTA',
     duracao: '12 meses',
-    elegibilidade: 'Graduandos do BTI',
     keywords: ['Python', 'Django'],
     ...overrides,
   });
@@ -56,7 +54,6 @@ describe('formatVaga', () => {
         '*Senioridade:* Pleno',
         '*Remuneração:* R$ 3.500,50 (40h semanais / Remoto / CLT)',
         '*Palavras-chaves:* Node.js, PostgreSQL',
-        '*Elegibilidade:* 3 anos de experiência com Node.js',
       ].join('\n'),
     );
   });
@@ -68,7 +65,6 @@ describe('formatVaga', () => {
         '*Senioridade:* Graduação',
         '*Remuneração:* R$ 700,00 (20h semanais / Tarde / Presencial / Bolsista)',
         '*Palavras-chaves:* Python, Django',
-        '*Elegibilidade:* Graduandos do BTI',
       ].join('\n'),
     );
   });
@@ -88,7 +84,6 @@ describe('formatVaga', () => {
         cidade: null,
         estado: null,
         duracao: null,
-        elegibilidade: null,
         keywords: [],
       }),
     );
