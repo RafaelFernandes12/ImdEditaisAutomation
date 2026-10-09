@@ -10,9 +10,7 @@ import { getFormattedContact } from './util.service.js';
 
 type loginData = {
   name?: string;
-  matricula?: string;
-  vitae?: string;
-  lattes?: string;
+  keywords?: string;
 };
 
 @Injectable()
@@ -33,6 +31,11 @@ export class LoginService {
     {
       key: 'name',
       prompt: 'Escreva seu nome completo: (Obrigatorio)',
+      type: 'text',
+    },
+    {
+      key: 'keywords',
+      prompt: 'Escreva palavras chaves para ajudar no filtro de vagas',
       type: 'text',
     },
   ];
