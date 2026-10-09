@@ -14,39 +14,38 @@ export class GithubService {
     const [githubIssuesBackend, githubIssuesFrontend] = await Promise.all([
       fetch('https://api.github.com/repos/backend-br/vagas/issues', {
         headers: {
-          Authorization: 'Bearer' + process.env.GITHUB_TOKEN,
+          Authorization: 'Bearer ' + process.env.GITHUB_TOKEN,
           Accept: 'application/vnd.github+json',
         },
       }),
 
       fetch('https://api.github.com/repos/frontendbr/vagas/issues', {
         headers: {
-          Authorization: 'Bearer' + process.env.GITHUB_TOKEN,
+          Authorization: 'Bearer ' + process.env.GITHUB_TOKEN,
           Accept: 'application/vnd.github+json',
         },
       }),
     ]);
-    const githubIssuesBackendJson =
-      (await githubIssuesBackend.json()) as GithubIssue[];
+    const githubIssuesBackendJson = (
+      (await githubIssuesBackend.json()) as GithubIssue[]
+    ).filter((v) => v.state === 'open');
 
-    const githubIssuesFrontendJson =
-      (await githubIssuesFrontend.json()) as GithubIssue[];
+    const githubIssuesFrontendJson = (
+      (await githubIssuesFrontend.json()) as GithubIssue[]
+    ).filter((v) => v.state === 'open');
+
     const toJob = (issue: GithubIssue, type: JobType) => ({
       title: issue.title,
       type: type,
-      link: issue.url,
-      jerimum: { description: issue.body },
+      link: issue.html_url,
+      vaga: { description: issue.body },
       isActive: true,
     });
 
     const issues = [
-      ...githubIssuesBackendJson,
-      ...githubIssuesFrontendJson,
-    ].filter((v) => v.state === 'open');
-    const openIssues = [
-      ...issues.map((v) => toJob(v, 'BACKEND_GITHUB')),
-      ...issues.map((v) => toJob(v, 'FRONTEND_GITHUB')),
+      ...githubIssuesBackendJson.map((v) => toJob(v, 'BACKEND_GITHUB')),
+      ...githubIssuesFrontendJson.map((v) => toJob(v, 'FRONTEND_GITHUB')),
     ];
-    return openIssues;
+    return issues;
   }
 }
