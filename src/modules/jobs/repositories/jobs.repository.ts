@@ -7,7 +7,7 @@ const activeJobInclude = {
   edital: {
     include: { pdfs: true },
   },
-  jerimum: true,
+  vaga: true,
 } satisfies Prisma.JobInclude;
 
 export type ActiveJob = Prisma.JobGetPayload<{
@@ -22,7 +22,7 @@ export class JobsRepository {
     const child =
       'edital' in data
         ? { edital: { create: data.edital } }
-        : { jerimum: { create: data.jerimum } };
+        : { vaga: { create: data.vaga } };
 
     const job = await tx.job.upsert({
       where: { link: data.link },
@@ -36,7 +36,7 @@ export class JobsRepository {
         ...child,
       },
       update: { title: data.title },
-      include: { edital: true, jerimum: true },
+      include: { edital: true, vaga: true },
     });
 
     return job;
@@ -68,7 +68,7 @@ export class JobsRepository {
         edital: {
           include: { pdfs: true },
         },
-        jerimum: true,
+        vaga: true,
       },
       orderBy: [{ edital: { subscriptionUntil: 'desc' } }, { id: 'desc' }],
     });
@@ -92,7 +92,7 @@ export class JobsRepository {
           },
         });
 
-        // updateMany é no-op quando o job não tem filho Edital (ex.: jerimum),
+        // updateMany é no-op quando o job não tem filho Edital (ex.: vaga),
         // enquanto `edital: { update: ... }` aninhado lançaria P2025.
         if (d.validUntil !== undefined && !Number.isNaN(d.validUntil)) {
           await tx.edital.updateMany({

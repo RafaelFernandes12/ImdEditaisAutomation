@@ -1,6 +1,7 @@
 import { JobType } from '../../../../generated/prisma/client.js';
 
-export type EditalJobType = Exclude<JobType, 'JERIMUM'>;
+export type EditalJobType = Extract<JobType, 'IMD' | 'STI'>;
+export type DescriptionJobType = Exclude<JobType, EditalJobType>;
 
 export class CreateJobBase {
   title: string;
@@ -18,11 +19,11 @@ export class CreateEditalJob extends CreateJobBase {
   };
 }
 
-export class CreateJerimumJob extends CreateJobBase {
-  type: Extract<JobType, 'JERIMUM'>;
-  jerimum: {
+export class CreateVagaJob extends CreateJobBase {
+  type: DescriptionJobType;
+  vaga: {
     description: string;
   };
 }
 
-export type CreateJob = CreateEditalJob | CreateJerimumJob;
+export type CreateJob = CreateEditalJob | CreateVagaJob;
