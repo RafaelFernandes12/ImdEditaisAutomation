@@ -62,20 +62,61 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       const imdEditais = newJobs.filter((job) => job.type === 'IMD');
       const jerimunJobs = newJobs.filter((job) => job.type === 'JERIMUM');
       const stiEditais = newJobs.filter((job) => job.type === 'STI');
+      const backendGitHub = newJobs.filter(
+        (job) => job.type === 'BACKEND_GITHUB',
+      );
+      const frontendGitHub = newJobs.filter(
+        (job) => job.type === 'FRONTEND_GITHUB',
+      );
 
       const bodyImd = formatEditalLines(imdEditais);
       const bodyJerimum = formatJobVagaLines(jerimunJobs);
       const bodySti = formatEditalLines(stiEditais);
+      const bodyBack = formatJobVagaLines(backendGitHub);
+      const bodyFront = formatJobVagaLines(frontendGitHub);
 
       const sendStartedAt = Date.now();
+
       if (imdEditais.length > 0) {
-        await client.sendMessage(user.chatId, bodyImd);
+        await client.sendMessage(user.chatId, `BOLSAS IMD: \n\n${bodyImd}`, {
+          linkPreview: false,
+        });
       }
+
       if (jerimunJobs.length > 0) {
-        await client.sendMessage(user.chatId, bodyJerimum);
+        await client.sendMessage(
+          user.chatId,
+          `VAGAS JERIMUM: \n\n${bodyJerimum}`,
+          {
+            linkPreview: false,
+          },
+        );
       }
+
       if (stiEditais.length > 0) {
-        await client.sendMessage(user.chatId, `Editais STI:\n${bodySti}`);
+        await client.sendMessage(user.chatId, `Editais STI:\n\n${bodySti}`, {
+          linkPreview: false,
+        });
+      }
+
+      if (bodyBack.length > 0) {
+        await client.sendMessage(
+          user.chatId,
+          `VAGAS BACKEND GITHUB:\n\n${bodyBack}`,
+          {
+            linkPreview: false,
+          },
+        );
+      }
+
+      if (bodyFront.length > 0) {
+        await client.sendMessage(
+          user.chatId,
+          `VAGAS FRONTEND GITHUB:\n\n${bodyFront}`,
+          {
+            linkPreview: false,
+          },
+        );
       }
 
       this.logger.info(
