@@ -7,6 +7,7 @@ import type { PdfWithJobAndEditalPdf } from '../../pdf/repositories/pdf.reposito
 import { maskContact } from '../../../utils/log-redact.js';
 import { formatDate } from '#src/utils/formate-date.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JOB_TYPES, jobTypesOfKind } from '../../jobs/job-types.js';
 
 @Injectable()
 export class GetNamesCitados {
@@ -48,27 +49,24 @@ export class GetNamesCitados {
     }
 
     const groups = [...byEdital.values()];
-    const imdGroups = groups.filter((g) => g[0].edital.job.type === 'IMD');
-    const stiGroups = groups.filter((g) => g[0].edital.job.type === 'STI');
+    const countByType: Record<string, number> = {};
 
-    if (imdGroups.length > 0) {
+    // Só tipos de edital têm PDF, então só eles podem citar o nome.
+    for (const type of jobTypesOfKind('edital')) {
+      const groupsOfType = groups.filter((g) => g[0].edital.job.type === type);
+      if (groupsOfType.length === 0) continue;
+
+      countByType[type] = groupsOfType.length;
       await message.reply(
-        `📢 *Editais IMD*\n\n` +
-          imdGroups.map((g) => this.formatEdital(g)).join('\n\n'),
-      );
-    }
-    if (stiGroups.length > 0) {
-      await message.reply(
-        `📢 *Editais STI*\n\n` +
-          stiGroups.map((g) => this.formatEdital(g)).join('\n\n'),
+        `📢 *${JOB_TYPES[type].header}*\n\n` +
+          groupsOfType.map((g) => this.formatEdital(g)).join('\n\n'),
       );
     }
 
     log.info('done', 'Editais citando o usuário enviados', {
       pdfCount: pdfs.length,
       editalCount: byEdital.size,
-      imdCount: imdGroups.length,
-      stiCount: stiGroups.length,
+      countByType,
     });
   }
 
