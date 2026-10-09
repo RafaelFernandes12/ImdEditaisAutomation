@@ -5,11 +5,13 @@ import { GetNewJobsProvider } from '../providers/get-new-jobs.provider.js';
 import { NotifyPdfsProvider } from '../providers/notify-pdfs.provider.js';
 import { FinishJobsProvider } from '../providers/finish-jobs.provider.js';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
+import { GithubService } from '../services/github.service.js';
 
 @Controller('jobs')
 export class WebScrappingController {
   constructor(
     private readonly notifyNewJobsProvider: NotifyNewJobsProvider,
+    private readonly githubService: GithubService,
     private readonly getNewJobsProvider: GetNewJobsProvider,
     private readonly jerimunScraperService: JerimunScraperService,
     private readonly notifyPdfsProvider: NotifyPdfsProvider,
@@ -48,6 +50,11 @@ export class WebScrappingController {
     return await this.notifyNewJobsProvider.execute();
   }
 
+  @Get('/githubJobs')
+  async githubJobs() {
+    this.trigger('githubJobs');
+    return await this.githubService.execute();
+  }
   @Get('/getNewJobs')
   async getNewJobs() {
     this.trigger('getNewJobs');
