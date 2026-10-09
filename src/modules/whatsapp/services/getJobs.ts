@@ -3,10 +3,7 @@ import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
-import {
-  formatEditalLines,
-  formatJobVagaLines,
-} from '../../../utils/format-job-lines.js';
+import { formatJobSections } from '../../../utils/format-job-lines.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
@@ -29,22 +26,10 @@ export class GetJobs {
       return;
     }
 
-    const imdEditais = activeJobs.filter((job) => job.type === 'IMD');
-    const jerimunJobs = activeJobs.filter((job) => job.type === 'JERIMUM');
-    const stiEditais = activeJobs.filter((job) => job.type === 'STI');
+    const sections = formatJobSections(activeJobs);
 
-    const imdLines = formatEditalLines(imdEditais);
-    const jerimunLines = formatJobVagaLines(jerimunJobs);
-    const stiLines = formatEditalLines(stiEditais);
-
-    if (imdLines.length > 0) {
-      await message.reply(`Editais imd:\n${imdLines}`);
-    }
-    if (jerimunLines.length > 0) {
-      await message.reply(`Oportunidades Jerimun:\n ${jerimunLines}`);
-    }
-    if (stiLines.length > 0) {
-      await message.reply(`Editais STI:\n${stiLines}`);
+    for (const { header, body } of sections) {
+      await message.reply(`${header}:\n${body}`);
     }
 
     log.info('done', 'Editais em andamento enviados', {
@@ -53,9 +38,9 @@ export class GetJobs {
         (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
         0,
       ),
-      messageLengthImd: imdLines.length,
-      messageLengthJerimum: jerimunLines.length,
-      messageLengthSti: stiLines.length,
+      messageLengthByType: Object.fromEntries(
+        sections.map(({ type, body }) => [type, body.length]),
+      ),
     });
   }
 }
