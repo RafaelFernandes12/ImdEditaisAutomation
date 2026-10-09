@@ -1,5 +1,8 @@
-import { JobType } from '#generated/prisma/enums.js';
-import { EditalJobType } from '#src/modules/jobs/dto/jobs.dto.js';
+import {
+  EditalJobType,
+  JobKind,
+  VagaJobType,
+} from '#src/modules/jobs/job-types.js';
 
 interface NewJobPayloadBase {
   title: string;
@@ -17,17 +20,11 @@ export interface EditalJobPayload extends NewJobPayloadBase {
   }[];
 }
 
-export interface JerimumJobPayload extends NewJobPayloadBase {
-  type: Extract<JobType, 'JERIMUM'>;
-  text: string;
-}
-
-export interface GithubJobPayload extends NewJobPayloadBase {
-  type: Extract<JobType, 'BACKEND_GITHUB' | 'FRONTEND_GITHUB'>;
+export interface VagaJobPayload extends NewJobPayloadBase {
+  type: VagaJobType;
   vaga: { description: string | null };
 }
-export type NewJobPayload =
-  EditalJobPayload | JerimumJobPayload | GithubJobPayload;
+export type NewJobPayload = EditalJobPayload | VagaJobPayload;
 
 export interface PersistedJob {
   jobId: number;
@@ -40,6 +37,12 @@ export interface NewJobStrategy<T extends NewJobPayload> {
   persist(job: T, summary: string, keyWords: string): Promise<PersistedJob>;
 }
 
+interface NewJobPayloadByKind {
+  edital: EditalJobPayload;
+  vaga: VagaJobPayload;
+}
+
+// Uma strategy por kind: tipo novo de um kind existente não exige strategy nova.
 export type NewJobStrategies = {
-  [K in JobType]: NewJobStrategy<Extract<NewJobPayload, { type: K }>>;
+  [K in JobKind]: NewJobStrategy<NewJobPayloadByKind[K]>;
 };
