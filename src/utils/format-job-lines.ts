@@ -1,4 +1,9 @@
 import type { ActiveJob } from '../modules/jobs/services/jobs.service.js';
+import {
+  ALL_JOB_TYPES,
+  JOB_TYPES,
+  JobKind,
+} from '../modules/jobs/job-types.js';
 import { formatDate } from './formate-date.js';
 
 export function formatEditalLines(editais: ActiveJob[]) {
@@ -32,4 +37,27 @@ export function formatJobVagaLines(jobs: ActiveJob[]) {
         `${job.summary}\n`,
     )
     .join('\n');
+}
+
+const FORMATTERS: Record<JobKind, (jobs: ActiveJob[]) => string> = {
+  edital: formatEditalLines,
+  vaga: formatJobVagaLines,
+};
+
+// Uma seção por tipo com vagas, na ordem do JOB_TYPES, já formatada pelo kind.
+export function formatJobSections(jobs: ActiveJob[]) {
+  return ALL_JOB_TYPES.flatMap((type) => {
+    const jobsOfType = jobs.filter((job) => job.type === type);
+    if (jobsOfType.length === 0) return [];
+
+    const { kind, header } = JOB_TYPES[type];
+    return [
+      {
+        type,
+        header,
+        count: jobsOfType.length,
+        body: FORMATTERS[kind](jobsOfType),
+      },
+    ];
+  });
 }
