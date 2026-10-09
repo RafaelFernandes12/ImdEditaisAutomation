@@ -68,13 +68,6 @@ export function toVagas(
 // Texto do resumo enviado no WhatsApp. Campo que a IA não achou (null) fica
 // de fora em vez de aparecer como "não informado".
 export function formatVaga(vaga: VagaResumida, cotacoes: Cotacoes = {}) {
-  const qtdVagas = [
-    vaga.qtdVagas !== null && `${vaga.qtdVagas}`,
-    vaga.cadastroReserva !== null && `${vaga.cadastroReserva} CR`,
-  ]
-    .filter(Boolean)
-    .join(' + ');
-
   const valor = formatRemuneracao(vaga, cotacoes);
 
   const condicoes = [
@@ -90,20 +83,22 @@ export function formatVaga(vaga: VagaResumida, cotacoes: Cotacoes = {}) {
         (condicoes.length > 0 ? ` (${condicoes.join(' / ')})` : '')
       : null;
 
-  const localizacao = [vaga.cidade, vaga.estado].filter(Boolean).join(' / ');
+  // Local vai na linha do cargo e a escolaridade na da senioridade, para o
+  // resumo ficar curto.
+  const localizacao = [vaga.cidade, vaga.estado].filter(Boolean).join('/');
+  const nivel = [
+    vaga.senioridade && SENIORIDADE_LABELS[vaga.senioridade],
+    vaga.escolaridade && ESCOLARIDADE_LABELS[vaga.escolaridade],
+  ]
+    .filter(Boolean)
+    .join(' | ');
 
   return [
-    `*Vaga:* ${vaga.vaga}`,
-    vaga.senioridade &&
-      `*Senioridade:* ${SENIORIDADE_LABELS[vaga.senioridade]}`,
-    vaga.escolaridade &&
-      `*Escolaridade:* ${ESCOLARIDADE_LABELS[vaga.escolaridade]}`,
-    qtdVagas && `*Qtd vagas:* ${qtdVagas}`,
+    `*Vaga:* ${vaga.vaga}` + (localizacao ? ` | ${localizacao}` : ''),
+    nivel && `*Senioridade:* ${nivel}`,
     remuneracao,
-    localizacao && `*Localização:* ${localizacao}`,
     vaga.keywords.length > 0 &&
       `*Palavras-chaves:* ${vaga.keywords.join(', ')}`,
-    vaga.duracao && `*Duração:* ${vaga.duracao}`,
     vaga.elegibilidade && `*Elegibilidade:* ${vaga.elegibilidade}`,
   ]
     .filter(Boolean)

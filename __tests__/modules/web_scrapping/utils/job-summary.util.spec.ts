@@ -52,11 +52,9 @@ describe('formatVaga', () => {
   it('monta todos os campos de uma vaga de emprego', () => {
     expect(formatVaga(vaga())).toBe(
       [
-        '*Vaga:* Desenvolvedor Backend',
+        '*Vaga:* Desenvolvedor Backend | Natal/RN',
         '*Senioridade:* Pleno',
-        '*Qtd vagas:* 2',
         '*Remuneração:* R$ 3.500,50 (40h semanais / Remoto / CLT)',
-        '*Localização:* Natal / RN',
         '*Palavras-chaves:* Node.js, PostgreSQL',
         '*Elegibilidade:* 3 anos de experiência com Node.js',
       ].join('\n'),
@@ -66,13 +64,10 @@ describe('formatVaga', () => {
   it('monta todos os campos de uma bolsa de edital', () => {
     expect(formatVaga(bolsa())).toBe(
       [
-        '*Vaga:* Bolsista de Desenvolvimento Web',
-        '*Escolaridade:* Graduação',
-        '*Qtd vagas:* 2 + 4 CR',
+        '*Vaga:* Bolsista de Desenvolvimento Web | Natal/RN',
+        '*Senioridade:* Graduação',
         '*Remuneração:* R$ 700,00 (20h semanais / Tarde / Presencial / Bolsista)',
-        '*Localização:* Natal / RN',
         '*Palavras-chaves:* Python, Django',
-        '*Duração:* 12 meses',
         '*Elegibilidade:* Graduandos do BTI',
       ].join('\n'),
     );
@@ -101,16 +96,21 @@ describe('formatVaga', () => {
     expect(summary).toBe('*Vaga:* Bolsista de Desenvolvimento Web');
   });
 
-  it('mostra só as vagas imediatas quando não há cadastro reserva', () => {
-    const summary = formatVaga(bolsa({ cadastroReserva: null }));
+  it('põe a localização na linha da vaga e a escolaridade na da senioridade', () => {
+    const summary = formatVaga(
+      vaga({ senioridade: 'JUNIOR', escolaridade: 'GRADUACAO', cidade: null }),
+    );
 
-    expect(summary).toContain('*Qtd vagas:* 2\n');
+    expect(summary).toMatch(
+      /^\*Vaga:\* Desenvolvedor Backend \| RN\n\*Senioridade:\* Júnior \| Graduação\n/,
+    );
   });
 
-  it('mostra só o cadastro reserva quando não há vagas imediatas', () => {
-    const summary = formatVaga(bolsa({ qtdVagas: null }));
+  it('não mostra quantidade de vagas nem duração', () => {
+    const summary = formatVaga(bolsa());
 
-    expect(summary).toContain('*Qtd vagas:* 4 CR\n');
+    expect(summary).not.toContain('Qtd vagas');
+    expect(summary).not.toContain('Duração');
   });
 
   it('mostra as condições mesmo sem o valor da remuneração', () => {
@@ -130,9 +130,12 @@ describe('formatVaga', () => {
   });
 
   it('mostra só a parte da localização que existe', () => {
-    const summary = formatVaga(vaga({ cidade: null }));
-
-    expect(summary).toContain('*Localização:* RN');
+    expect(formatVaga(vaga({ cidade: null }))).toMatch(
+      /^\*Vaga:\* Desenvolvedor Backend \| RN\n/,
+    );
+    expect(formatVaga(vaga({ cidade: null, estado: null }))).toMatch(
+      /^\*Vaga:\* Desenvolvedor Backend\n/,
+    );
   });
 });
 
@@ -152,13 +155,17 @@ describe('toVagas', () => {
       modelo: 'CLT',
       salary: 3500.5,
     });
-    expect(vagas[0].summary).toMatch(/^\*Vaga:\* Desenvolvedor Backend\n/);
+    expect(vagas[0].summary).toMatch(
+      /^\*Vaga:\* Desenvolvedor Backend \| Natal\/RN\n/,
+    );
     expect(vagas[1]).toMatchObject({
       keyWords: 'Python',
       escolaridade: 'GRADUACAO',
       modelo: 'BOLSISTA',
     });
-    expect(vagas[1].summary).toMatch(/^\*Vaga:\* Bolsista de IA\n/);
+    expect(vagas[1].summary).toMatch(
+      /^\*Vaga:\* Bolsista de IA \| Natal\/RN\n/,
+    );
     expect(vagas[1].summary).not.toContain('Desenvolvedor Backend');
   });
 
@@ -173,7 +180,7 @@ describe('toVagas', () => {
 
     expect(vagas).toHaveLength(1);
     expect(vagas[0].summary).toMatch(
-      /^\*Vaga:\* Bolsista de Desenvolvimento Web\n/,
+      /^\*Vaga:\* Bolsista de Desenvolvimento Web \| Natal\/RN\n/,
     );
   });
 
