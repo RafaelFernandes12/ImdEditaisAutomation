@@ -82,7 +82,7 @@ enum PdfTipo {
 
 model Job {
   id          Int       @id @default(autoincrement())
-  title       String    @unique
+  title       String
   link        String    @unique
   type        JobType
   kind        JobKind
