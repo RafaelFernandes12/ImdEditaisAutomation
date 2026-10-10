@@ -6,6 +6,7 @@ import { NotifyPdfsProvider } from '../providers/notify-pdfs.provider.js';
 import { FinishJobsProvider } from '../providers/finish-jobs.provider.js';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { GithubService } from '../services/github.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -21,9 +22,10 @@ export class WebScrappingController {
   ) {}
 
   private trigger(provider: string) {
-    this.logger.info(
-      { evt: 'web_scrapping.manual_trigger', provider, cron: false },
+    new ScopedLogger(this.logger, 'web_scrapping', { cron: false }).info(
+      'manual_trigger',
       'Execução disparada manualmente via HTTP',
+      { provider },
     );
   }
 

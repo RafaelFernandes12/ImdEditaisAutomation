@@ -8,6 +8,7 @@ import {
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class FinishJobsProvider {
@@ -22,12 +23,11 @@ export class FinishJobsProvider {
 
   // Disparado pelo FinishJobsConsumer, dentro do flow da coleta de editais.
   async execute() {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'cron.finish_jobs', {
+      cron: true,
+    });
 
-    this.logger.info(
-      { evt: 'cron.finish_jobs.start', cron: true },
-      'Verificando editais encerrados',
-    );
+    const timer = log.start('start', 'Verificando editais encerrados');
 
     try {
       const imdEditaisFinished =
@@ -41,15 +41,14 @@ export class FinishJobsProvider {
         .catch((): JobWithPdfLinks[] => []);
       const dbActiveimdEditais = await this.jobsService.findActive();
 
-      this.logger.debug(
+      log.debug(
+        'candidates',
+        'Comparando editais encerrados com os ativos no banco',
         {
-          evt: 'cron.finish_jobs.candidates',
-          cron: true,
           finishedOnSite: imdEditaisFinished.length,
           jerimumListedOnSite: listedJerimumJobs.length,
           activeInDb: dbActiveimdEditais.length,
         },
-        'Comparando editais encerrados com os ativos no banco',
       );
 
       let unparsedValidUntil = 0;
@@ -70,17 +69,16 @@ export class FinishJobsProvider {
 
               if (Number.isNaN(validUntil)) {
                 unparsedValidUntil += 1;
-                this.logger.warn(
+                log.warn(
+                  'valid_until_unparsed',
+                  'Não foi possível extrair a validade do edital',
                   {
-                    evt: 'cron.finish_jobs.valid_until_unparsed',
-                    cron: true,
                     jobId: ef.id,
                     jobTitle: ef.title,
                     hasPdf: Boolean(
                       ef.edital.pdfs?.find((pdf) => pdf.type === 'EDITAL'),
                     ),
                   },
-                  'Não foi possível extrair a validade do edital',
                 );
               }
 
@@ -106,13 +104,10 @@ export class FinishJobsProvider {
         listedJerimumJobs.length === 0 && dbActiveJerimumJobs.length > 0;
 
       if (skipJerimum) {
-        this.logger.warn(
-          {
-            evt: 'cron.finish_jobs.jerimum_listing_empty',
-            cron: true,
-            activeInDb: dbActiveJerimumJobs.length,
-          },
+        log.warn(
+          'jerimum_listing_empty',
           'Listagem do jerimun jobs veio vazia — nenhuma vaga será encerrada nesta execução',
+          { activeInDb: dbActiveJerimumJobs.length },
         );
       }
 
@@ -132,13 +127,10 @@ export class FinishJobsProvider {
         listedStiEditais.length === 0 && dbActiveStiEditais.length > 0;
 
       if (skipSti) {
-        this.logger.warn(
-          {
-            evt: 'cron.finish_jobs.sti_listing_empty',
-            cron: true,
-            activeInDb: dbActiveStiEditais.length,
-          },
+        log.warn(
+          'sti_listing_empty',
           'Listagem da STI veio vazia — nenhum edital será encerrado nesta execução',
+          { activeInDb: dbActiveStiEditais.length },
         );
       }
 
@@ -154,37 +146,23 @@ export class FinishJobsProvider {
         ...stiEditaisToFinish,
       ]);
 
-      this.logger.info(
-        {
-          evt: 'cron.finish_jobs.done',
-          cron: true,
-          finishedOnSite: imdEditaisFinished.length,
-          jerimumListedOnSite: listedJerimumJobs.length,
-          activeInDb: dbActiveimdEditais.length,
-          stiListedOnSite: listedStiEditais.length,
-          deactivated:
-            jobsToFinish.length +
-            jerimumJobsToFinish.length +
-            stiEditaisToFinish.length,
-          deactivatedImd: jobsToFinish.length,
-          deactivatedJerimum: jerimumJobsToFinish.length,
-          deactivatedSti: stiEditaisToFinish.length,
-          unparsedValidUntil,
-          durationMs: Date.now() - startedAt,
-        },
-        'Editais encerrados atualizados',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'cron.finish_jobs.failed',
-          cron: true,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao encerrar editais',
-      );
-      throw error;
+      timer.info('done', 'Editais encerrados atualizados', {
+        finishedOnSite: imdEditaisFinished.length,
+        jerimumListedOnSite: listedJerimumJobs.length,
+        activeInDb: dbActiveimdEditais.length,
+        stiListedOnSite: listedStiEditais.length,
+        deactivated:
+          jobsToFinish.length +
+          jerimumJobsToFinish.length +
+          stiEditaisToFinish.length,
+        deactivatedImd: jobsToFinish.length,
+        deactivatedJerimum: jerimumJobsToFinish.length,
+        deactivatedSti: stiEditaisToFinish.length,
+        unparsedValidUntil,
+      });
+    } catch (err: unknown) {
+      timer.error('failed', 'Falha ao encerrar editais', { err });
+      throw err;
     }
   }
 }

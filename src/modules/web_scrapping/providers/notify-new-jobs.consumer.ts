@@ -9,6 +9,7 @@ import {
   formatEditalLines,
   formatJobVagaLines,
 } from '#src/utils/format-job-lines.js';
+import { ScopedLogger } from '#src/utils/scoped-logger.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -22,20 +23,21 @@ export class NotifyNewJobsConsumer extends WorkerHost {
   }
 
   async process(job: Job) {
-    const startedAt = Date.now();
     const user = job.data as Awaited<
       ReturnType<UserService['findManyUsers']>
     >[number];
+    const log = new ScopedLogger(this.logger, 'queue.notify_new_jobs', {
+      queue: 'notifyNewJobs',
+      queueJobId: job.id,
+      attempt: job.attemptsMade + 1,
+      userId: user.id,
+    });
 
-    this.logger.debug(
-      {
-        evt: 'queue.notify_new_jobs.job_start',
-        queue: 'notifyNewJobs',
-        queueJobId: job.id,
-        attempt: job.attemptsMade + 1,
-        userId: user.id,
-      },
+    const timer = log.start(
+      'job_start',
       'Verificando novos editais para o usuário',
+      undefined,
+      'debug',
     );
 
     try {
@@ -45,17 +47,9 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       );
 
       if (newJobs.length === 0) {
-        this.logger.debug(
-          {
-            evt: 'queue.notify_new_jobs.nothing_new',
-            queue: 'notifyNewJobs',
-            queueJobId: job.id,
-            userId: user.id,
-            activeCount: jobsAndamento.length,
-            durationMs: Date.now() - startedAt,
-          },
-          'Nenhuma vaga nova para o usuário',
-        );
+        timer.debug('nothing_new', 'Nenhuma vaga nova para o usuário', {
+          activeCount: jobsAndamento.length,
+        });
         return;
       }
 
@@ -75,7 +69,7 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       const bodyBack = formatJobVagaLines(backendGitHub);
       const bodyFront = formatJobVagaLines(frontendGitHub);
 
-      const sendStartedAt = Date.now();
+      const sendTimer = log.timed();
 
       if (imdEditais.length > 0) {
         await client.sendMessage(user.chatId, `BOLSAS IMD: \n\n${bodyImd}`, {
@@ -119,53 +113,29 @@ export class NotifyNewJobsConsumer extends WorkerHost {
         );
       }
 
-      this.logger.info(
-        {
-          evt: 'queue.notify_new_jobs.message_sent',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          userId: user.id,
-          newJobsCount: newJobs.length,
-          imdCount: imdEditais.length,
-          jerimumCount: jerimunJobs.length,
-          stiCount: stiEditais.length,
-          imdLength: bodyImd.length,
-          jerimumLength: bodyJerimum.length,
-          stiLength: bodySti.length,
-          durationMs: Date.now() - sendStartedAt,
-        },
-        'Mensagem de novas vagas enviada',
-      );
+      sendTimer.info('message_sent', 'Mensagem de novas vagas enviada', {
+        newJobsCount: newJobs.length,
+        imdCount: imdEditais.length,
+        jerimumCount: jerimunJobs.length,
+        stiCount: stiEditais.length,
+        imdLength: bodyImd.length,
+        jerimumLength: bodyJerimum.length,
+        stiLength: bodySti.length,
+      });
 
       await this.userService.updateJobsUser({
         contact: user.contact,
         jobsId: newJobs.map((e) => e.id),
       });
 
-      this.logger.info(
-        {
-          evt: 'queue.notify_new_jobs.job_done',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          newJobsCount: newJobs.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Usuário notificado sobre novos editais',
-      );
+      timer.info('job_done', 'Usuário notificado sobre novos editais', {
+        newJobsCount: newJobs.length,
+      });
     } catch (e: unknown) {
-      this.logger.error(
-        {
-          evt: 'queue.notify_new_jobs.job_failed',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          durationMs: Date.now() - startedAt,
-          err: e,
-        },
+      timer.error(
+        'job_failed',
         'Falha ao notificar usuário sobre novos editais',
+        { err: e },
       );
       throw new BadRequestException(e);
     }
