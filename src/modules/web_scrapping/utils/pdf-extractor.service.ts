@@ -110,6 +110,7 @@ export class PdfExtractorService {
       jobsWithNoNewPdfs,
     });
 
-    return result;
+    // Edital sem PDF novo não tem o que gravar nem resumir.
+    return result.filter((r) => r.pdfs.length > 0);
   }
 }
