@@ -25,6 +25,14 @@
 - Ruído: médio — ~30% é vendas/marketing/comercial
 - Obs: vagas de empresas (CLT, estágio), não editais
 
+### github (vagas remotas) (feito)
+
+- Site: https://github.com/backend-br/vagas/issues, https://github.com/frontendbr/vagas/issues, https://github.com/qa-brasil/vagas/issues, https://github.com/react-brasil/vagas/issues
+- Volume de tech: ~590 vagas/ano somando os 4 repos (backend-br 347, frontendbr 150, qa-brasil 50, react-brasil 40, entre out/2025 e out/2026)
+- Vagas por mês: ~49/mês (backend-br ~29, frontendbr ~12, qa-brasil ~4, react-brasil ~3)
+- Ruído: muito baixo — tudo é vaga de tech
+- Obs: API oficial do GitHub (issues), labels já classificam (Remoto, Júnior, CLT, PJ...) sem precisar de PDF/IA. Nenhuma vaga mencionava Natal — é fonte de vagas remotas, então o bot precisa de campo de localidade (Natal presencial / híbrido / remoto) e de vínculo (bolsa / CLT / PJ / estágio)
+
 ## Fontes a implementar
 
 ### funpec
@@ -58,13 +66,6 @@ https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sis
 
 ## Fontes a implementar
 
-### github (vagas remotas)
-
-- Site: https://github.com/backend-br/vagas/issues, https://github.com/frontendbr/vagas/issues, https://github.com/qa-brasil/vagas/issues, https://github.com/react-brasil/vagas/issues
-- Volume de tech: ~590 vagas/ano somando os 4 repos (backend-br 347, frontendbr 150, qa-brasil 50, react-brasil 40, entre out/2025 e out/2026)
-- Vagas por mês: ~49/mês (backend-br ~29, frontendbr ~12, qa-brasil ~4, react-brasil ~3)
-- Ruído: muito baixo — tudo é vaga de tech
-- Obs: API oficial do GitHub (issues), labels já classificam (Remoto, Júnior, CLT, PJ...) sem precisar de PDF/IA. Nenhuma vaga mencionava Natal — é fonte de vagas remotas, então o bot precisa de campo de localidade (Natal presencial / híbrido / remoto) e de vínculo (bolsa / CLT / PJ / estágio)
 
 ### senac rn
 
