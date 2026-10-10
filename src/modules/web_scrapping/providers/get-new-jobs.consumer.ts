@@ -80,37 +80,54 @@ export class GetNewJobsConsumer extends WorkerHost {
       },
       'Processando nova vaga',
     );
-    const text = strategy.getText(newJob);
+    try {
+      const text = strategy.getText(newJob);
 
-    if (!text) {
-      this.logger.warn(
-        { ...baseLog, evt: 'queue.get_new_jobs.no_text' },
-        'Vaga chegou na fila sem texto para resumir',
+      if (!text) {
+        this.logger.warn(
+          { ...baseLog, evt: 'queue.get_new_jobs.no_text' },
+          'Vaga chegou na fila sem texto para resumir',
+        );
+        return;
+      }
+      const trimmed = trimJobForSummary(text);
+
+      const summarizeStartedAt = Date.now();
+      const summary = await strategy.summarize(trimmed);
+      const summarizeMs = Date.now() - summarizeStartedAt;
+      const keyWords = extractAllKeywords(summary).join(', ');
+
+      const { jobId, logContext } = await strategy.persist(
+        newJob,
+        summary,
+        keyWords,
       );
-      return;
+
+      this.logger.info(
+        {
+          ...baseLog,
+          ...logContext,
+          evt: 'queue.get_new_jobs.job_done',
+          attempt: job.attemptsMade + 1,
+          jobId,
+          summarizeMs,
+          durationMs: Date.now() - startedAt,
+        },
+        'Vaga gravada',
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        {
+          ...baseLog,
+          evt: 'queue.get_new_jobs.job_failed',
+          attempt: job.attemptsMade + 1,
+          link: newJob.link,
+          durationMs: Date.now() - startedAt,
+          err,
+        },
+        'Falha ao processar a vaga',
+      );
+      throw err;
     }
-    const trimmed = trimJobForSummary(text);
-
-    const summarizeStartedAt = Date.now();
-    const summary = await strategy.summarize(trimmed);
-    const keyWords = extractAllKeywords(summary).join(', ');
-
-    const { jobId, logContext } = await strategy.persist(
-      newJob,
-      summary,
-      keyWords,
-    );
-
-    this.logger.info(
-      {
-        ...baseLog,
-        ...logContext,
-        evt: 'queue.get_new_jobs.job_done',
-        attempt: job.attemptsMade + 1,
-        jobId,
-        durationMs: Date.now() - startedAt,
-      },
-      'Vaga gravada',
-    );
   }
 }
