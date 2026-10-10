@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 import { PdfService } from '../../pdf/services/pdf.service.js';
 import { formatDateBrToUs } from '#src/utils/formate-date.js';
 import { JobType } from '../../../../generated/prisma/client.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 const SITE_BASE_URL = 'https://www.metropoledigital.ufrn.br';
 const JOBS_LIST_URL = `${SITE_BASE_URL}/portal/editais`;
@@ -48,29 +49,26 @@ export class ImdScraperService {
   }
 
   async getJobsPdfs(jobsUrl: JobUrl[]): Promise<JobWithPdfLinks[]> {
-    const startedAt = Date.now();
-
-    this.logger.info(
-      { evt: 'scraper.pdf_links.batch_start', count: jobsUrl.length },
+    const log = new ScopedLogger(this.logger, 'scraper');
+    const timer = log.start(
+      'pdf_links.batch_start',
       'Buscando links de PDF dos editais',
+      { count: jobsUrl.length },
     );
 
     const result = await Promise.all(
       jobsUrl.map(async (url) => {
-        const jobStartedAt = Date.now();
+        const jobLog = log.child({ jobUrl: url.href, jobTitle: url.title });
+        const jobTimer = jobLog.timed();
 
         try {
           const jobPage = await fetch(url.href);
 
           if (!jobPage.ok) {
-            this.logger.warn(
-              {
-                evt: 'scraper.job_page.http_not_ok',
-                status: jobPage.status,
-                jobUrl: url.href,
-                jobTitle: url.title,
-              },
+            jobLog.warn(
+              'job_page.http_not_ok',
               'Página do edital respondeu com status inesperado',
+              { status: jobPage.status },
             );
           }
 
@@ -94,26 +92,20 @@ export class ImdScraperService {
             .get();
 
           if (downloadHref.length === 0) {
-            this.logger.warn(
-              {
-                evt: 'scraper.pdf_links.empty',
-                jobUrl: url.href,
-                jobTitle: url.title,
-                rowCount: jobRow.length,
-              },
+            jobLog.warn(
+              'pdf_links.empty',
               'Nenhum link de PDF encontrado na página do edital',
+              { rowCount: jobRow.length },
             );
           }
 
-          this.logger.debug(
+          jobLog.debug(
+            'pdf_links.found',
+            'Links de PDF extraídos da página do edital',
             {
-              evt: 'scraper.pdf_links.found',
-              jobUrl: url.href,
-              jobTitle: url.title,
               count: downloadHref.length,
               labels: downloadHref.map((d) => d.label),
             },
-            'Links de PDF extraídos da página do edital',
           );
 
           downloadHref.filter(
@@ -121,49 +113,32 @@ export class ImdScraperService {
               this.pdfService.findByLink(download.link) === undefined,
           );
 
-          this.logger.debug(
-            {
-              evt: 'scraper.job_page.done',
-              jobUrl: url.href,
-              jobTitle: url.title,
-              count: downloadHref.length,
-              durationMs: Date.now() - jobStartedAt,
-            },
-            'Página do edital processada',
-          );
+          jobTimer.debug('job_page.done', 'Página do edital processada', {
+            count: downloadHref.length,
+          });
 
           return {
             ...url,
             link: url.href,
             href: downloadHref,
           };
-        } catch (error: unknown) {
-          this.logger.error(
-            {
-              evt: 'scraper.job_page.failed',
-              jobUrl: url.href,
-              jobTitle: url.title,
-              durationMs: Date.now() - jobStartedAt,
-              err: error,
-            },
+        } catch (err: unknown) {
+          jobTimer.error(
+            'job_page.failed',
             'Falha ao processar a página do edital',
+            { err },
           );
-          throw error;
+          throw err;
         }
       }),
     );
 
     const totalPdfLinks = result.reduce((acc, r) => acc + r.href.length, 0);
 
-    this.logger.info(
-      {
-        evt: 'scraper.pdf_links.batch_done',
-        count: result.length,
-        totalPdfLinks,
-        durationMs: Date.now() - startedAt,
-      },
-      'Links de PDF coletados',
-    );
+    timer.info('pdf_links.batch_done', 'Links de PDF coletados', {
+      count: result.length,
+      totalPdfLinks,
+    });
 
     return result;
   }
@@ -173,24 +148,19 @@ export class ImdScraperService {
 
     listType: 'em_andamento' | 'encerrados',
   ): Promise<JobUrl[]> {
-    const startedAt = Date.now();
-
-    this.logger.info(
-      { evt: 'scraper.list.start', listType, url: JOBS_LIST_URL },
-      'Buscando listagem de editais',
-    );
+    const log = new ScopedLogger(this.logger, 'scraper.list', { listType });
+    const timer = log.start('start', 'Buscando listagem de editais', {
+      url: JOBS_LIST_URL,
+    });
 
     try {
       const jobsList = await fetch(JOBS_LIST_URL);
 
       if (!jobsList.ok) {
-        this.logger.warn(
-          {
-            evt: 'scraper.list.http_not_ok',
-            listType,
-            status: jobsList.status,
-          },
+        log.warn(
+          'http_not_ok',
           'Listagem de editais respondeu com status inesperado',
+          { status: jobsList.status },
         );
       }
 
@@ -213,40 +183,22 @@ export class ImdScraperService {
         .get();
 
       if (jobsHref.length === 0) {
-        this.logger.warn(
-          {
-            evt: 'scraper.list.empty',
-            listType,
-            boxName,
-            htmlLength: jobsHTML.length,
-          },
+        log.warn(
+          'empty',
           'Listagem retornou zero editais — possível mudança no HTML do site',
+          { boxName, htmlLength: jobsHTML.length },
         );
       }
 
-      this.logger.info(
-        {
-          evt: 'scraper.list.done',
-          listType,
-          count: jobsHref.length,
-          htmlLength: jobsHTML.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Listagem de editais obtida',
-      );
+      timer.info('done', 'Listagem de editais obtida', {
+        count: jobsHref.length,
+        htmlLength: jobsHTML.length,
+      });
 
       return jobsHref;
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'scraper.list.failed',
-          listType,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao buscar a listagem de editais',
-      );
-      throw error;
+    } catch (err: unknown) {
+      timer.error('failed', 'Falha ao buscar a listagem de editais', { err });
+      throw err;
     }
   }
 }

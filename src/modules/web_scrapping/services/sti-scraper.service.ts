@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as cheerio from 'cheerio';
 import { JobType } from '../../../../generated/prisma/client.js';
 import { JobWithPdfLinks } from './imd-scraper.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 // A página pública (sti.ufrn.br) é uma SPA em Vue que consome esta API do
 // WordPress — o HTML servido vem vazio, então lemos o JSON direto.
@@ -38,20 +39,20 @@ export class StiScraperService {
   ) {}
 
   async getEditaisEmAndamento(): Promise<JobWithPdfLinks[]> {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'scraper.sti.list', {
+      url: EDITAIS_EM_ANDAMENTO_URL,
+    });
 
-    this.logger.info(
-      { evt: 'scraper.sti.list.start', url: EDITAIS_EM_ANDAMENTO_URL },
-      'Buscando listagem de editais da STI',
-    );
+    const timer = log.start('start', 'Buscando listagem de editais da STI');
 
     try {
       const response = await fetch(EDITAIS_EM_ANDAMENTO_URL);
 
       if (!response.ok) {
-        this.logger.warn(
-          { evt: 'scraper.sti.list.http_not_ok', status: response.status },
+        log.warn(
+          'http_not_ok',
           'Listagem de editais da STI respondeu com status inesperado',
+          { status: response.status },
         );
       }
 
@@ -74,33 +75,20 @@ export class StiScraperService {
       }));
 
       if (jobs.length === 0) {
-        this.logger.warn(
-          { evt: 'scraper.sti.list.empty' },
-          'Listagem da STI retornou zero editais',
-        );
+        log.warn('empty', 'Listagem da STI retornou zero editais');
       }
 
-      this.logger.info(
-        {
-          evt: 'scraper.sti.list.done',
-          count: jobs.length,
-          totalPdfLinks: jobs.reduce((acc, j) => acc + j.href.length, 0),
-          durationMs: Date.now() - startedAt,
-        },
-        'Listagem de editais da STI obtida',
-      );
+      timer.info('done', 'Listagem de editais da STI obtida', {
+        count: jobs.length,
+        totalPdfLinks: jobs.reduce((acc, j) => acc + j.href.length, 0),
+      });
 
       return jobs;
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'scraper.sti.list.failed',
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao buscar a listagem de editais da STI',
-      );
-      throw error;
+    } catch (err: unknown) {
+      timer.error('failed', 'Falha ao buscar a listagem de editais da STI', {
+        err,
+      });
+      throw err;
     }
   }
 }
