@@ -40,6 +40,8 @@ export class FinishJobsProvider {
           source: source.name,
           activeInDb: active.length,
           deactivated: toFinish.length,
+          // Encerrar não tem volta: os ids permitem auditar o que saiu.
+          deactivatedIds: toFinish.map((job) => job.id),
           unparsedValidUntil: toFinish.filter((job) =>
             Number.isNaN(job.validUntil),
           ).length,
@@ -76,6 +78,15 @@ export class FinishJobsProvider {
     log: ScopedLogger,
   ): Promise<JobToFinish[]> {
     const listed = await source.list();
+
+    log.info(
+      'listing_fetched',
+      'Listagem da fonte obtida para o encerramento',
+      {
+        source: source.name,
+        listedOnSite: listed.length,
+      },
+    );
 
     return source.types.flatMap((type) => {
       const activeOfType = active.filter((job) => job.type === type);

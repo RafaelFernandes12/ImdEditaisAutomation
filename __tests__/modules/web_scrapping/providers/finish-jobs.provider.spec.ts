@@ -77,6 +77,14 @@ describe('FinishJobsProvider', () => {
 
       expect(jobsService.findActiveByTypes).toHaveBeenCalledWith(['STI']);
       expect(jobsService.deactivateMany).toHaveBeenCalledWith([{ id: 2 }]);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          evt: 'cron.finish_jobs.source_done',
+          source: 'sti',
+          deactivatedIds: [2],
+        }),
+        expect.any(String),
+      );
     });
 
     it('não encerra nada quando a listagem vem vazia e há vagas ativas', async () => {
