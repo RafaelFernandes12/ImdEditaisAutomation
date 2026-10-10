@@ -8,6 +8,7 @@ import { Cron } from '@nestjs/schedule';
 import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
 import { StiScraperService } from '../services/sti-scraper.service.js';
 import { GithubService } from '../services/github.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class GetNewJobsProvider {
@@ -24,25 +25,17 @@ export class GetNewJobsProvider {
 
   @Cron('0 */2 * * *', { timeZone: 'America/Sao_Paulo' })
   async execute() {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'cron.get_new_jobs', {
+      cron: true,
+    });
 
-    this.logger.info(
-      { evt: 'cron.get_new_jobs.start', cron: true },
-      'Iniciando coleta de novos editais',
-    );
+    const timer = log.start('start', 'Iniciando coleta de novos editais');
 
     try {
-      const editaisImdAndamento = await this.pdfExtractorService.execute(
-        await this.imdScraperService.getImdEditaisEmAndamento(),
-      );
       const jerimumJobs = await this.jerimunScraperService.execute();
-
-      const editaisImdJobs = editaisImdAndamento.map((r) => ({
-        ...r,
-        isActive: true,
-      }));
-      const editaisStiJobs = await this.getEditaisSti();
-      const githubJobs = await this.githubService.execute();
+      const editaisImdJobs = await this.getEditaisImd(log);
+      const editaisStiJobs = await this.getEditaisSti(log);
+      const githubJobs = await this.getGithubJobs(log);
 
       const jobs = [
         ...editaisImdJobs,
@@ -68,43 +61,61 @@ export class GetNewJobsProvider {
         ],
       });
 
-      this.logger.info(
-        {
-          evt: 'cron.get_new_jobs.done',
-          cron: true,
-          enqueued: jobs.length,
-          enqueuedImd: editaisImdJobs.length,
-          enqueuedJerimum: jerimumJobs.length,
-          enqueuedSti: editaisStiJobs.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Coleta de novos editais finalizada',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'cron.get_new_jobs.failed',
-          cron: true,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha na coleta de novos editais',
-      );
-      throw error;
+      timer.info('done', 'Coleta de novos editais finalizada', {
+        enqueued: jobs.length,
+        enqueuedImd: editaisImdJobs.length,
+        enqueuedJerimum: jerimumJobs.length,
+        enqueuedSti: editaisStiJobs.length,
+        enqueuedGithub: githubJobs.length,
+      });
+    } catch (err: unknown) {
+      timer.error('failed', 'Falha na coleta de novos editais', { err });
+      throw err;
     }
   }
-
+  private async getEditaisImd(log: ScopedLogger) {
+    try {
+      const editaisImdAndamento = await this.pdfExtractorService.execute(
+        await this.imdScraperService.getImdEditaisEmAndamento(),
+      );
+      return editaisImdAndamento.map((r) => ({
+        ...r,
+        isActive: true,
+      }));
+    } catch (error: unknown) {
+      log.error(
+        'imd_failed',
+        'Falha na coleta de editais da IMD — seguindo sem eles',
+        { err: error },
+      );
+      return [];
+    }
+  }
   // Falha na STI não deve impedir a coleta do IMD/Jerimum.
-  private async getEditaisSti() {
+  private async getEditaisSti(log: ScopedLogger) {
     try {
       const editaisSti = await this.pdfExtractorService.extractPdfs(
         await this.stiScraperService.getEditaisEmAndamento(),
       );
       return editaisSti.map((r) => ({ ...r, isActive: true }));
     } catch (error: unknown) {
-      this.logger.error(
-        { evt: 'cron.get_new_jobs.sti_failed', cron: true, err: error },
+      log.error(
+        'sti_failed',
         'Falha na coleta de editais da STI — seguindo sem eles',
+        { err: error },
+      );
+      return [];
+    }
+  }
+  // Falha no GitHub não deve impedir a coleta das outras fontes.
+  private async getGithubJobs(log: ScopedLogger) {
+    try {
+      return await this.githubService.execute();
+    } catch (error: unknown) {
+      log.error(
+        'github_failed',
+        'Falha na coleta de vagas do GitHub — seguindo sem elas',
+        { err: error },
       );
       return [];
     }
