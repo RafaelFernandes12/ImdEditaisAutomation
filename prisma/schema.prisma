@@ -19,6 +19,43 @@ enum StatusJob {
   RESERVA
   SUCESS
   FAILED
+
+  @@map("status_job")
+}
+
+enum Modelo {
+  CLT
+  PJ
+  ESTAGIO
+  FREELANCE
+  BOLSISTA
+}
+
+enum Formato {
+  PRESENCIAL
+  HIBRIDO
+  REMOTO
+  NAO_INFORMADO
+}
+
+enum Senioridade {
+  ESTAGIO
+  TRAINEE
+  JUNIOR
+  PLENO
+  SENIOR
+  TECHLEAD
+  GRADUACAO
+  GRADUADO
+  MESTRADO
+  DOUTORADO
+}
+
+enum JobKind {
+  EDITAL
+  VAGA
+
+  @@map("job_kind")
 }
 
 enum JobType {
@@ -27,6 +64,8 @@ enum JobType {
   STI
   BACKEND_GITHUB
   FRONTEND_GITHUB
+
+  @@map("job_type")
 }
 
 enum PdfTipo {
@@ -35,42 +74,42 @@ enum PdfTipo {
   ENTREVISTA
   CURRICULO
   RESULTADO
+
+  @@map("pdf_tipo")
 }
 
 model Job {
-  id         Int       @id @default(autoincrement())
-  title      String    @unique
-  link       String    @unique
-  type       JobType
-  isActive   Boolean
-  finishedAt DateTime?
-  summary    String
-  keyWords   String
-  created_at DateTime  @default(now()) @db.Timestamp(6)
-  updated_at DateTime  @updatedAt() @db.Timestamp(6)
+  id          Int       @id @default(autoincrement())
+  title       String    @unique
+  link        String    @unique
+  type        JobType
+  kind        JobKind
+  isActive    Boolean   @map("is_active")
+  finishedAt  DateTime? @map("finished_at")
+  summary     String
+  keyWords    String    @map("key_words")
+  ecossytem   String    @default("")
+  // No edital é uma cópia do texto do primeiro pdf (o edital em si).
+  description String
 
-  edital Edital?
-  vaga   Vaga?
+  // Só edital
+  subscriptionUntil DateTime? @map("subscription_until")
+  validUntil        DateTime? @map("valid_until")
 
+  formato     Formato
+  city        String
+  state       String
+  modelo      Modelo[]
+  senioridade Senioridade[]
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  pdfs              Pdf[]
   sends             Sends[]
   UserSubscriptions UserSubscriptions[]
-}
 
-model Edital {
-  jobId Int @id
-  job   Job @relation(fields: [jobId], references: [id])
-
-  subscriptionUntil DateTime
-  validUntil        DateTime?
-
-  pdfs Pdf[]
-}
-
-model Vaga {
-  jobId Int @id
-  job   Job @relation(fields: [jobId], references: [id])
-
-  description String
+  @@map("job")
 }
 
 model Pdf {
@@ -83,18 +122,19 @@ model Pdf {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  editalId Int
-  edital   Edital  @relation(fields: [editalId], references: [jobId])
-  sends    Sends[]
+  jobId Int     @map("job_id")
+  job   Job     @relation(fields: [jobId], references: [id])
+  sends Sends[]
+
+  @@map("pdf")
 }
 
 model User {
   id       Int     @id @default(autoincrement())
   name     String
-  chatId   String  @unique
+  chatId   String  @unique @map("chat_id")
   contact  String  @unique
-  isActive Boolean @default(true)
-  keyWords String  @default("")
+  isActive Boolean @default(true) @map("is_active")
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
@@ -102,13 +142,30 @@ model User {
   sends             Sends[]
   reminders         Reminders[]
   UserSubscriptions UserSubscriptions[]
+  UserPreferences   UserPreferences?
+
+  @@map("user")
+}
+
+model UserPreferences {
+  id          Int           @id @default(autoincrement())
+  keyWords    String        @default("") @map("key_words")
+  modelo      Modelo[]
+  formato     Formato
+  city        String
+  state       String
+  senioridade Senioridade[]
+  user        User          @relation(fields: [userId], references: [id])
+  userId      Int           @unique @map("user_id")
+
+  @@map("user_preferences")
 }
 
 model UserSubscriptions {
   id Int @id @default(autoincrement())
 
-  userId Int
-  jobId  Int
+  userId Int @map("user_id")
+  jobId  Int @map("job_id")
 
   status StatusJob
 
@@ -117,6 +174,8 @@ model UserSubscriptions {
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
+
+  @@map("user_subscriptions")
 }
 
 model Sends {
@@ -128,11 +187,12 @@ model Sends {
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
-  pdfId      Int?
-  jobId      Int
-  userId     Int
+  pdfId      Int?     @map("pdf_id")
+  jobId      Int      @map("job_id")
+  userId     Int      @map("user_id")
 
   @@unique([userId, jobId, pdfId])
+  @@map("sends")
 }
 
 model Reminders {
@@ -144,5 +204,7 @@ model Reminders {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  userId Int
+  userId Int @map("user_id")
+
+  @@map("reminders")
 }
