@@ -65,4 +65,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .chrome-profile/
 .tsbuildinfo
 
-get-new-jobs-strategy/
+data.json
+
