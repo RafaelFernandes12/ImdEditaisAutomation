@@ -19,10 +19,8 @@ export class SummarizeJobVaga {
     qtdVagas: z.number().nullable(),
     remuneração: z.number().nullable(),
     horasSemanais: z.number().nullable(),
-    formato: z
-      .enum(['Presencial', 'Híbrido', 'Remoto', 'Freelance'])
-      .nullable(),
-    modalidade: z.enum(['PJ', 'CLT', 'Estágio']).nullable(),
+    formato: z.enum(['Presencial', 'Híbrido', 'Remoto']).nullable(),
+    modalidade: z.enum(['PJ', 'CLT', 'Estágio', 'Freelance']).nullable(),
     cidade: z.string().nullable(),
     estado: z.string().nullable(),
     keywords: z.array(z.string()),
