@@ -34,10 +34,7 @@ export class GetJobs {
 
     log.info('done', 'Editais em andamento enviados', {
       count: activeJobs.length,
-      pdfCount: activeJobs.reduce(
-        (acc, e) => acc + (e.edital?.pdfs.length ?? 0),
-        0,
-      ),
+      pdfCount: activeJobs.reduce((acc, e) => acc + e.pdfs.length, 0),
       messageLengthByType: Object.fromEntries(
         sections.map(({ type, body }) => [type, body.length]),
       ),

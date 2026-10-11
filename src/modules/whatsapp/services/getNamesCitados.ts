@@ -43,17 +43,17 @@ export class GetNamesCitados {
     // Um mesmo edital pode citar o nome em vários PDFs (homologação, resultado...)
     const byEdital = new Map<number, PdfWithJobAndEditalPdf[]>();
     for (const pdf of pdfs) {
-      const group = byEdital.get(pdf.editalId) ?? [];
+      const group = byEdital.get(pdf.jobId) ?? [];
       group.push(pdf);
-      byEdital.set(pdf.editalId, group);
+      byEdital.set(pdf.jobId, group);
     }
 
     const groups = [...byEdital.values()];
     const countByType: Record<string, number> = {};
 
     // Só tipos de edital têm PDF, então só eles podem citar o nome.
-    for (const type of jobTypesOfKind('edital')) {
-      const groupsOfType = groups.filter((g) => g[0].edital.job.type === type);
+    for (const type of jobTypesOfKind('EDITAL')) {
+      const groupsOfType = groups.filter((g) => g[0].job.type === type);
       if (groupsOfType.length === 0) continue;
 
       countByType[type] = groupsOfType.length;
@@ -71,24 +71,24 @@ export class GetNamesCitados {
   }
 
   private formatEdital(pdfs: PdfWithJobAndEditalPdf[]) {
-    const { edital } = pdfs[0];
-    const { job } = edital;
+    const { job } = pdfs[0];
 
     const statusLine = job.isActive
       ? '🟢 Em andamento'
       : `🔴 Encerrado${job.finishedAt ? ` em ${formatDate(job.finishedAt)}` : ''}`;
 
-    const dateLine = job.isActive
-      ? `🗓️ Inscrições até: ${formatDate(edital.subscriptionUntil)}\n`
-      : edital.validUntil
-        ? `⏳ Válido até: ${formatDate(edital.validUntil)}\n`
-        : '';
+    const dateLine =
+      job.isActive && job.subscriptionUntil
+        ? `🗓️ Inscrições até: ${formatDate(job.subscriptionUntil)}\n`
+        : !job.isActive && job.validUntil
+          ? `⏳ Válido até: ${formatDate(job.validUntil)}\n`
+          : '';
 
     const pdfLines = pdfs
       .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
       .join('\n');
 
-    const editalPdfLine = edital.pdfs
+    const editalPdfLine = job.pdfs
       .map((pdf) => `📑 Edital: ${pdf.link}\n`)
       .join('');
 

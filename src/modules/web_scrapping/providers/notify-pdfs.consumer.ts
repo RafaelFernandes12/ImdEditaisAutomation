@@ -47,12 +47,12 @@ export class NotifyNewPdf extends WorkerHost {
       await Promise.all(
         pdfs.map(async (pdf) => {
           const pdfLog = log
-            .child({ pdfId: pdf.id, jobId: pdf.editalId, pdfType: pdf.type })
+            .child({ pdfId: pdf.id, jobId: pdf.jobId, pdfType: pdf.type })
             .timed();
 
           try {
             const recorded = await this.sendsService.createMany([
-              { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
+              { userId: user.id, jobId: pdf.jobId, pdfId: pdf.id },
             ]);
 
             // `createMany` com skipDuplicates é atômico: count 0 significa que
@@ -72,10 +72,10 @@ export class NotifyNewPdf extends WorkerHost {
 
             await client.sendMessage(
               user.chatId,
-              `${pdf.edital.job.title}
-Seu nome foi mencionado no edital: ${pdf.edital.job.link}
+              `${pdf.job.title}
+Seu nome foi mencionado no edital: ${pdf.job.link}
 Neste pdf de ${pdf.type}: ${pdf.link}
-${pdf.edital.job.summary}
+${pdf.job.summary}
 `,
             );
 

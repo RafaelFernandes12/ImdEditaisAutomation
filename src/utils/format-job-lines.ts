@@ -9,12 +9,12 @@ import { formatDate } from './formate-date.js';
 export function formatEditalLines(editais: ActiveJob[]) {
   return editais
     .map((job, index) => {
-      const pdfLines = (job.edital?.pdfs ?? [])
+      const pdfLines = job.pdfs
         .map((pdf) => `   📎 ${pdf.label}: ${pdf.link}`)
         .join('\n');
 
-      const subscriptionLine = job.edital
-        ? `🗓️ Inscrições até: ${formatDate(job.edital.subscriptionUntil)}\n`
+      const subscriptionLine = job.subscriptionUntil
+        ? `🗓️ Inscrições até: ${formatDate(job.subscriptionUntil)}\n`
         : '';
 
       return (
@@ -40,8 +40,8 @@ export function formatJobVagaLines(jobs: ActiveJob[]) {
 }
 
 const FORMATTERS: Record<JobKind, (jobs: ActiveJob[]) => string> = {
-  edital: formatEditalLines,
-  vaga: formatJobVagaLines,
+  EDITAL: formatEditalLines,
+  VAGA: formatJobVagaLines,
 };
 
 // Uma seção por tipo com vagas, na ordem do JOB_TYPES, já formatada pelo kind.
