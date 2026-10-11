@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { PdfTipo, Prisma } from '../../../../generated/prisma/client.js';
-import { CreatePdf } from '../dto/pdf.dto.js';
 
 const withJob = {
-  edital: { include: { job: true } },
+  job: true,
 } satisfies Prisma.PdfInclude;
 
 export type PdfWithJob = Prisma.PdfGetPayload<{ include: typeof withJob }>;
 
 const withJobAndEditalPdf = {
-  edital: { include: { job: true, pdfs: { where: { type: 'EDITAL' } } } },
+  job: { include: { pdfs: { where: { type: 'EDITAL' } } } },
 } satisfies Prisma.PdfInclude;
 
 export type PdfWithJobAndEditalPdf = Prisma.PdfGetPayload<{
@@ -20,14 +19,6 @@ export type PdfWithJobAndEditalPdf = Prisma.PdfGetPayload<{
 @Injectable()
 export class PdfRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  async createMany(
-    data: CreatePdf[],
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
-    const pdf = await tx.pdf.createMany({ data });
-    return pdf;
-  }
 
   async findAllByUserName(
     userName: string,
@@ -46,7 +37,7 @@ export class PdfRepository {
   ) {
     const pdf = await tx.pdf.findMany({
       where: {
-        edital: { job: { isActive: true } },
+        job: { isActive: true },
         text: { contains: userName, mode: 'insensitive' },
       },
       include: withJob,
@@ -56,7 +47,7 @@ export class PdfRepository {
 
   async findByLabel(type: PdfTipo, tx: Prisma.TransactionClient = this.prisma) {
     const pdf = await tx.pdf.findMany({
-      where: { type, edital: { job: { isActive: true } } },
+      where: { type, job: { isActive: true } },
     });
     return pdf;
   }
@@ -66,7 +57,7 @@ export class PdfRepository {
   }
 
   async findByJobId(jobId: number, tx: Prisma.TransactionClient = this.prisma) {
-    const pdfs = await tx.pdf.findMany({ where: { editalId: jobId } });
+    const pdfs = await tx.pdf.findMany({ where: { jobId } });
     return pdfs;
   }
 }
