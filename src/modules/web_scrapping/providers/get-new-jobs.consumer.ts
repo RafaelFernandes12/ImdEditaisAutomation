@@ -11,6 +11,8 @@ import {
 } from '../strategy/new-job.strategy.js';
 import { BadRequestException } from '@nestjs/common';
 import { JOB_TYPES } from '../../jobs/job-types.js';
+import { SummarizeJob } from '../../ai_chat/services/summarize-job.service.js';
+import { toJobSummary } from '../utils/job-summary.util.js';
 
 @Processor('getNewJobs')
 export class GetNewJobsConsumer extends WorkerHost {
@@ -18,13 +20,14 @@ export class GetNewJobsConsumer extends WorkerHost {
   constructor(
     editalJobStrategy: EditalStrategy,
     vagaJobStrategy: VagaStrategy,
+    private readonly summarizeJob: SummarizeJob,
     @InjectPinoLogger(GetNewJobsConsumer.name)
     private readonly logger: PinoLogger,
   ) {
     super();
     this.strategies = {
-      edital: editalJobStrategy,
-      vaga: vagaJobStrategy,
+      EDITAL: editalJobStrategy,
+      VAGA: vagaJobStrategy,
     };
   }
 
@@ -92,14 +95,10 @@ export class GetNewJobsConsumer extends WorkerHost {
       const trimmed = trimJobForSummary(text);
 
       const summarizeStartedAt = Date.now();
-      const { summary, keyWords } = await strategy.summarize(trimmed);
+      const resumo = toJobSummary(await this.summarizeJob.execute(trimmed));
       const summarizeMs = Date.now() - summarizeStartedAt;
 
-      const { jobId, logContext } = await strategy.persist(
-        newJob,
-        summary,
-        keyWords.join(', '),
-      );
+      const { jobId, logContext } = await strategy.persist(newJob, resumo);
 
       this.logger.info(
         {

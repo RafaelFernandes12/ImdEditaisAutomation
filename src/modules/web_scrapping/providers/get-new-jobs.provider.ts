@@ -100,7 +100,7 @@ export class GetNewJobsProvider {
 
   private async findKnownVagaLinks(listed: ListedJob[]) {
     const vagaLinks = listed
-      .filter((job) => JOB_TYPES[job.type].kind === 'vaga')
+      .filter((job) => JOB_TYPES[job.type].kind === 'VAGA')
       .map((job) => job.link);
 
     if (vagaLinks.length === 0) return new Set<string>();

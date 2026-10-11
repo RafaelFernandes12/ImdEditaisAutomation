@@ -3,6 +3,7 @@ import {
   JobKind,
   VagaJobType,
 } from '#src/modules/jobs/job-types.js';
+import type { JobAttributes } from '#src/modules/jobs/dto/jobs.dto.js';
 
 interface NewJobPayloadBase {
   title: string;
@@ -22,13 +23,14 @@ export interface EditalJobPayload extends NewJobPayloadBase {
 
 export interface VagaJobPayload extends NewJobPayloadBase {
   type: VagaJobType;
-  vaga: { description: string | null };
+  description: string | null;
 }
 export type NewJobPayload = EditalJobPayload | VagaJobPayload;
 
 export interface JobSummary {
   summary: string;
   keyWords: string[];
+  attributes: JobAttributes;
 }
 
 export interface PersistedJob {
@@ -38,13 +40,12 @@ export interface PersistedJob {
 
 export interface NewJobStrategy<T extends NewJobPayload> {
   getText(job: T): string | null;
-  summarize(text: string): Promise<JobSummary>;
-  persist(job: T, summary: string, keyWords: string): Promise<PersistedJob>;
+  persist(job: T, resumo: JobSummary): Promise<PersistedJob>;
 }
 
 interface NewJobPayloadByKind {
-  edital: EditalJobPayload;
-  vaga: VagaJobPayload;
+  EDITAL: EditalJobPayload;
+  VAGA: VagaJobPayload;
 }
 
 // Uma strategy por kind: tipo novo de um kind existente não exige strategy nova.
