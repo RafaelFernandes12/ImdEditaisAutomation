@@ -97,14 +97,9 @@ function activeJob({
     title: `Edital ${id}`,
     type: JobType.IMD,
     link,
-    edital: withEdital
-      ? {
-          pdfs:
-            editalText === undefined
-              ? []
-              : [{ type: 'EDITAL', text: editalText }],
-        }
-      : null,
+    kind: withEdital ? 'EDITAL' : 'VAGA',
+    pdfs:
+      editalText === undefined ? [] : [{ type: 'EDITAL', text: editalText }],
   } as unknown as ActiveJob;
 }
 

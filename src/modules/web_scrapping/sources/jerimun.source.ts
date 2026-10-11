@@ -79,7 +79,7 @@ export class JerimunSource implements JobSource<JobUrl> {
               title,
               type: 'JERIMUM',
               link: job.link,
-              vaga: { description: text },
+              description: text,
               isActive: true,
             };
           } catch (err: unknown) {

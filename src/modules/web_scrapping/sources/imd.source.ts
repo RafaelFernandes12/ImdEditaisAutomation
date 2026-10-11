@@ -58,11 +58,9 @@ export class ImdSource implements JobSource<JobUrl> {
     const finishedLinks = new Set(finished.map((job) => job.link));
 
     return active
-      .filter((job) => finishedLinks.has(job.link) && job.edital)
+      .filter((job) => finishedLinks.has(job.link) && job.kind === 'EDITAL')
       .map((job) => {
-        const editalPdf = job.edital?.pdfs?.find(
-          (pdf) => pdf.type === 'EDITAL',
-        );
+        const editalPdf = job.pdfs.find((pdf) => pdf.type === 'EDITAL');
 
         const split = editalPdf?.text
           .split('\n')
