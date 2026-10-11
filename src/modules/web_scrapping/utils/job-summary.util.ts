@@ -1,7 +1,9 @@
 import type {
   ResumoVagas,
   VagaResumida,
-} from '../../ai_chat/services/summarize-job-vaga.service.js';
+} from '../../ai_chat/services/summarize-job.service.js';
+import type { JobSummary } from '../strategy/new-job.strategy.js';
+import { jobAttributes } from './job-attributes.util.js';
 
 const brl = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -15,7 +17,7 @@ export function formatBrl(value: number) {
 
 // Texto do resumo enviado no WhatsApp. Campo que a IA não achou (null) fica
 // de fora em vez de aparecer como "não informado".
-export function formatVagaSummary({ vagas }: ResumoVagas) {
+export function formatJobSummary({ vagas }: ResumoVagas) {
   return vagas.map(formatVaga).join('\n\n');
 }
 
@@ -30,14 +32,27 @@ export function vagaKeywords({ vagas }: { vagas: { keywords: string[] }[] }) {
   ];
 }
 
+export function toJobSummary(resumo: ResumoVagas): JobSummary {
+  return {
+    summary: formatJobSummary(resumo),
+    keyWords: vagaKeywords(resumo),
+    attributes: jobAttributes(resumo),
+  };
+}
+
 function formatVaga(vaga: VagaResumida) {
-  const senioridade =
-    vaga.senioridade === 'Não informado' ? null : vaga.senioridade;
+  const qtdVagas = [
+    vaga.qtdVagas !== null && `${vaga.qtdVagas}`,
+    vaga.cadastroReserva !== null && `${vaga.cadastroReserva} CR`,
+  ]
+    .filter(Boolean)
+    .join(' + ');
 
   const valor = vaga.remuneração === null ? null : formatBrl(vaga.remuneração);
 
   const condicoes = [
     vaga.horasSemanais !== null && `${vaga.horasSemanais}h semanais`,
+    vaga.turno,
     vaga.formato,
     vaga.modalidade,
   ].filter(Boolean);
@@ -52,12 +67,14 @@ function formatVaga(vaga: VagaResumida) {
 
   return [
     `*Vaga:* ${vaga.vaga}`,
-    senioridade && `*Senioridade:* ${senioridade}`,
-    vaga.qtdVagas !== null && `*Qtd vagas:* ${vaga.qtdVagas}`,
+    vaga.senioridade && `*Senioridade:* ${vaga.senioridade}`,
+    qtdVagas && `*Qtd vagas:* ${qtdVagas}`,
     remuneracao,
     localizacao && `*Localização:* ${localizacao}`,
     vaga.keywords.length > 0 &&
       `*Palavras-chaves:* ${vaga.keywords.join(', ')}`,
+    vaga.duracao && `*Duração:* ${vaga.duracao}`,
+    vaga.elegibilidade && `*Elegibilidade:* ${vaga.elegibilidade}`,
   ]
     .filter(Boolean)
     .join('\n');
