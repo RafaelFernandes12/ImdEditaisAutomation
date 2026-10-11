@@ -1,26 +1,33 @@
-import type { EditalJobType, VagaJobType } from '../job-types.js';
+import type {
+  Formato,
+  JobType,
+  Modelo,
+  PdfTipo,
+  Senioridade,
+} from '#generated/prisma/enums.js';
 
-export class CreateJobBase {
+export class JobAttributes {
+  formato: Formato;
+  city: string;
+  state: string;
+  modelo: Modelo[];
+  senioridade: Senioridade[];
+}
+
+export class CreateJob {
   title: string;
   link: string;
+  type: JobType;
   isActive: boolean;
   summary: string;
   keyWords: string;
+  description: string;
+  attributes: JobAttributes;
+  subscriptionUntil?: Date | null;
+  pdfs?: {
+    label: string;
+    text: string;
+    link: string;
+    type: PdfTipo;
+  }[];
 }
-
-export class CreateEditalJob extends CreateJobBase {
-  type: EditalJobType;
-  edital: {
-    subscriptionUntil: Date;
-    validUntil?: Date | null;
-  };
-}
-
-export class CreateVagaJob extends CreateJobBase {
-  type: VagaJobType;
-  vaga: {
-    description: string;
-  };
-}
-
-export type CreateJob = CreateEditalJob | CreateVagaJob;

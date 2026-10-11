@@ -2,12 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { JobType, Prisma } from '../../../../generated/prisma/client.js';
 import { CreateJob } from '../dto/jobs.dto.js';
+import { JOB_TYPES } from '../job-types.js';
 
 const activeJobInclude = {
-  edital: {
-    include: { pdfs: true },
-  },
-  vaga: true,
+  pdfs: true,
 } satisfies Prisma.JobInclude;
 
 export type ActiveJob = Prisma.JobGetPayload<{
@@ -19,27 +17,18 @@ export class JobsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createJob(data: CreateJob, tx: Prisma.TransactionClient = this.prisma) {
-    const child =
-      'edital' in data
-        ? { edital: { create: data.edital } }
-        : { vaga: { create: data.vaga } };
-
-    const job = await tx.job.upsert({
+    const { attributes, pdfs = [], ...job } = data;
+    return await tx.job.upsert({
       where: { link: data.link },
       create: {
-        title: data.title,
-        type: data.type,
-        link: data.link,
-        isActive: data.isActive,
-        summary: data.summary,
-        keyWords: data.keyWords,
-        ...child,
+        ...job,
+        ...attributes,
+        kind: JOB_TYPES[data.type].kind,
+        pdfs: { create: pdfs },
       },
-      update: { title: data.title },
-      include: { edital: true, vaga: true },
+      update: { title: data.title, pdfs: { create: pdfs } },
+      include: { pdfs: true },
     });
-
-    return job;
   }
   async findManyByLink(
     links: string[],
@@ -61,13 +50,13 @@ export class JobsRepository {
         ...(types && { type: { in: types } }),
         ...(stillActive && {
           OR: [
-            { edital: { subscriptionUntil: { gt: new Date() } } },
-            { edital: null },
+            { subscriptionUntil: { gt: new Date() } },
+            { subscriptionUntil: null },
           ],
         }),
       },
       include: activeJobInclude,
-      orderBy: [{ edital: { subscriptionUntil: 'desc' } }, { id: 'desc' }],
+      orderBy: [{ subscriptionUntil: 'desc' }, { id: 'desc' }],
     });
     return jobs;
   }
@@ -80,30 +69,21 @@ export class JobsRepository {
     tx: Prisma.TransactionClient = this.prisma,
   ) {
     const jobs = await Promise.all(
-      data.map(async (d) => {
-        const job = await tx.job.update({
+      data.map((d) =>
+        tx.job.update({
           where: { id: d.id },
           data: {
             isActive: false,
             finishedAt: new Date(),
+            ...(d.validUntil !== undefined &&
+              !Number.isNaN(d.validUntil) && {
+                validUntil: new Date(
+                  new Date().setMonth(new Date().getMonth() + d.validUntil),
+                ),
+              }),
           },
-        });
-
-        // updateMany é no-op quando o job não tem filho Edital (ex.: vaga),
-        // enquanto `edital: { update: ... }` aninhado lançaria P2025.
-        if (d.validUntil !== undefined && !Number.isNaN(d.validUntil)) {
-          await tx.edital.updateMany({
-            where: { jobId: d.id },
-            data: {
-              validUntil: new Date(
-                new Date().setMonth(new Date().getMonth() + d.validUntil),
-              ),
-            },
-          });
-        }
-
-        return job;
-      }),
+        }),
+      ),
     );
     return jobs;
   }
