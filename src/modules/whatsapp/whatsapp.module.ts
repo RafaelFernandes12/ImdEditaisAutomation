@@ -5,7 +5,6 @@ import { WhatsappService } from './services/whatsapp.service.js';
 import { WhatsappController } from './controllers/whatsapp.controller.js';
 import { UserModule } from '../user/user.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
-import { LoginService } from './services/login.service.js';
 import { GetJobs } from './services/getJobs.js';
 import { FilesModule } from '../files/files.module.js';
 import { AiChatModule } from '../ai_chat/ai_chat.module.js';
@@ -14,6 +13,8 @@ import { DeactiveUser } from './services/deactiveUser.js';
 import { ReactiveUser } from './services/reactiveUser.js';
 import { GetNamesCitados } from './services/getNamesCitados.js';
 import { WhatsappCommandsService } from './services/whatsapp-commands.service.js';
+import { RegisterLinkService } from './services/register-link.service.js';
+import { CadastroController } from './controllers/cadastro.controller.js';
 
 @Module({
   imports: [
@@ -29,12 +30,12 @@ import { WhatsappCommandsService } from './services/whatsapp-commands.service.js
     PrismaService,
     WhatsappService,
     DeactiveUser,
-    LoginService,
     GetJobs,
     ReactiveUser,
     GetNamesCitados,
     WhatsappCommandsService,
+    RegisterLinkService,
   ],
-  controllers: [WhatsappController],
+  controllers: [WhatsappController, CadastroController],
 })
 export class WhatsappModule {}

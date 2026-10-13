@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { client } from '../../../config/whatsapp/client.js';
-import { LoginService } from './login.service.js';
 import { GetJobs } from './getJobs.js';
 import { UserService } from '../../user/services/user.service.js';
 import { DeactiveUser } from './deactiveUser.js';
@@ -10,6 +9,7 @@ import { maskContact } from '../../../utils/log-redact.js';
 import { ReactiveUser } from './reactiveUser.js';
 import { GetNamesCitados } from './getNamesCitados.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { RegisterLinkService } from './register-link.service.js';
 
 const commands = [
   '!ping',
@@ -23,7 +23,6 @@ const commands = [
 @Injectable()
 export class WhatsappCommandsService {
   constructor(
-    private loginService: LoginService,
     private getJobs: GetJobs,
     private userService: UserService,
     @InjectPinoLogger(WhatsappCommandsService.name)
@@ -31,6 +30,7 @@ export class WhatsappCommandsService {
     private readonly deactiveUser: DeactiveUser,
     private readonly reactiveUser: ReactiveUser,
     private readonly getNamesCitados: GetNamesCitados,
+    private readonly registerLinkService: RegisterLinkService,
   ) {}
 
   execute(client: pkg.Client) {
@@ -67,26 +67,43 @@ export class WhatsappCommandsService {
   }
 
   private async handleMessage(client: pkg.Client, message: pkg.Message) {
-    const log = this.logFor(message);
-    log.debug('message.received', 'Mensagem recebida', {
-      fromMe: message.fromMe,
-      bodyLength: message.body?.length ?? 0,
-    });
-
-    if (this.loginService.isPending(message.from)) {
-      await this.loginService.handlePendingStep(message);
-      return;
-    }
-
-    if (message.body === '!login') {
-      await this.loginService.login(message);
-      return;
-    }
-
-    const command = this.commands[message.body];
+    const userAnswer = message.body;
     const user = await this.userService.findByChatId(message.from);
-    if (!commands.includes(message.body) && user) {
-      await message.reply(`Essa é a lista de comandos: 
+    if (!user) {
+      if (userAnswer.trim() === '!login') {
+        await this.registerLinkService.sendLink(client, message);
+      } else {
+        await message.reply(
+          'Faça login antes de enviar mensagens, o comando é *!login*',
+        );
+      }
+      return;
+    }
+
+    switch (userAnswer) {
+      case '!login':
+        await message.reply('Você já está cadastrado ✅');
+        break;
+      case '!ping':
+        await this.ping(message);
+        break;
+      case '!vagas':
+        await this.getJobs.execute(message, false);
+        break;
+      case '!vagas andamento':
+        await this.getJobs.execute(message, true);
+        break;
+      case '!desativar':
+        await this.deactiveUser.execute(client, message);
+        break;
+      case '!reativar':
+        await this.reactiveUser.execute(client, message);
+        break;
+      case '!citado':
+        await this.getNamesCitados.execute(message);
+        break;
+      default:
+        await message.reply(`Essa é a lista de comandos: 
 '!ping': pinga o servidor
 '!vagas': Verifica todas as vagas abertas
 '!vagas andamento': Verifica todas as vagas em andamento
@@ -94,37 +111,52 @@ export class WhatsappCommandsService {
 '!reativar': Reativa usuário,
 '!citado': Pega editais em que o seu nome foi mencionado
 `);
-      return;
+        break;
     }
 
-    if (!user) {
-      log.info(
-        'command.unauthorized',
-        'Comando recebido de usuário sem login',
-        {
-          command: message.body,
-        },
-      );
-      await message.reply(
-        'Você precisa fazer login primeiro. Envie !login para começar.',
-      );
-      return;
-    }
-
-    const commandLog = log
-      .child({ command: message.body, userId: user.id })
-      .timed();
-
-    try {
-      await command(client, message);
-
-      commandLog.info('command.done', 'Comando executado');
-    } catch (error: unknown) {
-      commandLog.error('command.failed', 'Falha ao executar comando', {
-        err: error,
-      });
-      throw error;
-    }
+    //     const log = this.logFor(message);
+    //     log.debug('message.received', 'Mensagem recebida', {
+    //       fromMe: message.fromMe,
+    //       bodyLength: message.body?.length ?? 0,
+    //     });
+    //
+    //     if (this.loginService.isPending(message.from)) {
+    //       await this.loginService.handlePendingStep(message);
+    //       return;
+    //     }
+    //
+    //     if (message.body === '!login') {
+    //       await this.loginService.login(message);
+    //       return;
+    //     }
+    //
+    //     const command = this.commands[message.body];
+    //     const user = await this.userService.findByChatId(message.from);
+    //     if (!commands.includes(message.body) && user) {
+    //       await message.reply(`Essa é a lista de comandos:
+    // '!ping': pinga o servidor
+    // '!vagas': Verifica todas as vagas abertas
+    // '!vagas andamento': Verifica todas as vagas em andamento
+    // '!desativar': Desativa usuário, você para de receber as mensagens automáticas,
+    // '!reativar': Reativa usuário,
+    // '!citado': Pega editais em que o seu nome foi mencionado
+    // `);
+    //       return;
+    //     }
+    //
+    //     if (!user) {
+    //       log.info(
+    //         'command.unauthorized',
+    //         'Comando recebido de usuário sem login',
+    //         {
+    //           command: message.body,
+    //         },
+    //       );
+    //       await message.reply(
+    //         'Você precisa fazer login primeiro. Envie !login para começar.',
+    //       );
+    //       return;
+    //     }
   }
 
   private async ping(message: pkg.Message) {
