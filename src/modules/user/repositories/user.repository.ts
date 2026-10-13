@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { Prisma } from '../../../../generated/prisma/client.js';
+import { UserPreferencesData } from '../dto/user.dto.js';
 
 interface CreateUserData {
   chatId: string;
   contact: string;
   name: string;
-  keyWords?: string;
+  preferences: UserPreferencesData;
 }
 
 @Injectable()
@@ -14,10 +15,15 @@ export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    data: CreateUserData,
+    { preferences, ...data }: CreateUserData,
     tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const user = await tx.user.create({ data });
+    const user = await tx.user.create({
+      data: {
+        ...data,
+        UserPreferences: { create: preferences },
+      },
+    });
     return user;
   }
 
@@ -57,7 +63,7 @@ export class UserRepository {
 
   async findMany(tx: Prisma.TransactionClient = this.prisma) {
     return await tx.user.findMany({
-      include: { sends: true },
+      include: { sends: true, UserPreferences: true },
       where: { isActive: true },
     });
   }

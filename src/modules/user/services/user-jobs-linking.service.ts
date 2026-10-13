@@ -34,11 +34,13 @@ export class UserJobsLinkingService {
           chatId: data.chatId,
           contact: data.contact,
           name: data.name,
+          preferences: data.preferences,
         },
         tx,
       );
 
       const linked = await this.linkJobs(tx, user.id, data.jobsId);
+      console.log('ESTOU AQUI');
 
       log.info('created', 'Usuário criado e vinculado aos editais', {
         userId: user.id,
