@@ -75,7 +75,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 7638
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:7638}
+      WEB_URL: ${WEB_URL:-http://localhost:5173}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-projeto_ai}
       REDIS_HOST: redis
       REDIS_PORT: 6379
