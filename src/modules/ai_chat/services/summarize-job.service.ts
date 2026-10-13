@@ -6,7 +6,6 @@ import { ECOSYSTEMS } from '#src/modules/web_scrapping/models/ecossystems.js';
 import {
   Escolaridade,
   Formato,
-  JobType,
   Modelo,
   Senioridade,
 } from '#generated/prisma/enums.js';
