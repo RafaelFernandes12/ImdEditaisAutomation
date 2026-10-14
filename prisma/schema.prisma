@@ -35,7 +35,6 @@ enum Formato {
   PRESENCIAL
   HIBRIDO
   REMOTO
-  NAO_INFORMADO
 }
 
 enum Senioridade {
