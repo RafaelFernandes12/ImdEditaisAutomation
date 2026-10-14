@@ -3,7 +3,7 @@ import { PrismaService } from '../../../config/prisma/prisma.service.js';
 import { PdfTipo, Prisma } from '../../../../generated/prisma/client.js';
 
 const withJob = {
-  job: true,
+  job: { include: { vagas: { orderBy: { id: 'asc' } } } },
 } satisfies Prisma.PdfInclude;
 
 export type PdfWithJob = Prisma.PdfGetPayload<{ include: typeof withJob }>;

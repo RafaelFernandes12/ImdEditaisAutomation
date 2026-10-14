@@ -6,6 +6,7 @@ import { JOB_TYPES } from '../job-types.js';
 
 const activeJobInclude = {
   pdfs: true,
+  vagas: { orderBy: { id: 'asc' } },
 } satisfies Prisma.JobInclude;
 
 export type ActiveJob = Prisma.JobGetPayload<{
@@ -17,14 +18,14 @@ export class JobsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createJob(data: CreateJob, tx: Prisma.TransactionClient = this.prisma) {
-    const { attributes, pdfs = [], ...job } = data;
+    const { vagas, pdfs = [], ...job } = data;
     return await tx.job.upsert({
       where: { link: data.link },
       create: {
         ...job,
-        ...attributes,
         kind: JOB_TYPES[data.type].kind,
         pdfs: { create: pdfs },
+        vagas: { create: vagas },
       },
       update: { title: data.title, pdfs: { create: pdfs } },
       include: { pdfs: true },

@@ -1,4 +1,5 @@
 import type {
+  Escolaridade,
   Formato,
   JobType,
   Modelo,
@@ -6,12 +7,21 @@ import type {
   Senioridade,
 } from '#generated/prisma/enums.js';
 
-export class JobAttributes {
-  formato: Formato;
-  city: string;
-  state: string;
-  modelo: Modelo[];
-  senioridade: Senioridade[];
+// Campo que a IA não achou fica null.
+export class VagaAttributes {
+  ecossytem: string;
+  salary: number | null;
+  formato: Formato | null;
+  city: string | null;
+  state: string | null;
+  modelo: Modelo | null;
+  senioridade: Senioridade | null;
+  escolaridade: Escolaridade | null;
+}
+
+export class CreateVaga extends VagaAttributes {
+  summary: string;
+  keyWords: string;
 }
 
 export class CreateJob {
@@ -19,10 +29,8 @@ export class CreateJob {
   link: string;
   type: JobType;
   isActive: boolean;
-  summary: string;
-  keyWords: string;
   description: string;
-  attributes: JobAttributes;
+  vagas: CreateVaga[];
   subscriptionUntil?: Date | null;
   pdfs?: {
     label: string;
