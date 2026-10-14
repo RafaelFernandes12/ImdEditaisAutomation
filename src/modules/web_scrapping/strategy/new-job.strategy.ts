@@ -3,7 +3,7 @@ import {
   JobKind,
   VagaJobType,
 } from '#src/modules/jobs/job-types.js';
-import type { JobAttributes } from '#src/modules/jobs/dto/jobs.dto.js';
+import type { CreateVaga } from '#src/modules/jobs/dto/jobs.dto.js';
 
 interface NewJobPayloadBase {
   title: string;
@@ -27,12 +27,6 @@ export interface VagaJobPayload extends NewJobPayloadBase {
 }
 export type NewJobPayload = EditalJobPayload | VagaJobPayload;
 
-export interface JobSummary {
-  summary: string;
-  keyWords: string[];
-  attributes: JobAttributes;
-}
-
 export interface PersistedJob {
   jobId: number;
   logContext?: Record<string, unknown>;
@@ -40,7 +34,7 @@ export interface PersistedJob {
 
 export interface NewJobStrategy<T extends NewJobPayload> {
   getText(job: T): string | null;
-  persist(job: T, resumo: JobSummary): Promise<PersistedJob>;
+  persist(job: T, vagas: CreateVaga[]): Promise<PersistedJob>;
 }
 
 interface NewJobPayloadByKind {

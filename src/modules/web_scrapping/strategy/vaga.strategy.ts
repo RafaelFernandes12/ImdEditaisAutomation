@@ -1,11 +1,8 @@
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
 import { BadRequestException } from '@nestjs/common';
-import {
-  JobSummary,
-  NewJobStrategy,
-  VagaJobPayload,
-} from './new-job.strategy.js';
+import { NewJobStrategy, VagaJobPayload } from './new-job.strategy.js';
+import type { CreateVaga } from '../../jobs/dto/jobs.dto.js';
 
 export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
   constructor(
@@ -18,7 +15,7 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
     return job.description?.trim() || null;
   }
 
-  async persist(job: VagaJobPayload, resumo: JobSummary) {
+  async persist(job: VagaJobPayload, vagas: CreateVaga[]) {
     try {
       const createdJob = await this.jobsService.createJob({
         title: job.title,
@@ -26,12 +23,10 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
         link: job.link,
         isActive: job.isActive,
         description: job.description || '',
-        summary: resumo.summary,
-        keyWords: resumo.keyWords.join(', '),
-        attributes: resumo.attributes,
+        vagas,
       });
 
-      return { jobId: createdJob.id };
+      return { jobId: createdJob.id, logContext: { vagaCount: vagas.length } };
     } catch (e: unknown) {
       throw new BadRequestException(e);
     }

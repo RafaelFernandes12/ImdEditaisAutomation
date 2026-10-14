@@ -12,7 +12,7 @@ import {
 import { BadRequestException } from '@nestjs/common';
 import { JOB_TYPES } from '../../jobs/job-types.js';
 import { SummarizeJob } from '../../ai_chat/services/summarize-job.service.js';
-import { toJobSummary } from '../utils/job-summary.util.js';
+import { toVagas } from '../utils/job-summary.util.js';
 
 @Processor('getNewJobs')
 export class GetNewJobsConsumer extends WorkerHost {
@@ -95,10 +95,10 @@ export class GetNewJobsConsumer extends WorkerHost {
       const trimmed = trimJobForSummary(text);
 
       const summarizeStartedAt = Date.now();
-      const resumo = toJobSummary(await this.summarizeJob.execute(trimmed));
+      const vagas = toVagas(await this.summarizeJob.execute(newJob, trimmed));
       const summarizeMs = Date.now() - summarizeStartedAt;
 
-      const { jobId, logContext } = await strategy.persist(newJob, resumo);
+      const { jobId, logContext } = await strategy.persist(newJob, vagas);
 
       this.logger.info(
         {

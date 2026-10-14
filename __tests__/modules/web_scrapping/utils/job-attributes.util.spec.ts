@@ -1,98 +1,66 @@
-import {
-  jobAttributes,
-  NAO_INFORMADO,
-} from '../../../../src/modules/web_scrapping/utils/job-attributes.util.js';
-import { SummarizeJob } from '../../../../src/modules/ai_chat/services/summarize-job.service.js';
+import { vagaAttributes } from '../../../../src/modules/web_scrapping/utils/job-attributes.util.js';
 import type { VagaResumida } from '../../../../src/modules/ai_chat/services/summarize-job.service.js';
 
-type Attrs = Pick<
-  VagaResumida,
-  'formato' | 'cidade' | 'estado' | 'modalidade' | 'senioridade'
->;
-
-function attrs(overrides: Partial<Attrs> = {}): Attrs {
+function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
   return {
+    isTech: true,
+    vaga: 'Desenvolvedor Backend',
+    senioridade: null,
+    escolaridade: null,
+    qtdVagas: null,
+    cadastroReserva: null,
+    remuneração: null,
+    horasSemanais: null,
+    turno: null,
     formato: null,
+    modalidade: null,
     cidade: null,
     estado: null,
-    modalidade: null,
-    senioridade: null,
+    duracao: null,
+    elegibilidade: null,
+    keywords: [],
+    ecossystems: [],
     ...overrides,
   };
 }
 
-describe('jobAttributes', () => {
-  it('usa o primeiro valor informado entre as vagas', () => {
+describe('vagaAttributes', () => {
+  it('leva os campos da vaga para os da tabela', () => {
     expect(
-      jobAttributes({
-        vagas: [
-          attrs(),
-          attrs({ formato: 'Híbrido', cidade: ' Natal ', estado: 'RN' }),
-          attrs({ formato: 'Remoto', cidade: 'Recife', estado: 'PE' }),
-        ],
-      }),
+      vagaAttributes(
+        vaga({
+          remuneração: 3500.5,
+          formato: 'HIBRIDO',
+          modalidade: 'CLT',
+          senioridade: 'JUNIOR',
+          escolaridade: 'GRADUADO',
+          cidade: ' Natal ',
+          estado: 'RN',
+          ecossystems: ['java', 'node'],
+        }),
+      ),
     ).toEqual({
+      ecossytem: 'java, node',
+      salary: 3500.5,
       formato: 'HIBRIDO',
       city: 'Natal',
       state: 'RN',
-      modelo: [],
-      senioridade: [],
+      modelo: 'CLT',
+      senioridade: 'JUNIOR',
+      escolaridade: 'GRADUADO',
     });
   });
 
-  it('marca como não informado o que a IA não achou', () => {
-    expect(jobAttributes({ vagas: [attrs({ cidade: '' })] })).toEqual({
-      formato: 'NAO_INFORMADO',
-      city: NAO_INFORMADO,
-      state: NAO_INFORMADO,
-      modelo: [],
-      senioridade: [],
+  it('deixa null o que a IA não achou', () => {
+    expect(vagaAttributes(vaga({ cidade: '  ', estado: '' }))).toEqual({
+      ecossytem: '',
+      salary: null,
+      formato: null,
+      city: null,
+      state: null,
+      modelo: null,
+      senioridade: null,
+      escolaridade: null,
     });
-  });
-
-  it('junta modelo e senioridade de todas as vagas, sem repetir', () => {
-    const { modelo, senioridade } = jobAttributes({
-      vagas: [
-        attrs({ modalidade: 'CLT', senioridade: 'Júnior' }),
-        attrs({ modalidade: 'Estágio', senioridade: 'Estágio' }),
-        attrs({ modalidade: 'CLT', senioridade: 'Júnior' }),
-      ],
-    });
-
-    expect(modelo).toEqual(['CLT', 'ESTAGIO']);
-    expect(senioridade).toEqual(['JUNIOR', 'ESTAGIO']);
-  });
-
-  it('entende os níveis acadêmicos e a bolsa do edital', () => {
-    const { modelo, senioridade } = jobAttributes({
-      vagas: [
-        attrs({ modalidade: 'Bolsista', senioridade: 'Graduação' }),
-        attrs({ modalidade: 'CLT', senioridade: 'Mestrado' }),
-      ],
-    });
-
-    expect(modelo).toEqual(['BOLSISTA', 'CLT']);
-    expect(senioridade).toEqual(['GRADUACAO', 'MESTRADO']);
-  });
-
-  // Rótulo do prompt diferente do de preferences.ts se perderia em silêncio.
-  it('converte todo rótulo que o prompt aceita', () => {
-    const { shape } = new SummarizeJob().vaga;
-
-    for (const formato of shape.formato.unwrap().options) {
-      expect(jobAttributes({ vagas: [attrs({ formato })] }).formato).not.toBe(
-        'NAO_INFORMADO',
-      );
-    }
-    for (const modalidade of shape.modalidade.unwrap().options) {
-      expect(
-        jobAttributes({ vagas: [attrs({ modalidade })] }).modelo,
-      ).toHaveLength(1);
-    }
-    for (const senioridade of shape.senioridade.unwrap().options) {
-      expect(
-        jobAttributes({ vagas: [attrs({ senioridade })] }).senioridade,
-      ).toHaveLength(1);
-    }
   });
 });
