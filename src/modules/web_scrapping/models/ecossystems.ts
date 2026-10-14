@@ -1,4 +1,7 @@
 // Termos em minúsculas, já normalizados (labels do GitHub e variações comuns).
+// Cada termo pertence a um só ecossistema e o identifica sozinho: nada de
+// siglas curtas que casam com outras palavras ('js', 'c', 'ia') nem
+// ferramentas que aparecem em qualquer vaga (vite, jest, linux, sql).
 export const ECOSYSTEMS = {
   java: {
     label: 'Java',
@@ -6,30 +9,16 @@ export const ECOSYSTEMS = {
       'java',
       'spring',
       'spring boot',
-      'kotlin',
       'quarkus',
       'micronaut',
       'hibernate',
       'jpa',
-      'maven',
-      'gradle',
       'jakarta ee',
     ],
   },
   javascript: {
     label: 'JavaScript / TypeScript',
-    terms: [
-      'javascript',
-      'typescript',
-      'node.js',
-      'react',
-      'angular',
-      'vue',
-      'next.js',
-      'nestjs',
-      'express',
-      'svelte',
-    ],
+    terms: ['javascript', 'typescript'],
   },
   node: {
     label: 'Node.js (back-end)',
@@ -41,13 +30,12 @@ export const ECOSYSTEMS = {
       'adonisjs',
       'prisma',
       'typeorm',
-      'bun',
       'deno',
     ],
   },
   react: {
     label: 'React',
-    terms: ['react', 'next.js', 'redux', 'react query', 'remix', 'vite'],
+    terms: ['react', 'next.js', 'redux', 'react query', 'remix'],
   },
   angular: {
     label: 'Angular',
@@ -63,15 +51,7 @@ export const ECOSYSTEMS = {
   },
   dotnet: {
     label: '.NET / C#',
-    terms: [
-      '.net',
-      'c#',
-      'asp.net',
-      'asp',
-      'entity framework',
-      'blazor',
-      'xamarin',
-    ],
+    terms: ['c#', '.net', 'asp.net', 'entity framework', 'blazor', '.net maui'],
   },
   php: {
     label: 'PHP',
@@ -79,23 +59,36 @@ export const ECOSYSTEMS = {
   },
   ruby: {
     label: 'Ruby',
-    terms: ['ruby', 'rails', 'ruby on rails', 'sidekiq'],
+    terms: ['ruby', 'ruby on rails', 'rails', 'sidekiq'],
   },
   go: {
     label: 'Go',
-    terms: ['go', 'golang', 'gin', 'echo', 'fiber'],
+    terms: ['go', 'golang', 'gin', 'gorm'],
   },
   rust: {
     label: 'Rust',
     terms: ['rust', 'tokio', 'actix', 'axum'],
   },
   cpp: {
-    label: 'C / C++ / Embarcados',
-    terms: ['c', 'c++', 'embarcados', 'embedded', 'firmware', 'rtos', 'qt'],
+    label: 'C / C++',
+    terms: ['c++', 'linguagem c', 'qt', 'cmake', 'stl'],
+  },
+  embarcados: {
+    label: 'Embarcados / IoT',
+    terms: [
+      'sistemas embarcados',
+      'embedded',
+      'firmware',
+      'microcontroladores',
+      'rtos',
+      'arduino',
+      'esp32',
+      'iot',
+    ],
   },
   android: {
     label: 'Android',
-    terms: ['android', 'kotlin', 'jetpack compose', 'java'],
+    terms: ['android', 'kotlin', 'jetpack compose'],
   },
   ios: {
     label: 'iOS',
@@ -106,32 +99,31 @@ export const ECOSYSTEMS = {
     terms: ['flutter', 'dart', 'react native', 'expo', 'ionic'],
   },
   dados: {
-    label: 'Dados / Banco de dados',
+    label: 'Dados / BI',
     terms: [
-      'sql',
-      'postgresql',
-      'mysql',
-      'sql server',
-      'oracle',
-      'mongodb',
-      'redis',
+      'engenharia de dados',
+      'análise de dados',
       'power bi',
+      'tableau',
       'etl',
       'spark',
       'airflow',
       'dbt',
+      'databricks',
+      'data warehouse',
+      'dba',
     ],
   },
   ia: {
     label: 'IA / Machine Learning',
     terms: [
+      'inteligência artificial',
       'machine learning',
-      'ia',
+      'deep learning',
       'llm',
       'pytorch',
       'tensorflow',
       'scikit-learn',
-      'pandas',
       'langchain',
       'nlp',
       'visão computacional',
@@ -140,16 +132,18 @@ export const ECOSYSTEMS = {
   devops: {
     label: 'DevOps / Cloud',
     terms: [
+      'devops',
+      'sre',
       'docker',
       'kubernetes',
       'aws',
       'azure',
       'gcp',
       'terraform',
+      'ansible',
       'ci/cd',
       'jenkins',
-      'linux',
-      'ansible',
+      'github actions',
     ],
   },
   qa: {
@@ -157,13 +151,28 @@ export const ECOSYSTEMS = {
     terms: [
       'qa',
       'testes automatizados',
+      'testes manuais',
       'cypress',
       'selenium',
       'playwright',
-      'jest',
-      'junit',
       'appium',
       'k6',
+    ],
+  },
+  uiux: {
+    label: 'UI / UX Design',
+    terms: [
+      'ui/ux',
+      'ux/ui',
+      'ui design',
+      'ux design',
+      'product design',
+      'design de interface',
+      'experiência do usuário',
+      'design system',
+      'figma',
+      'adobe xd',
+      'pesquisa com usuários',
     ],
   },
 } as const satisfies Record<
