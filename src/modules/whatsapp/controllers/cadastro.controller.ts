@@ -16,6 +16,7 @@ import {
 import { LocalidadesService } from '../../user/services/localidades.service.js';
 import { ECOSYSTEMS } from '#src/modules/web_scrapping/models/ecossystems.js';
 import {
+  ESCOLARIDADE_LABELS,
   FORMATO_PREFERENCIA_LABELS,
   MODELO_LABELS,
   SENIORIDADE_LABELS,
@@ -29,6 +30,7 @@ type CadastroBody = {
   formato?: unknown;
   modelo?: unknown;
   senioridade?: unknown;
+  escolaridade?: unknown;
 };
 
 function text(value: unknown) {
@@ -97,6 +99,7 @@ export class CadastroController {
       formatos: options(FORMATO_PREFERENCIA_LABELS),
       modelos: options(MODELO_LABELS),
       senioridades: options(SENIORIDADE_LABELS),
+      escolaridades: options(ESCOLARIDADE_LABELS),
     };
   }
 
@@ -107,9 +110,10 @@ export class CadastroController {
       city: text(body?.city),
       state: text(body?.state),
       ecosystems: list(body?.ecosystems),
-      formato: text(body?.formato),
+      formato: list(body?.formato),
       modelo: list(body?.modelo),
       senioridade: list(body?.senioridade),
+      escolaridade: list(body?.escolaridade),
     };
 
     const result = await this.registerLinkService.register(token, data);

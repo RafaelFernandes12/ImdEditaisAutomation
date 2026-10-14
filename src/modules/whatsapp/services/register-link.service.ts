@@ -10,6 +10,7 @@ import { maskContact } from '../../../utils/log-redact.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { ECOSYSTEMS } from '#src/modules/web_scrapping/models/ecossystems.js';
 import {
+  isEscolaridade,
   isFormatoPreferencia,
   isModelo,
   isSenioridade,
@@ -29,9 +30,10 @@ type PendingRegister = {
 export type RegisterData = {
   name: string;
   ecosystems: string[];
-  formato: string;
+  formato: string[];
   modelo: string[];
   senioridade: string[];
+  escolaridade: string[];
   city: string;
   state: string;
 };
@@ -156,12 +158,12 @@ export class RegisterLinkService {
       };
     }
 
-    const formato = data.formato;
-    if (!isFormatoPreferencia(formato)) {
+    const formato = [...new Set(data.formato.filter(isFormatoPreferencia))];
+    if (formato.length === 0) {
       return {
         ok: false,
         reason: 'invalid_data',
-        error: 'Escolha o formato de trabalho.',
+        error: 'Escolha pelo menos um formato de trabalho.',
       };
     }
 
@@ -183,6 +185,9 @@ export class RegisterLinkService {
       };
     }
 
+    // Opcional: sem escolaridade, os editais não são filtrados por nível.
+    const escolaridade = [...new Set(data.escolaridade.filter(isEscolaridade))];
+
     const { client, message } = entry;
     const timer = this.logFor(message.from).timed();
 
@@ -190,11 +195,6 @@ export class RegisterLinkService {
       this.pending.delete(token);
       return { ok: false, reason: 'already_registered' };
     }
-
-    // Salva os terms dos ecossistemas escolhidos, sem repetir (ex: node.js aparece em vários)
-    const keywords = [
-      ...new Set(ecosystems.flatMap((key) => ECOSYSTEMS[key].terms)),
-    ].join(', ');
 
     const jobsId = (await this.jobsService.findActive(true)).map((id) => id.id);
     const contact = await getFormattedContact(client, message);
@@ -205,10 +205,11 @@ export class RegisterLinkService {
       name,
       jobsId,
       preferences: {
-        keyWords: keywords,
+        keyWords: ecosystems.toString(),
         formato,
         modelo,
         senioridade,
+        escolaridade,
         city,
         state: data.state,
       },

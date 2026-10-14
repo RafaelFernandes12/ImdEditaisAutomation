@@ -117,7 +117,7 @@ describe('cadastro pelo link', () => {
     jest.restoreAllMocks();
   });
 
-  it('manda o link e cria o usuário com os terms dos ecossistemas escolhidos', async () => {
+  it('manda o link e cria o usuário com as chaves dos ecossistemas escolhidos', async () => {
     const { service, controller, client, message, userService, getJobs } =
       setup();
 
@@ -143,15 +143,20 @@ describe('cadastro pelo link', () => {
       value: 'PLENO',
       label: 'Pleno',
     });
+    expect(form.escolaridades).toContainEqual({
+      value: 'GRADUACAO',
+      label: 'Graduação',
+    });
 
     const result = await controller.submit(token, {
       name: '  Maria Silva ',
       city: 'Natal',
       state: 'RN',
       ecosystems: ['java', 'naoexiste'],
-      formato: 'REMOTO',
+      formato: ['REMOTO', 'HIBRIDO', 'REMOTO', 'NAO_INFORMADO'],
       modelo: ['CLT', 'PJ', 'CLT', 'xx'],
       senioridade: 'PLENO',
+      escolaridade: ['GRADUADO', 'MESTRADO', 'GRADUADO', 'xx'],
     });
 
     expect(result).toEqual({ ok: true });
@@ -161,10 +166,11 @@ describe('cadastro pelo link', () => {
       name: 'Maria Silva',
       jobsId: [7],
       preferences: {
-        keyWords: expect.stringContaining('spring boot') as string,
-        formato: 'REMOTO',
+        keyWords: 'java',
+        formato: ['REMOTO', 'HIBRIDO'],
         modelo: ['CLT', 'PJ'],
         senioridade: ['PLENO'],
+        escolaridade: ['GRADUADO', 'MESTRADO'],
         city: 'Natal',
         state: 'RN',
       },
@@ -190,14 +196,38 @@ describe('cadastro pelo link', () => {
       formato: 'HIBRIDO',
       modelo: 'CLT',
       senioridade: 'JUNIOR',
+      escolaridade: 'GRADUACAO',
     });
 
     expect(userService.createUser).toHaveBeenCalledWith(
       expect.objectContaining({
         preferences: expect.objectContaining({
+          formato: ['HIBRIDO'],
           modelo: ['CLT'],
           senioridade: ['JUNIOR'],
+          escolaridade: ['GRADUACAO'],
         }) as object,
+      }),
+    );
+  });
+
+  it('escolaridade é opcional', async () => {
+    const { service, controller, client, message, userService } = setup();
+    await service.sendLink(client, message as unknown as pkg.Message);
+
+    await controller.submit(tokenFrom(message.reply), {
+      name: 'Maria',
+      city: 'Natal',
+      state: 'RN',
+      ecosystems: 'java',
+      formato: 'REMOTO',
+      modelo: 'CLT',
+      senioridade: 'JUNIOR',
+    });
+
+    expect(userService.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferences: expect.objectContaining({ escolaridade: [] }) as object,
       }),
     );
   });
@@ -246,7 +276,10 @@ describe('cadastro pelo link', () => {
   it.each([
     [{ state: 'XX' }, 'Escolha seu estado.'],
     [{ city: 'Recife' }, 'Escolha sua cidade.'],
-    [{ formato: 'NAO_INFORMADO' }, 'Escolha o formato de trabalho.'],
+    [
+      { formato: 'NAO_INFORMADO' },
+      'Escolha pelo menos um formato de trabalho.',
+    ],
     [{ modelo: undefined }, 'Escolha pelo menos um modelo de contratação.'],
     [{ senioridade: ['xx'] }, 'Escolha pelo menos uma senioridade.'],
   ])('recusa o envio com %o', async (override, error) => {
