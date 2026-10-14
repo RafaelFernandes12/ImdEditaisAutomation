@@ -1,4 +1,9 @@
-import { Formato, Modelo, Senioridade } from '#generated/prisma/enums.js';
+import {
+  Escolaridade,
+  Formato,
+  Modelo,
+  Senioridade,
+} from '#generated/prisma/enums.js';
 
 // "Não informado" só existe para vaga/edital; o usuário não escolhe isso.
 export const FORMATO_PREFERENCIA_LABELS = {
@@ -9,7 +14,6 @@ export const FORMATO_PREFERENCIA_LABELS = {
 
 export const FORMATO_LABELS: Record<Formato, string> = {
   ...FORMATO_PREFERENCIA_LABELS,
-  NAO_INFORMADO: 'Não informado',
 };
 
 export const MODELO_LABELS: Record<Modelo, string> = {
@@ -27,6 +31,9 @@ export const SENIORIDADE_LABELS: Record<Senioridade, string> = {
   PLENO: 'Pleno',
   SENIOR: 'Sênior',
   TECHLEAD: 'Tech Lead',
+};
+
+export const ESCOLARIDADE_LABELS: Record<Escolaridade, string> = {
   GRADUACAO: 'Graduação',
   GRADUADO: 'Graduado',
   MESTRADO: 'Mestrado',
@@ -45,4 +52,8 @@ export function isModelo(value: string): value is Modelo {
 
 export function isSenioridade(value: string): value is Senioridade {
   return value in Senioridade;
+}
+
+export function isEscolaridade(value: string): value is Escolaridade {
+  return value in Escolaridade;
 }

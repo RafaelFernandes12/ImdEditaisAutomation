@@ -1,10 +1,16 @@
-import { Formato, Modelo, Senioridade } from '#generated/prisma/enums.js';
+import {
+  Escolaridade,
+  Formato,
+  Modelo,
+  Senioridade,
+} from '#generated/prisma/enums.js';
 
 export class UserPreferencesData {
   keyWords: string;
   modelo: Modelo[];
-  formato: Formato;
+  formato: Formato[];
   senioridade: Senioridade[];
+  escolaridade: Escolaridade[];
   city: string;
   state: string;
 }
