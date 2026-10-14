@@ -7,6 +7,7 @@ import { UserService } from '#src/modules/user/services/user.service.js';
 import { client } from '#src/config/whatsapp/client.js';
 import { SendsService } from '../../sends/services/sends.service.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { formatVagasSummary } from '../../../utils/format-job-lines.js';
 
 @Processor('sendPdf')
 export class NotifyNewPdf extends WorkerHost {
@@ -75,7 +76,7 @@ export class NotifyNewPdf extends WorkerHost {
               `${pdf.job.title}
 Seu nome foi mencionado no edital: ${pdf.job.link}
 Neste pdf de ${pdf.type}: ${pdf.link}
-${pdf.job.summary}
+${formatVagasSummary(pdf.job)}
 `,
             );
 

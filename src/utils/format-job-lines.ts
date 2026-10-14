@@ -6,6 +6,15 @@ import {
 } from '../modules/jobs/job-types.js';
 import { formatDate } from './formate-date.js';
 
+// Edital pode ter vários perfis: um resumo por vaga, separados por linha em branco.
+export function formatVagasSummary({
+  vagas,
+}: {
+  vagas: { summary: string }[];
+}) {
+  return vagas.map((vaga) => vaga.summary).join('\n\n');
+}
+
 export function formatEditalLines(editais: ActiveJob[]) {
   return editais
     .map((job, index) => {
@@ -22,7 +31,7 @@ export function formatEditalLines(editais: ActiveJob[]) {
         subscriptionLine +
         `🔗 ${job.link}\n` +
         `${pdfLines}\n` +
-        `${job.summary}\n`
+        `${formatVagasSummary(job)}\n`
       );
     })
     .join('\n');
@@ -34,7 +43,7 @@ export function formatJobVagaLines(jobs: ActiveJob[]) {
       (job, index) =>
         `*${index + 1}. ${job.title}*\n` +
         `🔗 ${job.link}\n` +
-        `${job.summary}\n`,
+        `${formatVagasSummary(job)}\n`,
     )
     .join('\n');
 }
