@@ -44,6 +44,9 @@ enum Senioridade {
   PLENO
   SENIOR
   TECHLEAD
+}
+
+enum Escolaridade {
   GRADUACAO
   GRADUADO
   MESTRADO
@@ -108,12 +111,13 @@ model Vaga {
   keyWords  String @map("key_words")
   ecossytem String @default("")
 
-  salary      Float?
-  formato     Formato?
-  city        String?
-  state       String?
-  modelo      Modelo?
-  senioridade Senioridade?
+  escolaridade Escolaridade?
+  salary       Float?
+  formato      Formato?
+  city         String?
+  state        String?
+  modelo       Modelo?
+  senioridade  Senioridade?
 
   jobId Int @map("job_id")
   job   Job @relation(fields: [jobId], references: [id])
@@ -156,15 +160,17 @@ model User {
 }
 
 model UserPreferences {
-  id          Int           @id @default(autoincrement())
-  keyWords    String        @default("") @map("key_words")
-  modelo      Modelo[]
-  formato     Formato
-  city        String
-  state       String
-  senioridade Senioridade[]
-  user        User          @relation(fields: [userId], references: [id])
-  userId      Int           @unique @map("user_id")
+  id           Int            @id @default(autoincrement())
+  keyWords     String         @default("") @map("key_words")
+  modelo       Modelo[]
+  formato      Formato[]
+  city         String
+  state        String
+  salary       Float          @default(0)
+  senioridade  Senioridade[]
+  escolaridade Escolaridade[]
+  user         User           @relation(fields: [userId], references: [id])
+  userId       Int            @unique @map("user_id")
 
   @@map("user_preferences")
 }
