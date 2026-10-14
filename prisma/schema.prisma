@@ -85,9 +85,6 @@ model Job {
   kind        JobKind
   isActive    Boolean   @map("is_active")
   finishedAt  DateTime? @map("finished_at")
-  summary     String
-  keyWords    String    @map("key_words")
-  ecossytem   String    @default("")
   // No edital é uma cópia do texto do primeiro pdf (o edital em si).
   description String
 
@@ -95,20 +92,33 @@ model Job {
   subscriptionUntil DateTime? @map("subscription_until")
   validUntil        DateTime? @map("valid_until")
 
-  formato     Formato
-  city        String
-  state       String
-  modelo      Modelo[]
-  senioridade Senioridade[]
-
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  pdfs              Pdf[]
-  sends             Sends[]
-  UserSubscriptions UserSubscriptions[]
+  sends Sends[]
+  pdfs  Pdf[]
+  vagas Vaga[]
 
   @@map("job")
+}
+
+model Vaga {
+  id        Int    @id @default(autoincrement())
+  summary   String
+  keyWords  String @map("key_words")
+  ecossytem String @default("")
+
+  salary      Float?
+  formato     Formato?
+  city        String?
+  state       String?
+  modelo      Modelo?
+  senioridade Senioridade?
+
+  jobId Int @map("job_id")
+  job   Job @relation(fields: [jobId], references: [id])
+
+  @@map("vaga")
 }
 
 model Pdf {
@@ -138,10 +148,9 @@ model User {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt() @db.Timestamp(6)
 
-  sends             Sends[]
-  reminders         Reminders[]
-  UserSubscriptions UserSubscriptions[]
-  UserPreferences   UserPreferences?
+  sends           Sends[]
+  reminders       Reminders[]
+  UserPreferences UserPreferences?
 
   @@map("user")
 }
@@ -160,22 +169,22 @@ model UserPreferences {
   @@map("user_preferences")
 }
 
-model UserSubscriptions {
-  id Int @id @default(autoincrement())
-
-  userId Int @map("user_id")
-  jobId  Int @map("job_id")
-
-  status StatusJob
-
-  user User @relation(fields: [userId], references: [id])
-  job  Job  @relation(fields: [jobId], references: [id])
-
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @updatedAt() @db.Timestamp(6)
-
-  @@map("user_subscriptions")
-}
+// model UserSubscriptions {
+//   id Int @id @default(autoincrement())
+//
+//   userId Int @map("user_id")
+//   jobId  Int @map("job_id")
+//
+//   status StatusJob
+//
+//   user User @relation(fields: [userId], references: [id])
+//
+//   created_at DateTime @default(now()) @db.Timestamp(6)
+//   updated_at DateTime @updatedAt() @db.Timestamp(6)
+//   vagas      Vaga[]
+//
+//   @@map("user_subscriptions")
+// }
 
 model Sends {
   id Int @id @default(autoincrement())
