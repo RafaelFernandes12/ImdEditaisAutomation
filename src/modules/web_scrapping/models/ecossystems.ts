@@ -1,7 +1,7 @@
 // Termos em minúsculas, já normalizados (labels do GitHub e variações comuns).
 // Cada termo pertence a um só ecossistema e o identifica sozinho: nada de
 // siglas curtas que casam com outras palavras ('js', 'c', 'ia') nem
-// ferramentas que aparecem em qualquer vaga (vite, jest, linux, sql).
+// ferramentas que aparecem em qualquer vaga (vite, jest, linux, sql, docker).
 export const ECOSYSTEMS = {
   java: {
     label: 'Java',
@@ -14,17 +14,19 @@ export const ECOSYSTEMS = {
       'hibernate',
       'jpa',
       'jakarta ee',
+      'junit',
     ],
   },
   javascript: {
     label: 'JavaScript / TypeScript',
-    terms: ['javascript', 'typescript'],
+    terms: ['javascript', 'typescript', 'vitest', 'tailwind css'],
   },
   node: {
     label: 'Node.js (back-end)',
     terms: [
       'node.js',
       'nestjs',
+      'nest.js',
       'express',
       'fastify',
       'adonisjs',
@@ -35,7 +37,16 @@ export const ECOSYSTEMS = {
   },
   react: {
     label: 'React',
-    terms: ['react', 'next.js', 'redux', 'react query', 'remix'],
+    terms: [
+      'react',
+      'next.js',
+      'redux',
+      'react query',
+      'tanstack query',
+      'zustand',
+      'react testing library',
+      'remix',
+    ],
   },
   angular: {
     label: 'Angular',
@@ -84,6 +95,7 @@ export const ECOSYSTEMS = {
       'arduino',
       'esp32',
       'iot',
+      'mqtt',
     ],
   },
   android: {
@@ -98,6 +110,16 @@ export const ECOSYSTEMS = {
     label: 'Mobile multiplataforma',
     terms: ['flutter', 'dart', 'react native', 'expo', 'ionic'],
   },
+  games: {
+    label: 'Jogos',
+    terms: [
+      'unity',
+      'unreal engine',
+      'godot',
+      'desenvolvimento de jogos',
+      'game development',
+    ],
+  },
   dados: {
     label: 'Dados / BI',
     terms: [
@@ -111,6 +133,12 @@ export const ECOSYSTEMS = {
       'dbt',
       'databricks',
       'data warehouse',
+      'data lake',
+      'big data',
+      'bigquery',
+      'snowflake',
+      'pandas',
+      'numpy',
       'dba',
     ],
   },
@@ -121,12 +149,21 @@ export const ECOSYSTEMS = {
       'machine learning',
       'deep learning',
       'llm',
+      'llms',
+      'rag',
+      'openai',
+      'gemini api',
+      'hugging face',
       'pytorch',
       'tensorflow',
       'scikit-learn',
       'langchain',
+      'llamaindex',
+      'mlops',
       'nlp',
+      'natural language processing',
       'visão computacional',
+      'opencv',
     ],
   },
   devops: {
@@ -134,16 +171,44 @@ export const ECOSYSTEMS = {
     terms: [
       'devops',
       'sre',
-      'docker',
       'kubernetes',
-      'aws',
       'azure',
       'gcp',
+      'google cloud',
+      'cloud run',
+      'cloud computing',
       'terraform',
       'ansible',
-      'ci/cd',
       'jenkins',
       'github actions',
+    ],
+  },
+  seguranca: {
+    label: 'Segurança da Informação',
+    terms: [
+      'segurança da informação',
+      'cibersegurança',
+      'owasp',
+      'pentest',
+      'appsec',
+      'devsecops',
+      'siem',
+      'iso 27001',
+    ],
+  },
+  suporte: {
+    label: 'Suporte / Redes',
+    terms: [
+      'suporte técnico',
+      'help desk',
+      'service desk',
+      'redes de computadores',
+      'redes de comunicação',
+      'manutenção de servidores',
+      'resolução de chamados',
+      'active directory',
+      'windows server',
+      'cisco',
     ],
   },
   qa: {
@@ -151,6 +216,9 @@ export const ECOSYSTEMS = {
     terms: [
       'qa',
       'testes automatizados',
+      'automação de testes',
+      'testes end-to-end',
+      'testes exploratórios',
       'testes manuais',
       'cypress',
       'selenium',
@@ -166,8 +234,11 @@ export const ECOSYSTEMS = {
       'ux/ui',
       'ui design',
       'ux design',
+      'ux research',
       'product design',
       'design de interface',
+      'design de interação',
+      'arquitetura da informação',
       'experiência do usuário',
       'design system',
       'figma',
