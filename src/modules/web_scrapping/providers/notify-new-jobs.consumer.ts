@@ -7,6 +7,7 @@ import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
 import { formatJobSections } from '#src/utils/format-job-lines.js';
 import { ScopedLogger } from '#src/utils/scoped-logger.js';
+import { jobFilter } from '../utils/job-filter.util.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -39,13 +40,28 @@ export class NotifyNewJobsConsumer extends WorkerHost {
 
     try {
       const jobsAndamento = await this.jobsService.findActive();
-      const newJobs = jobsAndamento.filter(
+      const unsentJobs = jobsAndamento.filter(
         (e) => !user.sends.some((uSends) => uSends.jobId === e.id),
       );
+      // Job filtrado não é marcado como enviado: se o usuário mudar as
+      // preferências, ele volta a ser avaliado.
+
+      const jobsToFilter = unsentJobs.filter(
+        (job) =>
+          job.type !== 'IMD' && job.type !== 'STI' && job.type !== 'JERIMUM',
+      );
+
+      const jobsToNotFilter = unsentJobs.filter(
+        (job) =>
+          job.type === 'IMD' || job.type === 'STI' || job.type === 'JERIMUM',
+      );
+      const jobsA = jobFilter(user, unsentJobs);
+      const newJobs = [...jobsA];
 
       if (newJobs.length === 0) {
         timer.debug('nothing_new', 'Nenhuma vaga nova para o usuário', {
           activeCount: jobsAndamento.length,
+          filteredOutCount: unsentJobs.length,
         });
         return;
       }
@@ -62,6 +78,7 @@ export class NotifyNewJobsConsumer extends WorkerHost {
 
       sendTimer.info('message_sent', 'Mensagem de novas vagas enviada', {
         newJobsCount: newJobs.length,
+        filteredOutCount: unsentJobs.length - newJobs.length,
         countByType: Object.fromEntries(
           sections.map(({ type, count }) => [type, count]),
         ),
