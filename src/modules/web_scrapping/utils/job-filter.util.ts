@@ -194,22 +194,22 @@ function splitList(list: string) {
 }
 
 function matchesSenioridade(preferences: Preferences, vaga: FilterableVaga) {
-  if (!vaga.senioridade || preferences.senioridade.length === 0) return 0;
-  return preferences.senioridade.includes(vaga.senioridade) ? 1 : 0;
+  if (!vaga.senioridade || preferences.senioridade.length === 0) return 0.5;
+  return preferences.senioridade.includes(vaga.senioridade) ? 1 : -100;
 }
 
 function matchesEscolaridade(preferences: Preferences, vaga: FilterableVaga) {
-  if (!vaga.escolaridade || preferences.escolaridade.length === 0) return 0;
+  if (!vaga.escolaridade || preferences.escolaridade.length === 0) return 0.5;
   return preferences.escolaridade.includes(vaga.escolaridade) ? 1 : 0;
 }
 
 function matchesModelo(preferences: Preferences, vaga: FilterableVaga) {
-  if (!vaga.modelo || preferences.modelo.length === 0) return 0;
+  if (!vaga.modelo || preferences.modelo.length === 0) return 0.5;
   return preferences.modelo.includes(vaga.modelo) ? 1 : 0;
 }
 
 function matchesFormato(preferences: Preferences, vaga: FilterableVaga) {
-  if (!vaga.formato || preferences.formato.length === 0) return 0;
+  if (!vaga.formato || preferences.formato.length === 0) return 0.5;
   return preferences.formato.includes(vaga.formato) ? 1 : 0;
 }
 
