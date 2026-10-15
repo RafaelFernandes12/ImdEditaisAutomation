@@ -68,6 +68,7 @@ enum JobType {
   FRONTEND_GITHUB
   LAIS
   FUNPEC
+  ECT
 
   @@map("job_type")
 }
