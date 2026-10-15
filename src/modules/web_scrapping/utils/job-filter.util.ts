@@ -124,6 +124,19 @@ const weights = new Map<
     },
   ],
   [
+    'ECT',
+    {
+      ecossytem: 65,
+      escolaridade: 20,
+      salary: 5,
+      formato: 5,
+      city: 0,
+      modelo: 5,
+      senioridade: 0,
+      priority: 1.4,
+    },
+  ],
+  [
     'FUNPEC',
     {
       ecossytem: 55,
