@@ -178,13 +178,19 @@ export function vagaMatches(
 }
 
 function matchesEcosystem(preferences: Preferences, vaga: FilterableVaga) {
-  const userEcosystems = new Set(preferences.keyWords.split(','));
-  const vagaEcosystems = new Set(vaga.ecossytem.split(','));
+  const userEcosystems = new Set(splitList(preferences.keyWords));
+  const vagaEcosystems = new Set(splitList(vaga.ecossytem));
   if (userEcosystems.size === 0 || vagaEcosystems.size === 0) return 0;
-  const isMatch = [...vagaEcosystems].some((eco) => {
-    return userEcosystems.has(eco.trim());
-  });
+  const isMatch = [...vagaEcosystems].some((eco) => userEcosystems.has(eco));
   return isMatch ? 1 : 0;
+}
+
+// ''.split(',') devolve [''], que casaria com um cadastro vazio.
+function splitList(list: string) {
+  return list
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function matchesSenioridade(preferences: Preferences, vaga: FilterableVaga) {
@@ -223,14 +229,20 @@ function matchesLocation(preferences: Preferences, vaga: FilterableVaga) {
 
   if (!vaga.formato && formatoUser.includes('REMOTO')) return 1;
   if (formatoUser.includes('REMOTO') && vaga.formato === 'REMOTO') return 1;
-  if (
-    (formatoUser.includes('PRESENCIAL') &&
-      normalizeText(vaga.city) === normalizeText(preferences.city)) ||
-    (formatoUser.includes('HIBRIDO') &&
-      normalizeText(vaga.city) === normalizeText(preferences.city))
-  )
-    return 1;
-  return -100;
+  // Formato não informado é desconhecido, não incompatível.
+  if (!vaga.formato) return 0;
+  if (vaga.formato === 'REMOTO') return -100;
+
+  const acceptsLocal =
+    formatoUser.includes('PRESENCIAL') || formatoUser.includes('HIBRIDO');
+  if (!acceptsLocal) return -100;
+
+  // Sem cidade, compara o estado; sem nenhum dos dois, não dá para saber.
+  if (!vaga.city && !vaga.state) return 0;
+  const sameLocation = vaga.city
+    ? normalizeText(vaga.city) === normalizeText(preferences.city)
+    : normalizeText(vaga.state) === normalizeText(preferences.state);
+  return sameLocation ? 1 : -100;
 }
 
 function normalizeText(text: string | null | undefined) {
