@@ -87,7 +87,9 @@ export class GithubSource implements JobSource<VagaJobPayload> {
       }
 
       const items = (await response.json()) as GithubIssue[];
-      const issues = items.filter((v) => !v.pull_request);
+      // As issues de regras do repo ficam trancadas pela moderação; vaga
+      // de verdade nunca está trancada.
+      const issues = items.filter((v) => !v.pull_request && !v.locked);
 
       if (issues.length === 0) {
         log.warn('list.empty', 'Repo retornou zero issues abertas', {
