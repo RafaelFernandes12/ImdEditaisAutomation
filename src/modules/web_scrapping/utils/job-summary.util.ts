@@ -28,12 +28,16 @@ export function vagaKeywords({ keywords }: { keywords: string[] }) {
 }
 
 // Uma vaga por perfil que a IA achou no texto (edital pode ter vários).
+// Perfil fora de tecnologia é descartado; o job é gravado mesmo sem vagas
+// para não ser resumido de novo a cada execução.
 export function toVagas({ vagas }: ResumoVagas): CreateVaga[] {
-  return vagas.map((vaga) => ({
-    summary: formatVaga(vaga),
-    keyWords: vagaKeywords(vaga).join(', '),
-    ...vagaAttributes(vaga),
-  }));
+  return vagas
+    .filter((vaga) => vaga.isTech && vaga.vaga !== null)
+    .map((vaga) => ({
+      summary: formatVaga(vaga),
+      keyWords: vagaKeywords(vaga).join(', '),
+      ...vagaAttributes(vaga),
+    }));
 }
 
 // Texto do resumo enviado no WhatsApp. Campo que a IA não achou (null) fica

@@ -160,6 +160,25 @@ describe('toVagas', () => {
     expect(vagas[1].summary).toMatch(/^\*Vaga:\* Bolsista de IA\n/);
     expect(vagas[1].summary).not.toContain('Desenvolvedor Backend');
   });
+
+  it('descarta perfil fora de tecnologia e perfil sem cargo', () => {
+    const vagas = toVagas({
+      vagas: [
+        vaga({ isTech: false, vaga: 'Vendedor(a) B2B' }),
+        vaga({ vaga: null }),
+        bolsa(),
+      ],
+    });
+
+    expect(vagas).toHaveLength(1);
+    expect(vagas[0].summary).toMatch(
+      /^\*Vaga:\* Bolsista de Desenvolvimento Web\n/,
+    );
+  });
+
+  it('devolve lista vazia quando o texto não é anúncio de vaga', () => {
+    expect(toVagas({ vagas: [] })).toEqual([]);
+  });
 });
 
 describe('vagaKeywords', () => {

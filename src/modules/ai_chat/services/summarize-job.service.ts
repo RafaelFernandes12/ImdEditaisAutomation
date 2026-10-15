@@ -45,6 +45,8 @@ export class SummarizeJob {
 
 Preencha um item em "vagas" para cada vaga ou perfil distinto do texto. Se houver uma vaga só, devolva um item só. Informações ditas uma vez para todas as vagas (local, carga horária, duração, vínculo, requisitos gerais...) valem para cada uma delas: repita-as em todos os itens.
 
+Se o texto não for o anúncio de uma vaga (regras do repositório ou do grupo, avisos, comunicados, resultados de seleção, divulgação de eventos ou cursos), devolva "vagas" como lista vazia.
+
 REGRA PRINCIPAL: nunca invente nem deduza valores. Se o texto não informar um campo, use null. Um campo null é sempre melhor que um valor chutado.
 
 COMO PREENCHER CADA CAMPO:
