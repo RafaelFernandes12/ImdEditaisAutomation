@@ -73,9 +73,9 @@ export class WhatsappCommandsService {
       if (userAnswer.trim() === '!login') {
         await this.registerLinkService.sendLink(client, message);
       } else {
-        await message.reply(
-          'Faça login antes de enviar mensagens, o comando é *!login*',
-        );
+        // await message.reply(
+        //   'Faça login antes de enviar mensagens, o comando é *!login*',
+        // );
       }
       return;
     }
@@ -103,15 +103,16 @@ export class WhatsappCommandsService {
         await this.getNamesCitados.execute(message);
         break;
       default:
-        await message.reply(`Essa é a lista de comandos: 
-'!ping': pinga o servidor
-'!vagas': Verifica todas as vagas abertas
-'!vagas andamento': Verifica todas as vagas em andamento
-'!desativar': Desativa usuário, você para de receber as mensagens automáticas,
-'!reativar': Reativa usuário,
-'!citado': Pega editais em que o seu nome foi mencionado
-`);
-        break;
+        //         await message.reply(`Essa é a lista de comandos:
+        // '!ping': pinga o servidor
+        // '!vagas': Verifica todas as vagas abertas
+        // '!vagas andamento': Verifica todas as vagas em andamento
+        // '!desativar': Desativa usuário, você para de receber as mensagens automáticas,
+        // '!reativar': Reativa usuário,
+        // '!citado': Pega editais em que o seu nome foi mencionado
+        // `);
+        return;
+      // break;
     }
 
     //     const log = this.logFor(message);
