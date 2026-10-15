@@ -55,7 +55,7 @@ const weights = new Map<
       city: 1,
       modelo: 4,
       senioridade: 30,
-      priority: 0,
+      priority: 1,
     },
   ],
   [
@@ -68,7 +68,7 @@ const weights = new Map<
       city: 1,
       modelo: 4,
       senioridade: 30,
-      priority: 0,
+      priority: 1,
     },
   ],
   [
@@ -81,7 +81,7 @@ const weights = new Map<
       city: 0,
       modelo: 10,
       senioridade: 10,
-      priority: 100,
+      priority: 1.4,
     },
   ],
   [
@@ -94,7 +94,7 @@ const weights = new Map<
       city: 0,
       modelo: 5,
       senioridade: 20,
-      priority: 100,
+      priority: 1.4,
     },
   ],
   [
@@ -107,7 +107,7 @@ const weights = new Map<
       city: 0,
       modelo: 5,
       senioridade: 0,
-      priority: 100,
+      priority: 1.4,
     },
   ],
 ]);
@@ -165,7 +165,7 @@ export function vagaMatches(
 
   const formato = matchesFormato(preferences, vaga);
   soma += formato * weightJob.formato;
-  soma += weightJob.priority;
+  soma *= weightJob.priority;
 
   const vagaScored = {
     ...vaga,
