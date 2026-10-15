@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { Agent, fetch } from 'undici';
 
 const IBGE_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades';
 const TIMEOUT_MS = 10_000;
@@ -23,8 +24,12 @@ export class LocalidadesService {
   }
 
   private async fetchJson<T>(path: string): Promise<T> {
+    const insecureAgent = new Agent({
+      connect: { rejectUnauthorized: false },
+    });
     const res = await fetch(`${IBGE_URL}${path}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
+      dispatcher: insecureAgent,
     });
     if (!res.ok) throw new Error(`IBGE respondeu ${res.status} em ${path}`);
     return (await res.json()) as T;
