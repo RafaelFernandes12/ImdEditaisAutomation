@@ -32,6 +32,7 @@ import {
 } from './sources/job.source.js';
 import { LaisSource } from './sources/lais.source.js';
 import { FunpecSource } from './sources/funpec.source.js';
+import { EctSource } from './sources/ect.source.js';
 import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 
 const SOURCES = [
@@ -41,6 +42,7 @@ const SOURCES = [
   GithubSource,
   LaisSource,
   FunpecSource,
+  EctSource,
 ];
 
 @Module({
