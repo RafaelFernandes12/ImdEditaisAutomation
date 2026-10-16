@@ -226,23 +226,28 @@ function matchesSalary(preferences: Preferences, vaga: FilterableVaga) {
 
 function matchesLocation(preferences: Preferences, vaga: FilterableVaga) {
   const formatoUser = preferences.formato;
-
-  if (!vaga.formato && formatoUser.includes('REMOTO')) return 1;
-  if (formatoUser.includes('REMOTO') && vaga.formato === 'REMOTO') return 1;
-  // Formato não informado é desconhecido, não incompatível.
-  if (!vaga.formato) return 0;
-  if (vaga.formato === 'REMOTO') return -100;
-
+  const acceptsRemote = formatoUser.includes('REMOTO');
   const acceptsLocal =
     formatoUser.includes('PRESENCIAL') || formatoUser.includes('HIBRIDO');
+  const hasLocation = Boolean(vaga.city || vaga.state);
+
+  function isSameLocation(preferences: Preferences, vaga: FilterableVaga) {
+    return vaga.city
+      ? normalizeText(vaga.city) === normalizeText(preferences.city)
+      : normalizeText(vaga.state) === normalizeText(preferences.state);
+  }
+
+  if (!vaga.formato) {
+    if (!hasLocation) return acceptsRemote ? 1 : 0;
+    if (!isSameLocation(preferences, vaga)) return -100;
+    return acceptsLocal ? 1 : 0;
+  }
+
+  if (vaga.formato === 'REMOTO') return acceptsRemote ? 1 : -100;
   if (!acceptsLocal) return -100;
 
-  // Sem cidade, compara o estado; sem nenhum dos dois, não dá para saber.
-  if (!vaga.city && !vaga.state) return 0;
-  const sameLocation = vaga.city
-    ? normalizeText(vaga.city) === normalizeText(preferences.city)
-    : normalizeText(vaga.state) === normalizeText(preferences.state);
-  return sameLocation ? 1 : -100;
+  if (!hasLocation) return 0;
+  return isSameLocation(preferences, vaga) ? 1 : -100;
 }
 
 function normalizeText(text: string | null | undefined) {
