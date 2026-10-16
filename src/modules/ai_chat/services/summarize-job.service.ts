@@ -43,7 +43,7 @@ export class SummarizeJob {
     keywords: z.array(z.string()),
     ecossystems: z.array(z.enum(Object.keys(ECOSYSTEMS))).max(3),
   });
-  summarizePrompt = `Você extrai dados estruturados de vagas da área de tecnologia. O texto abaixo pode ser um anúncio de vaga de emprego ou um edital de seleção (bolsas, estágios ou contratações, como os do IMD, da STI e do LAIS da UFRN, ou da FUNPEC).
+  summarizePrompt = `Você extrai dados estruturados de vagas da área de tecnologia. O texto abaixo pode ser um anúncio de vaga de emprego ou um edital de seleção (bolsas, estágios ou contratações, como os do IMD, da STI, do LAIS e da ECT da UFRN, ou da FUNPEC).
 
 Preencha um item em "vagas" para cada vaga ou perfil distinto do texto. Se houver uma vaga só, devolva um item só. Informações ditas uma vez para todas as vagas (local, carga horária, duração, vínculo, requisitos gerais...) valem para cada uma delas: repita-as em todos os itens.
 
@@ -63,7 +63,7 @@ COMO PREENCHER CADA CAMPO:
 - horasSemanais: carga horária semanal, como número. Se o texto der horas por dia, multiplique por 5.
 - turno: "Manhã", "Tarde", "Noite", "Integral" ou "Flexível", só se o texto disser.
 - formato: "PRESENCIAL", "HIBRIDO" ou "REMOTO", só se o texto disser. Se não achar, use null.
-- modalidade: tipo de vínculo: "CLT", "PJ", "ESTAGIO", "FREELANCE" ou "BOLSISTA" (Se o type do job for IMD ou LAIS, é bolsista). Outro tipo de vínculo usa null.
+- modalidade: tipo de vínculo: "CLT", "PJ", "ESTAGIO", "FREELANCE" ou "BOLSISTA" (Se o type do job for IMD, LAIS ou ECT, é bolsista). Outro tipo de vínculo usa null.
 - cidade: nome da cidade onde a vaga é exercida, sem o estado. Se não achar, use null.
 - estado: sigla da UF (ex: "RN", "SP"). Se não achar, use null.
 - duracao: duração do contrato ou da bolsa, curta (ex: "12 meses", "6 meses, prorrogável"). Se o texto disser que não tem prazo definido, use "Indeterminado"; se não falar de duração, use null.

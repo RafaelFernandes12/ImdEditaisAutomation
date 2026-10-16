@@ -3,6 +3,10 @@ import { JobsService } from '../../jobs/services/jobs.service.js';
 import { EditalJobPayload, NewJobStrategy } from './new-job.strategy.js';
 import type { CreateVaga } from '../../jobs/dto/jobs.dto.js';
 import { resolvePdfTipo } from '../utils/pdf-tipo.util.js';
+import type { EditalJobType } from '#src/modules/jobs/job-types.js';
+
+// Fontes cujos editais são sempre de bolsa, qualquer que seja o resumo da IA.
+const BOLSA_TYPES: EditalJobType[] = ['IMD', 'LAIS', 'ECT'];
 
 export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
   constructor(
@@ -24,8 +28,7 @@ export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
       ...vaga,
       state: vaga.state ?? 'RN',
       city: vaga.city ?? 'Natal',
-      modelo:
-        job.type === 'IMD' || job.type === 'LAIS' ? 'BOLSISTA' : vaga.modelo,
+      modelo: BOLSA_TYPES.includes(job.type) ? 'BOLSISTA' : vaga.modelo,
     }));
 
     const createdJob = await this.jobsService.createJob({
