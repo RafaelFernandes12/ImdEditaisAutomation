@@ -20,6 +20,12 @@ export const JOB_TYPES = {
     header: 'VAGAS FRONTEND GITHUB',
     source: 'GitHub Frontend',
   },
+
+  LAIS: {
+    kind: 'EDITAL',
+    header: 'EDITAIS LAIS',
+    source: 'Lais',
+  },
 } as const satisfies Record<
   JobType,
   { kind: JobKind; header: string; source: string }
