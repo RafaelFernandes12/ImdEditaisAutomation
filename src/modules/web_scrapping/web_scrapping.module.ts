@@ -7,6 +7,7 @@ import { JobsModule } from '../jobs/jobs.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
 import { ImdSource } from './sources/imd.source.js';
 import { PdfExtractorService } from './utils/pdf-extractor.service.js';
+import { CambioService } from './utils/cambio.service.js';
 import { NotifyNewJobsProvider } from './providers/notify-new-jobs.provider.js';
 import { NotifyNewJobsConsumer } from './providers/notify-new-jobs.consumer.js';
 import { BullModule } from '@nestjs/bullmq';
@@ -54,6 +55,7 @@ const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource];
     FinishJobsProvider,
     FinishJobsConsumer,
     PdfExtractorService,
+    CambioService,
     NotifyNewJobsProvider,
     NotifyNewJobsConsumer,
     NotifyPdfsProvider,
