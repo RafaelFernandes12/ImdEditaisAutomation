@@ -1,4 +1,7 @@
-import { rankVagas } from '../../../../src/modules/web_scrapping/utils/job-filter.util.js';
+import {
+  rankVagas,
+  vagaMatches,
+} from '../../../../src/modules/web_scrapping/utils/job-filter.util.js';
 import { formatRankedVagas } from '../../../../src/utils/format-job-lines.js';
 
 type Jobs = Parameters<typeof rankVagas>[1];
@@ -15,6 +18,7 @@ const prefs: Preferences = {
   senioridade: ['JUNIOR', 'PLENO'],
   escolaridade: [],
   salary: 3000,
+  isInternational: true,
 };
 
 let nextId = 1;
@@ -32,6 +36,7 @@ function vaga(overrides: Record<string, unknown> = {}) {
     state: null,
     modelo: 'CLT',
     senioridade: 'PLENO',
+    isInternational: false,
     ...overrides,
   };
 }
@@ -81,6 +86,43 @@ describe('rankVagas', () => {
       vagas: [vaga({ ecossytem: 'php', senioridade: 'SENIOR' })],
     });
     expect(rankVagas({ UserPreferences: prefs }, jobs([imd]))).toHaveLength(1);
+  });
+
+  it('tira 100 pontos da vaga internacional de quem não quer internacional', () => {
+    const internacional = job({
+      vagas: [vaga({ ecossytem: 'java', isInternational: true })],
+    });
+    const aceita = rankVagas({ UserPreferences: prefs }, jobs([internacional]));
+    const naoAceita = rankVagas(
+      { UserPreferences: { ...prefs, isInternational: false } },
+      jobs([internacional]),
+    );
+
+    expect(aceita).toHaveLength(1);
+    expect(naoAceita).toEqual([]);
+
+    const vagaInternacional = vaga({
+      ecossytem: 'java',
+      isInternational: true,
+    });
+    const pontos = (isInternational: boolean) =>
+      vagaMatches(
+        { ...prefs, isInternational },
+        vagaInternacional as never,
+        'BACKEND_GITHUB',
+      ).score;
+    expect(pontos(true) - pontos(false)).toBe(100);
+  });
+
+  it('não penaliza vaga nacional de quem não quer internacional', () => {
+    const nacional = job({ vagas: [vaga({ ecossytem: 'java' })] });
+    const [aceita] = rankVagas({ UserPreferences: prefs }, jobs([nacional]));
+    const [naoAceita] = rankVagas(
+      { UserPreferences: { ...prefs, isInternational: false } },
+      jobs([nacional]),
+    );
+
+    expect(naoAceita.score).toBe(aceita.score);
   });
 
   it('cadastro sem preferências recebe todas as vagas', () => {

@@ -17,6 +17,7 @@ type Preferences = Pick<
   | 'senioridade'
   | 'escolaridade'
   | 'salary'
+  | 'isInternational'
 >;
 
 type FilterableVaga = Pick<
@@ -30,6 +31,7 @@ type FilterableVaga = Pick<
   | 'senioridade'
   | 'escolaridade'
   | 'salary'
+  | 'isInternational'
 >;
 
 const weights = new Map<
@@ -216,6 +218,10 @@ export function vagaMatches(
   const formato = matchesFormato(preferences, vaga);
   soma += formato * weightJob.formato;
   soma *= weightJob.priority;
+
+  // Penalidade fixa, aplicada depois do peso da fonte: vale -100 em qualquer
+  // tipo de vaga.
+  if (vaga.isInternational && !preferences.isInternational) soma -= 100;
 
   const vagaScored = {
     ...vaga,
