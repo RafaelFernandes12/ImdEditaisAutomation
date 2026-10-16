@@ -28,6 +28,10 @@ export class SummarizeJob {
     qtdVagas: z.number().nullable(),
     cadastroReserva: z.number().nullable(),
     remuneração: z.number().nullable(),
+    moeda: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .nullable(),
     horasSemanais: z.number().nullable(),
     turno: z
       .enum(['Manhã', 'Tarde', 'Noite', 'Integral', 'Flexível'])
@@ -56,7 +60,8 @@ COMO PREENCHER CADA CAMPO:
 - escolaridade: Use o nível acadêmico exigido pelaga vaga: graduandos usam "GRADUACAO"; graduados ou bacharéis, "GRADUADO"; também vale "MESTRADO" ou "DOUTORADO". Se não achar, devolva null
 - qtdVagas: número de vagas imediatas. Se o texto não disser quantas, use null.
 - cadastroReserva: número de vagas de cadastro reserva. Se não houver ou não disser, use null.
-- remuneração: valor mensal do salário ou da bolsa em reais, como número (ex: 3500.5). Se for uma faixa, use o menor valor. Se for "a combinar", não informado ou um valor por hora, por dia ou por projeto, use null.
+- remuneração: valor mensal do salário ou da bolsa, como número (ex: 3500.5), na moeda em que o texto informar, sem converter. Se for uma faixa, use o menor valor. Se for "a combinar", não informado ou um valor por hora, por dia ou por projeto, use null.
+- moeda: código ISO 4217 da moeda da remuneração (ex: "BRL" para real, "USD" para dólar, "EUR" para euro). Se a remuneração for null, use null.
 - horasSemanais: carga horária semanal, como número. Se o texto der horas por dia, multiplique por 5.
 - turno: "Manhã", "Tarde", "Noite", "Integral" ou "Flexível", só se o texto disser.
 - formato: "PRESENCIAL", "HIBRIDO" ou "REMOTO", só se o texto disser. Se não achar, use null.

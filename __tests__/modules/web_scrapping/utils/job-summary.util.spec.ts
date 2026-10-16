@@ -14,6 +14,7 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     qtdVagas: 2,
     cadastroReserva: null,
     remuneração: 3500.5,
+    moeda: null,
     horasSemanais: 40,
     turno: null,
     formato: 'REMOTO',
@@ -178,6 +179,35 @@ describe('toVagas', () => {
 
   it('devolve lista vazia quando o texto não é anúncio de vaga', () => {
     expect(toVagas({ vagas: [] })).toEqual([]);
+  });
+});
+
+describe('remuneração em outra moeda', () => {
+  const dolar = vaga({ remuneração: 1000, moeda: 'USD' });
+
+  it('converte o salário para reais e mostra o valor original no resumo', () => {
+    const [convertida] = toVagas({ vagas: [dolar] }, { USD: 5.06 });
+
+    expect(convertida.salary).toBe(5060);
+    expect(convertida.summary).toContain(
+      '*Remuneração:* US$ 1.000,00 ≈ R$ 5.060,00 (',
+    );
+  });
+
+  it('sem cotação, mantém o valor original e não grava salário', () => {
+    const [semCotacao] = toVagas({ vagas: [dolar] });
+
+    expect(semCotacao.salary).toBeNull();
+    expect(semCotacao.summary).toContain('*Remuneração:* US$ 1.000,00 (');
+    expect(semCotacao.summary).not.toContain('≈');
+  });
+
+  it('real (ou moeda não informada) não muda', () => {
+    for (const moeda of ['BRL', null]) {
+      const [real] = toVagas({ vagas: [vaga({ moeda })] }, { USD: 5.06 });
+      expect(real.salary).toBe(3500.5);
+      expect(real.summary).toContain('*Remuneração:* R$ 3.500,50 (');
+    }
   });
 });
 

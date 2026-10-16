@@ -10,6 +10,7 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     qtdVagas: null,
     cadastroReserva: null,
     remuneração: null,
+    moeda: null,
     horasSemanais: null,
     turno: null,
     formato: null,

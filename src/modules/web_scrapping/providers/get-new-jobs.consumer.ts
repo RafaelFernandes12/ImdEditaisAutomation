@@ -13,6 +13,7 @@ import { BadRequestException } from '@nestjs/common';
 import { JOB_TYPES } from '../../jobs/job-types.js';
 import { SummarizeJob } from '../../ai_chat/services/summarize-job.service.js';
 import { toVagas } from '../utils/job-summary.util.js';
+import { CambioService } from '../utils/cambio.service.js';
 
 @Processor('getNewJobs')
 export class GetNewJobsConsumer extends WorkerHost {
@@ -21,6 +22,7 @@ export class GetNewJobsConsumer extends WorkerHost {
     editalJobStrategy: EditalStrategy,
     vagaJobStrategy: VagaStrategy,
     private readonly summarizeJob: SummarizeJob,
+    private readonly cambio: CambioService,
     @InjectPinoLogger(GetNewJobsConsumer.name)
     private readonly logger: PinoLogger,
   ) {
@@ -95,8 +97,16 @@ export class GetNewJobsConsumer extends WorkerHost {
       const trimmed = trimJobForSummary(text);
 
       const summarizeStartedAt = Date.now();
-      const vagas = toVagas(await this.summarizeJob.execute(newJob, trimmed));
+      const resumo = await this.summarizeJob.execute(newJob, trimmed);
       const summarizeMs = Date.now() - summarizeStartedAt;
+
+      // Só consulta o câmbio quando alguma vaga paga em outra moeda.
+      const cotacoes = resumo.vagas.some(
+        (vaga) => vaga.moeda && vaga.moeda !== 'BRL',
+      )
+        ? await this.cambio.cotacoes()
+        : {};
+      const vagas = toVagas(resumo, cotacoes);
 
       const { jobId, logContext } = await strategy.persist(newJob, vagas);
 
