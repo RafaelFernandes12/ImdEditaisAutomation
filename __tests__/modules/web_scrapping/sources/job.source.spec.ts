@@ -24,6 +24,7 @@ const ALL_COVERED = [
   source('ect', ['ECT']),
   source('gupy', ['GUPY']),
   source('linkedin', ['LINKEDIN']),
+  source('infojobs', ['INFOJOBS']),
 ];
 
 describe('assertCoversAllJobTypes', () => {
