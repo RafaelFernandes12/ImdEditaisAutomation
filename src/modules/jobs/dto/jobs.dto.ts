@@ -17,6 +17,7 @@ export class VagaAttributes {
   modelo: Modelo | null;
   senioridade: Senioridade | null;
   escolaridade: Escolaridade | null;
+  isInternational: boolean;
 }
 
 export class CreateVaga extends VagaAttributes {

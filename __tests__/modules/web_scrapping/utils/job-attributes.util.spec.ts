@@ -17,6 +17,7 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     modalidade: null,
     cidade: null,
     estado: null,
+    isInternational: false,
     duracao: null,
     keywords: [],
     ecossystems: [],
@@ -36,6 +37,7 @@ describe('vagaAttributes', () => {
           escolaridade: 'GRADUADO',
           cidade: ' Natal ',
           estado: 'RN',
+          isInternational: true,
           ecossystems: ['java', 'node'],
         }),
       ),
@@ -48,6 +50,7 @@ describe('vagaAttributes', () => {
       modelo: 'CLT',
       senioridade: 'JUNIOR',
       escolaridade: 'GRADUADO',
+      isInternational: true,
     });
   });
 
@@ -61,6 +64,7 @@ describe('vagaAttributes', () => {
       modelo: null,
       senioridade: null,
       escolaridade: null,
+      isInternational: false,
     });
   });
 });

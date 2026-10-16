@@ -24,5 +24,6 @@ export function vagaAttributes(
     modelo: vaga.modalidade,
     senioridade: vaga.senioridade,
     escolaridade: vaga.escolaridade,
+    isInternational: vaga.isInternational,
   };
 }
