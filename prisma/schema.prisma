@@ -177,7 +177,7 @@ model UserPreferences {
   senioridade     Senioridade[]
   escolaridade    Escolaridade[]
   // false: vaga internacional perde 100 pontos no ranking.
-  isInternational Boolean        @default(true) @map("is_international")
+  isInternational Boolean        @default(false) @map("is_international")
   user            User           @relation(fields: [userId], references: [id])
   userId          Int            @unique @map("user_id")
 

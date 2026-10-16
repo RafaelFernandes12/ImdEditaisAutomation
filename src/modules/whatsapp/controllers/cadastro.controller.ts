@@ -115,8 +115,8 @@ export class CadastroController {
       modelo: list(body?.modelo),
       senioridade: list(body?.senioridade),
       escolaridade: list(body?.escolaridade),
-      // Formulário antigo não manda o campo: segue aceitando internacional.
-      isInternational: body?.isInternational !== false,
+      // Sem o campo no formulário, o padrão é só vaga nacional.
+      isInternational: body?.isInternational === true,
     };
 
     const result = await this.registerLinkService.register(token, data);
