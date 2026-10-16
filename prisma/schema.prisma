@@ -66,6 +66,7 @@ enum JobType {
   STI
   BACKEND_GITHUB
   FRONTEND_GITHUB
+  LAIS
 
   @@map("job_type")
 }
