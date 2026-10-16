@@ -173,6 +173,7 @@ describe('cadastro pelo link', () => {
         escolaridade: ['GRADUADO', 'MESTRADO'],
         city: 'Natal',
         state: 'RN',
+        isInternational: true,
       },
     });
     expect(getJobs.execute).toHaveBeenCalledWith(message, true);
@@ -228,6 +229,30 @@ describe('cadastro pelo link', () => {
     expect(userService.createUser).toHaveBeenCalledWith(
       expect.objectContaining({
         preferences: expect.objectContaining({ escolaridade: [] }) as object,
+      }),
+    );
+  });
+
+  it('guarda quando o usuário não quer vaga internacional', async () => {
+    const { service, controller, client, message, userService } = setup();
+    await service.sendLink(client, message as unknown as pkg.Message);
+
+    await controller.submit(tokenFrom(message.reply), {
+      name: 'Maria',
+      city: 'Natal',
+      state: 'RN',
+      ecosystems: 'java',
+      formato: 'REMOTO',
+      modelo: 'CLT',
+      senioridade: 'JUNIOR',
+      isInternational: false,
+    });
+
+    expect(userService.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferences: expect.objectContaining({
+          isInternational: false,
+        }) as object,
       }),
     );
   });

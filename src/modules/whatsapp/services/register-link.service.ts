@@ -36,6 +36,7 @@ export type RegisterData = {
   escolaridade: string[];
   city: string;
   state: string;
+  isInternational: boolean;
 };
 
 export type RegisterResult =
@@ -212,6 +213,7 @@ export class RegisterLinkService {
         escolaridade,
         city,
         state: data.state,
+        isInternational: data.isInternational,
       },
     });
     this.pending.delete(token);

@@ -13,6 +13,7 @@ export class UserPreferencesData {
   escolaridade: Escolaridade[];
   city: string;
   state: string;
+  isInternational: boolean;
 }
 
 export class CreateUser {
