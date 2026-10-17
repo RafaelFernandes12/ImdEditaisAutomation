@@ -112,28 +112,39 @@ const weights = new Map<
   ],
 ]);
 
-export function jobFilter(
+type ActiveJob = jobs[number];
+
+export type RankedVaga = {
+  job: ActiveJob;
+  vaga: ActiveJob['vagas'][number];
+  score: number;
+};
+
+const MIN_SCORE = 50;
+// Editais e vagas das fontes locais vão sempre; o score só ordena.
+const ALWAYS_SENT: JobType[] = ['IMD', 'STI', 'JERIMUM'];
+
+/** Vagas que o usuário deve receber, da mais para a menos compatível. */
+export function rankVagas(
   user: { UserPreferences: Preferences | null },
   jobs: jobs,
-): jobs {
+): RankedVaga[] {
   const preferences = user.UserPreferences;
-  // Cadastro antigo, sem preferências: recebe tudo.
-  if (!preferences) return jobs;
 
-  const a = jobs.flatMap((job) => {
-    if (job.vagas.length === 0) return [];
-
-    const vagas = job.vagas.map((vaga) => {
-      const res = vagaMatches(preferences, vaga, job.type);
-      return res;
-    });
-    // const sortedVagas = vagas.sort((vaga) => vaga.score);
-    // console.log('SORTEDVAGAS', sortedVagas);
-    return vagas;
-  });
-  const sortedVagas = a.sort((a, b) => a.score - b.score);
-  console.log('SORTEDVAGAS', sortedVagas);
-  return [];
+  return jobs
+    .flatMap((job) =>
+      job.vagas.map((vaga) => ({
+        job,
+        vaga,
+        // Cadastro antigo, sem preferências: recebe tudo, sem ordem.
+        score: preferences ? vagaMatches(preferences, vaga, job.type).score : 0,
+      })),
+    )
+    .filter(
+      ({ job, score }) =>
+        !preferences || ALWAYS_SENT.includes(job.type) || score >= MIN_SCORE,
+    )
+    .sort((a, b) => b.score - a.score);
 }
 
 export function vagaMatches(
@@ -169,10 +180,9 @@ export function vagaMatches(
 
   const vagaScored = {
     ...vaga,
+    type: jobType,
     score: soma,
   };
-
-  console.log('VAGASCORED', vagaScored);
 
   return vagaScored;
 }
