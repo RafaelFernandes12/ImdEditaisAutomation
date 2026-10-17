@@ -123,6 +123,19 @@ const weights = new Map<
       priority: 1.4,
     },
   ],
+  [
+    'FUNPEC',
+    {
+      ecossytem: 55,
+      escolaridade: 10,
+      salary: 5,
+      formato: 10,
+      city: 0,
+      modelo: 10,
+      senioridade: 10,
+      priority: 1.4,
+    },
+  ],
 ]);
 
 type ActiveJob = jobs[number];
