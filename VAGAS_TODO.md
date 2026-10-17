@@ -33,9 +33,7 @@
 - Ruído: muito baixo — tudo é vaga de tech
 - Obs: API oficial do GitHub (issues), labels já classificam (Remoto, Júnior, CLT, PJ...) sem precisar de PDF/IA. Nenhuma vaga mencionava Natal — é fonte de vagas remotas, então o bot precisa de campo de localidade (Natal presencial / híbrido / remoto) e de vínculo (bolsa / CLT / PJ / estágio)
 
-## Fontes a implementar
-
-### funpec
+### funpec (feito)
 
 Fazer web scrape da funpec, sai vaga para Dev 3 vezes ao ano, maioria CLT podendo ou nao precisar de graduação
 https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sistemas-de-informacao-cadastro-de-reserva/
@@ -46,7 +44,7 @@ https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sis
 - Ruído: alto — ~80% dos processos não são de TI (cuidador, advogado, psicólogo...)
 - Obs: WordPress com HTML server-side; info útil no Anexo I do PDF (cargo, salário, requisitos). Filtrar por cargo "Programador" (aceita graduação em andamento); "Analista"/"Engenheiro" exigem graduação completa
 
-### lais
+### lais (feito)
 
 - Site: https://lais.huol.ufrn.br/categoria/editais/
 - Volume de tech: ~5 editais/ano (15 entre out/2023 e out/2026), cada edital com vários perfis (back, front, UX, mobile, DevOps), bolsas de R$ 2.000 a R$ 6.000
@@ -54,7 +52,7 @@ https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sis
 - Ruído: alto — ~metade dos editais é de saúde/fonoaudiologia/administração
 - Obs: WordPress com API REST (`/wp-json/wp/v2/posts?categories=9`) que já devolve o link do PDF. Stack de cada perfil fica no Anexo II. Republica os mesmos perfis em editais novos (ex.: ReAbLITA 003, 007 e 009/2025) — dedupe por projeto + perfil, não só por link
 
-### ect
+### ect (feito)
 
 - Site: https://www.ect.ufrn.br/documentos/?tipo=editais
 - Volume de tech: ~1-2 editais/ano (4 entre out/2023 e out/2026), bolsas para graduandos (ex.: Edital 01/2026 dev full stack Node/React/Next, R$ 3.000)
@@ -65,15 +63,6 @@ https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sis
 # Fora da UFRN
 
 ## Fontes a implementar
-
-
-### senac rn
-
-- Site: https://trabalheconosco.rn.senac.br/
-- Volume de tech: ~6 vagas/ano de tech (2026: Técnico TI – Desenvolvimento, Analista IV – Dados e Analytics, Assistente TI – Infraestrutura 2x, Suporte On-line), mais ~5 de instrutor/professor de TI
-- Vagas por mês: ~0,5/mês de tech (~1/mês contando instrutor de TI)
-- Ruído: muito alto — ~90 avisos no ano, a maioria hotelaria/serviços gerais (camareiro, cozinha, jardineiro...)
-- Obs: uma página só lista todos os avisos do ano com status (Em Andamento / Encerrado) e PDFs (`/edital/arquivo_{id}.pdf`); vagas CLT em Natal
 
 ### bne / gupy (empresas privadas)
 
