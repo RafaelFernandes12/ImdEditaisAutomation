@@ -9,6 +9,7 @@ import { GithubSource } from '../sources/github.source.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { ImdSource } from '../sources/imd.source.js';
 import { LaisSource } from '../sources/lais.source.js';
+import { FunpecSource } from '../sources/funpec.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -23,6 +24,7 @@ export class WebScrappingController {
     private readonly logger: PinoLogger,
     private readonly imdSource: ImdSource,
     private readonly laisSource: LaisSource,
+    private readonly funpecSource: FunpecSource,
   ) {}
 
   private trigger(provider: string) {
@@ -77,5 +79,11 @@ export class WebScrappingController {
   async getLaisSource2() {
     this.trigger('getLaisSource');
     return await this.getNewJobsProvider.collect(this.laisSource);
+  }
+
+  @Get('/getFunpecSource')
+  async getFunpecSource() {
+    this.trigger('getFunpecSource');
+    return await this.getNewJobsProvider.collect(this.funpecSource);
   }
 }
