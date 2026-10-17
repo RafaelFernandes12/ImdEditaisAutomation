@@ -26,6 +26,11 @@ export const JOB_TYPES = {
     header: 'EDITAIS LAIS',
     source: 'Lais',
   },
+  FUNPEC: {
+    kind: 'EDITAL',
+    header: 'EDITAIS FUNPEC',
+    source: 'FUNPEC',
+  },
 } as const satisfies Record<
   JobType,
   { kind: JobKind; header: string; source: string }
