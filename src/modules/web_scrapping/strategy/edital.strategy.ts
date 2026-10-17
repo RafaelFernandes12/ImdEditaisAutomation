@@ -15,7 +15,7 @@ export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
     return job.pdfs[0].text?.trim() || null;
   }
 
-  async persist(job: EditalJobPayload, vagas: CreateVaga[]) {
+  async persist(job: EditalJobPayload, vagas: CreateVaga[], publishedAt: Date) {
     const pdfs = job.pdfs.map((pdf) => ({
       ...pdf,
       type: resolvePdfTipo(pdf.label),
@@ -33,6 +33,7 @@ export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
       link: job.link,
       isActive: job.isActive,
       subscriptionUntil: job.subscriptionUntil,
+      publishedAt,
       description: this.getText(job) ?? '',
       vagas: vagasCorrect,
       pdfs,

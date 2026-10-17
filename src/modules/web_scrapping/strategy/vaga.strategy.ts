@@ -15,7 +15,7 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
     return job.description?.trim() || null;
   }
 
-  async persist(job: VagaJobPayload, vagas: CreateVaga[]) {
+  async persist(job: VagaJobPayload, vagas: CreateVaga[], publishedAt: Date) {
     try {
       const createdJob = await this.jobsService.createJob({
         title: job.title,
@@ -23,6 +23,7 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
         link: job.link,
         isActive: job.isActive,
         description: job.description || '',
+        publishedAt,
         vagas,
       });
 

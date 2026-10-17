@@ -118,6 +118,7 @@ export class GithubSource implements JobSource<VagaJobPayload> {
       link: issue.html_url,
       description: issue.body,
       isActive: true,
+      publishedAt: issue.created_at,
     };
   }
 }

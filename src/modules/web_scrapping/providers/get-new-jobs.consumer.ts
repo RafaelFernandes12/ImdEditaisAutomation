@@ -108,7 +108,17 @@ export class GetNewJobsConsumer extends WorkerHost {
         : {};
       const vagas = toVagas(resumo, cotacoes);
 
-      const { jobId, logContext } = await strategy.persist(newJob, vagas);
+      // O GitHub informa quando a issue foi criada; nas outras fontes vale o
+      // dia da coleta.
+      const publishedAt = newJob.publishedAt
+        ? new Date(newJob.publishedAt)
+        : new Date();
+
+      const { jobId, logContext } = await strategy.persist(
+        newJob,
+        vagas,
+        publishedAt,
+      );
 
       this.logger.info(
         {

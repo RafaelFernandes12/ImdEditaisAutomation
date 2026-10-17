@@ -32,6 +32,7 @@ export class CreateJob {
   description: string;
   vagas: CreateVaga[];
   subscriptionUntil?: Date | null;
+  publishedAt?: Date | null;
   pdfs?: {
     label: string;
     text: string;
