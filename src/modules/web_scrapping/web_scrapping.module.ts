@@ -31,9 +31,17 @@ import {
   JobSource,
 } from './sources/job.source.js';
 import { LaisSource } from './sources/lais.source.js';
+import { FunpecSource } from './sources/funpec.source.js';
 import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 
-const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource, LaisSource];
+const SOURCES = [
+  ImdSource,
+  StiSource,
+  JerimunSource,
+  GithubSource,
+  LaisSource,
+  FunpecSource,
+];
 
 @Module({
   imports: [
