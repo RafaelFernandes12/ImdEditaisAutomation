@@ -8,6 +8,7 @@ import { JerimunSource } from '../sources/jerimun.source.js';
 import { GithubSource } from '../sources/github.source.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { ImdSource } from '../sources/imd.source.js';
+import { LaisSource } from '../sources/lais.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -21,6 +22,7 @@ export class WebScrappingController {
     @InjectPinoLogger(WebScrappingController.name)
     private readonly logger: PinoLogger,
     private readonly imdSource: ImdSource,
+    private readonly laisSource: LaisSource,
   ) {}
 
   private trigger(provider: string) {
@@ -69,5 +71,11 @@ export class WebScrappingController {
   async getImdSource() {
     this.trigger('getImdSource');
     return await this.getNewJobsProvider.collect(this.imdSource);
+  }
+
+  @Get('/getLaisSource')
+  async getLaisSource2() {
+    this.trigger('getLaisSource');
+    return await this.getNewJobsProvider.collect(this.laisSource);
   }
 }
