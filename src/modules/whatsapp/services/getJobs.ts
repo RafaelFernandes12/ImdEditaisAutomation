@@ -2,14 +2,17 @@ import { Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
+import { UserService } from '../../user/services/user.service.js';
 import { maskContact } from '../../../utils/log-redact.js';
-import { formatJobSections } from '../../../utils/format-job-lines.js';
+import { formatRankedVagas } from '../../../utils/format-job-lines.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { rankVagas } from '../../web_scrapping/utils/job-filter.util.js';
 
 @Injectable()
 export class GetJobs {
   constructor(
     private jobsService: JobsService,
+    private userService: UserService,
     @InjectPinoLogger(GetJobs.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -18,26 +21,34 @@ export class GetJobs {
     const log = new ScopedLogger(this.logger, 'wa.jobs_andamento', {
       chatId: maskContact(message.from),
     }).timed();
-    const activeJobs = await this.jobsService.findActive(stillActive);
+    const [activeJobs, user] = await Promise.all([
+      this.jobsService.findActive(stillActive),
+      this.userService.findByChatId(message.from),
+    ]);
 
-    if (activeJobs.length === 0) {
-      log.warn('empty', 'Nenhum edital em andamento para responder');
-      await message.reply('Nenhum edital em andamento no momento.');
+    // Mesmo ranking da notificação: as fontes locais vão sempre e as do
+    // GitHub passam pelas preferências do usuário.
+    const ranked = rankVagas(
+      { UserPreferences: user?.UserPreferences ?? null },
+      activeJobs,
+    );
+
+    if (ranked.length === 0) {
+      log.warn('empty', 'Nenhuma vaga para responder', {
+        activeCount: activeJobs.length,
+      });
+      await message.reply('Nenhuma vaga em andamento no momento.');
       return;
     }
 
-    const sections = formatJobSections(activeJobs);
+    const header = stillActive ? 'VAGAS EM ANDAMENTO' : 'VAGAS ABERTAS';
+    const body = formatRankedVagas(ranked);
+    await message.reply(`${header}:\n\n${body}`);
 
-    for (const { header, body } of sections) {
-      await message.reply(`${header}:\n${body}`);
-    }
-
-    log.info('done', 'Editais em andamento enviados', {
-      count: activeJobs.length,
-      pdfCount: activeJobs.reduce((acc, e) => acc + e.pdfs.length, 0),
-      messageLengthByType: Object.fromEntries(
-        sections.map(({ type, body }) => [type, body.length]),
-      ),
+    log.info('done', 'Vagas enviadas', {
+      jobCount: activeJobs.length,
+      vagaCount: ranked.length,
+      length: body.length,
     });
   }
 }

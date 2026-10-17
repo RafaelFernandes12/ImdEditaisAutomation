@@ -33,7 +33,7 @@ export class UserRepository {
   ) {
     return await tx.user.findUnique({
       where: { chatId },
-      include: { sends: true },
+      include: { sends: true, UserPreferences: true },
     });
   }
   async reactiveUser(
