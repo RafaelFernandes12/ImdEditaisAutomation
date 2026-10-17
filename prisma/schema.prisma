@@ -88,6 +88,8 @@ model Job {
   kind        JobKind
   isActive    Boolean   @map("is_active")
   finishedAt  DateTime? @map("finished_at")
+  // GitHub: criação da issue; demais fontes: dia da coleta.
+  publishedAt DateTime? @map("published_at")
   // No edital é uma cópia do texto do primeiro pdf (o edital em si).
   description String
 
