@@ -28,6 +28,7 @@ import { GithubSource } from './sources/github.source.js';
 import {
   assertCoversAllJobTypes,
   JOB_SOURCES,
+  JOB_WEIGHTS,
   JobSource,
 } from './sources/job.source.js';
 import { LaisSource } from './sources/lais.source.js';
@@ -84,7 +85,14 @@ const SOURCES = [
       inject: SOURCES,
       useFactory: (...sources: JobSource[]) => assertCoversAllJobTypes(sources),
     },
+    {
+      provide: JOB_WEIGHTS,
+      inject: [JOB_SOURCES],
+      useFactory: (sources: JobSource[]) =>
+        new Map(sources.flatMap((source) => source.weight)),
+    },
   ],
+  exports: [JOB_WEIGHTS],
   controllers: [WebScrappingController],
 })
 export class WebScrappingModule {}
