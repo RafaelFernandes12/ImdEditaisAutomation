@@ -14,6 +14,7 @@ import { EctSource } from '../sources/ect.source.js';
 import { StiSource } from '../sources/sti.source.js';
 import { GupySource } from '../sources/gupy.source.js';
 import { LinkedinSource } from '../sources/linkedin.source.js';
+import { InfojobsSource } from '../sources/infojobs.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -33,6 +34,7 @@ export class WebScrappingController {
     private readonly stiSource: StiSource,
     private readonly gupySource: GupySource,
     private readonly linkedinSource: LinkedinSource,
+    private readonly infojobsSource: InfojobsSource,
   ) {}
 
   private trigger(provider: string) {
@@ -117,5 +119,11 @@ export class WebScrappingController {
   async getLinkedinSource() {
     this.trigger('getLinkedinSource');
     return await this.getNewJobsProvider.collect(this.linkedinSource);
+  }
+
+  @Get('/getInfojobsSource')
+  async getInfojobsSource() {
+    this.trigger('getInfojobsSource');
+    return await this.getNewJobsProvider.collect(this.infojobsSource);
   }
 }
