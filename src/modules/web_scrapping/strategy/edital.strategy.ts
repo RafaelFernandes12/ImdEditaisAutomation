@@ -24,7 +24,8 @@ export class EditalStrategy implements NewJobStrategy<EditalJobPayload> {
       ...vaga,
       state: vaga.state ?? 'RN',
       city: vaga.city ?? 'Natal',
-      modelo: job.type === 'IMD' ? 'BOLSISTA' : vaga.modelo,
+      modelo:
+        job.type === 'IMD' || job.type === 'LAIS' ? 'BOLSISTA' : vaga.modelo,
     }));
 
     const createdJob = await this.jobsService.createJob({
