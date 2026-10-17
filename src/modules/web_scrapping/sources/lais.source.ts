@@ -8,11 +8,8 @@ import { JobUrl, JobWithPdfLinks } from '../models/sources.js';
 import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
 import { EditalJobPayload } from '../strategy/new-job.strategy.js';
 import { JobSource, JobToFinish } from './job.source.js';
-import {
-  JobsService,
-  type ActiveJob,
-} from '../../jobs/services/jobs.service.js';
-import { ECOSYSTEMS } from '../models/ecossystems.js';
+import type { ActiveJob } from '../../jobs/services/jobs.service.js';
+import { EcosystemFilterService } from '../utils/ecosystem-filter.service.js';
 
 const SITE_BASE_URL = 'https://lais.huol.ufrn.br';
 const JOBS_LIST_URL = `${SITE_BASE_URL}/categoria/editais`;
@@ -30,21 +27,6 @@ const SUBSCRIPTION_PERIOD = new RegExp(
   'i',
 );
 
-const ECOSYSTEM_TERMS = Object.values(ECOSYSTEMS)
-  .flatMap(({ terms }): readonly string[] => terms)
-  .map((term) => {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(
-      String.raw`(?<![\p{L}\p{N}])${escaped}(?![\p{L}\p{N}])`,
-      'u',
-    );
-  });
-
-function matchesEcosystem(text: string) {
-  const normalized = text.toLowerCase().replace(/\s+/g, ' ');
-  return ECOSYSTEM_TERMS.some((term) => term.test(normalized));
-}
-
 function listUrl(status: EditalStatus, page: number) {
   const pagePath = page > 1 ? `/page/${page}` : '';
   return `${JOBS_LIST_URL}${pagePath}/?edital_status=${status}`;
@@ -58,7 +40,7 @@ export class LaisSource implements JobSource<LaisListedJob> {
     @InjectPinoLogger(LaisSource.name)
     private readonly logger: PinoLogger,
     private readonly pdfExtractorService: PdfExtractorService,
-    private readonly jobsService: JobsService,
+    private readonly ecosystemFilterService: EcosystemFilterService,
   ) {}
 
   async list() {
@@ -69,34 +51,14 @@ export class LaisSource implements JobSource<LaisListedJob> {
     const publishedAtByLink = new Map(
       jobs.map((job) => [job.link, job.publishedAt]),
     );
-    const log = new ScopedLogger(this.logger, 'scraper');
     const extracted = await this.pdfExtractorService.extractPdfs(
       await this.getJobsPdfs(jobs),
     );
-
-    // O LAIS publica editais de saúde também (fonoaudiologia, medicina...):
-    // só entra edital novo que cita algum termo de ecossistema no título ou
-    // nos PDFs. Edital já gravado passou no filtro antes e só traz PDFs novos
-    // (resultados), que precisam ser gravados para a busca de nomes citados.
-    const known = await this.jobsService.findManyByLink(
-      extracted.map((edital) => edital.link),
+    // O LAIS publica editais de saúde também (fonoaudiologia, medicina...).
+    const editais = await this.ecosystemFilterService.filter(
+      this.name,
+      extracted,
     );
-    const knownLinks = new Set(known.map((job) => job.link));
-    const editais = extracted.filter(
-      (edital) =>
-        knownLinks.has(edital.link) ||
-        matchesEcosystem(
-          [edital.title, ...edital.pdfs.map((pdf) => pdf.text)].join(' '),
-        ),
-    );
-
-    log.info('ecosystem_filter', 'Editais filtrados por ecossistema', {
-      count: extracted.length,
-      kept: editais.length,
-      discarded: extracted
-        .filter((edital) => !editais.includes(edital))
-        .map((edital) => edital.title),
-    });
 
     return editais.map((edital) => ({
       ...edital,
