@@ -5,9 +5,9 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
-import { formatJobSections } from '#src/utils/format-job-lines.js';
+import { formatRankedVagas } from '#src/utils/format-job-lines.js';
 import { ScopedLogger } from '#src/utils/scoped-logger.js';
-import { jobFilter } from '../utils/job-filter.util.js';
+import { rankVagas } from '../utils/job-filter.util.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -45,20 +45,10 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       );
       // Job filtrado não é marcado como enviado: se o usuário mudar as
       // preferências, ele volta a ser avaliado.
+      const ranked = rankVagas(user, unsentJobs);
+      const newJobsId = [...new Set(ranked.map(({ job }) => job.id))];
 
-      const jobsToFilter = unsentJobs.filter(
-        (job) =>
-          job.type !== 'IMD' && job.type !== 'STI' && job.type !== 'JERIMUM',
-      );
-
-      const jobsToNotFilter = unsentJobs.filter(
-        (job) =>
-          job.type === 'IMD' || job.type === 'STI' || job.type === 'JERIMUM',
-      );
-      const jobsA = jobFilter(user, unsentJobs);
-      const newJobs = [...jobsA];
-
-      if (newJobs.length === 0) {
+      if (ranked.length === 0) {
         timer.debug('nothing_new', 'Nenhuma vaga nova para o usuário', {
           activeCount: jobsAndamento.length,
           filteredOutCount: unsentJobs.length,
@@ -66,34 +56,35 @@ export class NotifyNewJobsConsumer extends WorkerHost {
         return;
       }
 
-      const sections = formatJobSections(newJobs);
-
+      const body = formatRankedVagas(ranked);
       const sendTimer = log.timed();
 
-      for (const { header, body } of sections) {
-        await client.sendMessage(user.chatId, `${header}:\n\n${body}`, {
-          linkPreview: false,
-        });
-      }
+      // Uma mensagem só, com todas as vagas das fontes juntas.
+      await client.sendMessage(user.chatId, `NOVAS VAGAS:\n\n${body}`, {
+        linkPreview: false,
+      });
 
       sendTimer.info('message_sent', 'Mensagem de novas vagas enviada', {
-        newJobsCount: newJobs.length,
-        filteredOutCount: unsentJobs.length - newJobs.length,
-        countByType: Object.fromEntries(
-          sections.map(({ type, count }) => [type, count]),
+        vagaCount: ranked.length,
+        newJobsCount: newJobsId.length,
+        filteredOutCount: unsentJobs.length - newJobsId.length,
+        countByType: ranked.reduce<Record<string, number>>(
+          (count, { job }) => ({
+            ...count,
+            [job.type]: (count[job.type] ?? 0) + 1,
+          }),
+          {},
         ),
-        lengthByType: Object.fromEntries(
-          sections.map(({ type, body }) => [type, body.length]),
-        ),
+        length: body.length,
       });
 
       await this.userService.updateJobsUser({
         contact: user.contact,
-        jobsId: newJobs.map((e) => e.id),
+        jobsId: newJobsId,
       });
 
       timer.info('job_done', 'Usuário notificado sobre novos editais', {
-        newJobsCount: newJobs.length,
+        newJobsCount: newJobsId.length,
       });
     } catch (e: unknown) {
       timer.error(

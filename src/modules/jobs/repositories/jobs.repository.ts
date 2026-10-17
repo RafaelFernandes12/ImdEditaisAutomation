@@ -5,7 +5,8 @@ import { CreateJob } from '../dto/jobs.dto.js';
 import { JOB_TYPES } from '../job-types.js';
 
 const activeJobInclude = {
-  pdfs: true,
+  // O primeiro pdf é o edital em si (o link enviado nas vagas do edital).
+  pdfs: { orderBy: { id: 'asc' } },
   vagas: { orderBy: { id: 'asc' } },
 } satisfies Prisma.JobInclude;
 
