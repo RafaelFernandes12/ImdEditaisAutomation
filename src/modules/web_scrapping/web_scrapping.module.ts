@@ -30,8 +30,9 @@ import {
   JOB_SOURCES,
   JobSource,
 } from './sources/job.source.js';
+import { LaisSource } from './sources/lais.source.js';
 
-const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource];
+const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource, LaisSource];
 
 @Module({
   imports: [
