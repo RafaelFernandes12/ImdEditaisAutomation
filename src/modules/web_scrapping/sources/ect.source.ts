@@ -7,7 +7,7 @@ import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { JobUrl, JobWithPdfLinks } from '../models/sources.js';
 import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
 import { EditalJobPayload } from '../strategy/new-job.strategy.js';
-import { JobSource, JobToFinish } from './job.source.js';
+import { JobSource, JobToFinish, SourceWeight } from './job.source.js';
 import type { ActiveJob } from '../../jobs/services/jobs.service.js';
 import { EcosystemFilterService } from '../utils/ecosystem-filter.service.js';
 
@@ -24,6 +24,21 @@ export interface EctListedJob extends JobUrl {
 export class EctSource implements JobSource<EctListedJob> {
   readonly name = 'ect';
   readonly types: JobType[] = ['ECT'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 65,
+        escolaridade: 20,
+        salary: 5,
+        formato: 5,
+        city: 0,
+        modelo: 5,
+        senioridade: 0,
+        priority: 1.4,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(EctSource.name)
     private readonly logger: PinoLogger,

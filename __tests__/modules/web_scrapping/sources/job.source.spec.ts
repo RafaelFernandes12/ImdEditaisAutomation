@@ -8,6 +8,7 @@ function source(name: string, types: JobType[]): JobSource {
   return {
     name,
     types,
+    weight: [],
     list: jest.fn(),
     fetchDetails: jest.fn(),
   };

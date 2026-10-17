@@ -3,7 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { GithubIssue } from '../models/github.js';
 import { JobType } from '#generated/prisma/enums.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
-import { JobSource } from './job.source.js';
+import { JobSource, SourceWeight } from './job.source.js';
 import { VagaJobPayload } from '../strategy/new-job.strategy.js';
 
 type GithubJobType = Extract<JobType, 'BACKEND_GITHUB' | 'FRONTEND_GITHUB'>;
@@ -17,6 +17,34 @@ const REPOS: { repo: string; type: GithubJobType }[] = [
 export class GithubSource implements JobSource<VagaJobPayload> {
   readonly name = 'github';
   readonly types: JobType[] = ['BACKEND_GITHUB', 'FRONTEND_GITHUB'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 40,
+        escolaridade: 10,
+        salary: 5,
+        formato: 5,
+        city: 1,
+        modelo: 4,
+        senioridade: 30,
+        priority: 1,
+      },
+    ],
+    [
+      this.types[1],
+      {
+        ecossytem: 40,
+        escolaridade: 10,
+        salary: 5,
+        formato: 5,
+        city: 1,
+        modelo: 4,
+        senioridade: 30,
+        priority: 1,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(GithubSource.name)
     private readonly logger: PinoLogger,

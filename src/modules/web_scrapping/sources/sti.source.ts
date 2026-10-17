@@ -5,7 +5,7 @@ import { JobType } from '../../../../generated/prisma/client.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { JobWithPdfLinks, StiEdital } from '../models/sources.js';
 import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
-import { JobSource } from './job.source.js';
+import { JobSource, SourceWeight } from './job.source.js';
 import { EditalJobPayload } from '../strategy/new-job.strategy.js';
 
 // A página pública (sti.ufrn.br) é uma SPA em Vue que consome esta API do
@@ -24,6 +24,21 @@ function decodeHtml(text: string) {
 export class StiSource implements JobSource<JobWithPdfLinks> {
   readonly name = 'sti';
   readonly types: JobType[] = ['STI'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 55,
+        escolaridade: 10,
+        salary: 5,
+        formato: 10,
+        city: 0,
+        modelo: 10,
+        senioridade: 10,
+        priority: 1.4,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(StiSource.name)
     private readonly logger: PinoLogger,

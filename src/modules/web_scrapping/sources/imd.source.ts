@@ -7,7 +7,7 @@ import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { JobUrl, JobWithPdfLinks } from '../models/sources.js';
 import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
 import { EditalJobPayload } from '../strategy/new-job.strategy.js';
-import { JobSource, JobToFinish } from './job.source.js';
+import { JobSource, JobToFinish, SourceWeight } from './job.source.js';
 import type { ActiveJob } from '../../jobs/services/jobs.service.js';
 
 const SITE_BASE_URL = 'https://www.metropoledigital.ufrn.br';
@@ -23,6 +23,21 @@ function joinTitleAndBadge(title: string, badge: string) {
 export class ImdSource implements JobSource<JobUrl> {
   readonly name = 'imd';
   readonly types: JobType[] = ['IMD'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 65,
+        escolaridade: 20,
+        salary: 5,
+        formato: 5,
+        city: 0,
+        modelo: 5,
+        senioridade: 0,
+        priority: 1.4,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(ImdSource.name)
     private readonly logger: PinoLogger,

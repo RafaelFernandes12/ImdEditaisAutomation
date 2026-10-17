@@ -5,8 +5,9 @@ import { JobType } from '../../../../generated/prisma/client.js';
 import { Agent, fetch } from 'undici';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { JobUrl } from '../models/sources.js';
-import { JobSource } from './job.source.js';
+import { JobSource, SourceWeight } from './job.source.js';
 import { VagaJobPayload } from '../strategy/new-job.strategy.js';
+import { types } from 'util';
 
 const SITE_BASE_URL = 'https://jerimumjobs.imd.ufrn.br';
 const JOBS_LIST = `${SITE_BASE_URL}/jerimumjobs/oportunidade/listar`;
@@ -15,6 +16,21 @@ const JOBS_LIST = `${SITE_BASE_URL}/jerimumjobs/oportunidade/listar`;
 export class JerimunSource implements JobSource<JobUrl> {
   readonly name = 'jerimum';
   readonly types: JobType[] = ['JERIMUM'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 50,
+        escolaridade: 0,
+        salary: 20,
+        formato: 5,
+        city: 0,
+        modelo: 5,
+        senioridade: 20,
+        priority: 1.4,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(JerimunSource.name)
     private readonly logger: PinoLogger,
