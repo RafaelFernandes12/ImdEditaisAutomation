@@ -43,7 +43,7 @@ export class SummarizeJob {
     keywords: z.array(z.string()),
     ecossystems: z.array(z.enum(Object.keys(ECOSYSTEMS))).max(3),
   });
-  summarizePrompt = `Você extrai dados estruturados de vagas da área de tecnologia. O texto abaixo pode ser um anúncio de vaga de emprego ou um edital de seleção (bolsas, estágios ou contratações, como os do IMD, da STI e do LAIS da UFRN).
+  summarizePrompt = `Você extrai dados estruturados de vagas da área de tecnologia. O texto abaixo pode ser um anúncio de vaga de emprego ou um edital de seleção (bolsas, estágios ou contratações, como os do IMD, da STI e do LAIS da UFRN, ou da FUNPEC).
 
 Preencha um item em "vagas" para cada vaga ou perfil distinto do texto. Se houver uma vaga só, devolva um item só. Informações ditas uma vez para todas as vagas (local, carga horária, duração, vínculo, requisitos gerais...) valem para cada uma delas: repita-as em todos os itens.
 
