@@ -89,4 +89,6 @@ export interface GithubIssue {
   performed_via_github_app: unknown;
   state_reason: 'completed' | 'not_planned' | 'reopened' | null;
   pinned_comment: unknown;
+  /** Presente só quando o item é um pull request (a API de issues devolve os dois). */
+  pull_request?: { url: string; html_url: string; merged_at: string | null };
 }

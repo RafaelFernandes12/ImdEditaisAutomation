@@ -5,10 +5,9 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { client } from '#src/config/whatsapp/client.js';
 import { BadRequestException } from '@nestjs/common';
-import {
-  formatEditalLines,
-  formatJerimumLines,
-} from '#src/utils/format-job-lines.js';
+import { formatRankedVagas } from '#src/utils/format-job-lines.js';
+import { ScopedLogger } from '#src/utils/scoped-logger.js';
+import { rankVagas } from '../utils/job-filter.util.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -22,109 +21,76 @@ export class NotifyNewJobsConsumer extends WorkerHost {
   }
 
   async process(job: Job) {
-    const startedAt = Date.now();
     const user = job.data as Awaited<
       ReturnType<UserService['findManyUsers']>
     >[number];
+    const log = new ScopedLogger(this.logger, 'queue.notify_new_jobs', {
+      queue: 'notifyNewJobs',
+      queueJobId: job.id,
+      attempt: job.attemptsMade + 1,
+      userId: user.id,
+    });
 
-    this.logger.debug(
-      {
-        evt: 'queue.notify_new_jobs.job_start',
-        queue: 'notifyNewJobs',
-        queueJobId: job.id,
-        attempt: job.attemptsMade + 1,
-        userId: user.id,
-      },
+    const timer = log.start(
+      'job_start',
       'Verificando novos editais para o usuário',
+      undefined,
+      'debug',
     );
 
     try {
       const jobsAndamento = await this.jobsService.findActive();
-      const newJobs = jobsAndamento.filter(
+      const unsentJobs = jobsAndamento.filter(
         (e) => !user.sends.some((uSends) => uSends.jobId === e.id),
       );
+      // Job filtrado não é marcado como enviado: se o usuário mudar as
+      // preferências, ele volta a ser avaliado.
+      const ranked = rankVagas(user, unsentJobs);
+      const newJobsId = [...new Set(ranked.map(({ job }) => job.id))];
 
-      if (newJobs.length === 0) {
-        this.logger.debug(
-          {
-            evt: 'queue.notify_new_jobs.nothing_new',
-            queue: 'notifyNewJobs',
-            queueJobId: job.id,
-            userId: user.id,
-            activeCount: jobsAndamento.length,
-            durationMs: Date.now() - startedAt,
-          },
-          'Nenhuma vaga nova para o usuário',
-        );
+      if (ranked.length === 0) {
+        timer.debug('nothing_new', 'Nenhuma vaga nova para o usuário', {
+          activeCount: jobsAndamento.length,
+          filteredOutCount: unsentJobs.length,
+        });
         return;
       }
 
-      const imdEditais = newJobs.filter((job) => job.type === 'IMD');
-      const jerimunJobs = newJobs.filter((job) => job.type === 'JERIMUM');
-      const stiEditais = newJobs.filter((job) => job.type === 'STI');
+      const body = formatRankedVagas(ranked);
+      const sendTimer = log.timed();
 
-      const bodyImd = formatEditalLines(imdEditais);
-      const bodyJerimum = formatJerimumLines(jerimunJobs);
-      const bodySti = formatEditalLines(stiEditais);
+      // Uma mensagem só, com todas as vagas das fontes juntas.
+      await client.sendMessage(user.chatId, `NOVAS VAGAS:\n\n${body}`, {
+        linkPreview: false,
+      });
 
-      const sendStartedAt = Date.now();
-      if (imdEditais.length > 0) {
-        await client.sendMessage(user.chatId, bodyImd);
-      }
-      if (jerimunJobs.length > 0) {
-        await client.sendMessage(user.chatId, bodyJerimum);
-      }
-      if (stiEditais.length > 0) {
-        await client.sendMessage(user.chatId, `Editais STI:\n${bodySti}`);
-      }
-
-      this.logger.info(
-        {
-          evt: 'queue.notify_new_jobs.message_sent',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          userId: user.id,
-          newJobsCount: newJobs.length,
-          imdCount: imdEditais.length,
-          jerimumCount: jerimunJobs.length,
-          stiCount: stiEditais.length,
-          imdLength: bodyImd.length,
-          jerimumLength: bodyJerimum.length,
-          stiLength: bodySti.length,
-          durationMs: Date.now() - sendStartedAt,
-        },
-        'Mensagem de novas vagas enviada',
-      );
+      sendTimer.info('message_sent', 'Mensagem de novas vagas enviada', {
+        vagaCount: ranked.length,
+        newJobsCount: newJobsId.length,
+        filteredOutCount: unsentJobs.length - newJobsId.length,
+        countByType: ranked.reduce<Record<string, number>>(
+          (count, { job }) => ({
+            ...count,
+            [job.type]: (count[job.type] ?? 0) + 1,
+          }),
+          {},
+        ),
+        length: body.length,
+      });
 
       await this.userService.updateJobsUser({
         contact: user.contact,
-        jobsId: newJobs.map((e) => e.id),
+        jobsId: newJobsId,
       });
 
-      this.logger.info(
-        {
-          evt: 'queue.notify_new_jobs.job_done',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          newJobsCount: newJobs.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Usuário notificado sobre novos editais',
-      );
+      timer.info('job_done', 'Usuário notificado sobre novos editais', {
+        newJobsCount: newJobsId.length,
+      });
     } catch (e: unknown) {
-      this.logger.error(
-        {
-          evt: 'queue.notify_new_jobs.job_failed',
-          queue: 'notifyNewJobs',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          durationMs: Date.now() - startedAt,
-          err: e,
-        },
+      timer.error(
+        'job_failed',
         'Falha ao notificar usuário sobre novos editais',
+        { err: e },
       );
       throw new BadRequestException(e);
     }

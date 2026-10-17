@@ -6,6 +6,8 @@ import { BadRequestException } from '@nestjs/common';
 import { UserService } from '#src/modules/user/services/user.service.js';
 import { client } from '#src/config/whatsapp/client.js';
 import { SendsService } from '../../sends/services/sends.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { formatVagasSummary } from '../../../utils/format-job-lines.js';
 
 @Processor('sendPdf')
 export class NotifyNewPdf extends WorkerHost {
@@ -19,141 +21,84 @@ export class NotifyNewPdf extends WorkerHost {
   }
 
   async process(job: Job) {
-    const startedAt = Date.now();
     const user = job.data as Awaited<
       ReturnType<UserService['findManyUsers']>
     >[number];
+    const log = new ScopedLogger(this.logger, 'queue.notify_pdfs', {
+      queue: 'sendPdf',
+      queueJobId: job.id,
+      attempt: job.attemptsMade + 1,
+      userId: user.id,
+    });
 
-    this.logger.debug(
-      {
-        evt: 'queue.notify_pdfs.job_start',
-        queue: 'sendPdf',
-        queueJobId: job.id,
-        attempt: job.attemptsMade + 1,
-        userId: user.id,
-      },
+    const timer = log.start(
+      'job_start',
       'Buscando PDFs que citam o usuário',
+      undefined,
+      'debug',
     );
 
     try {
       const pdfs = await this.pdfService.findAllActiveByUserName(user.name);
 
-      this.logger.debug(
-        {
-          evt: 'queue.notify_pdfs.matched',
-          queue: 'sendPdf',
-          queueJobId: job.id,
-          userId: user.id,
-          count: pdfs.length,
-        },
-        'PDFs encontrados para o usuário',
-      );
+      log.debug('matched', 'PDFs encontrados para o usuário', {
+        count: pdfs.length,
+      });
 
       await Promise.all(
         pdfs.map(async (pdf) => {
-          const pdfStartedAt = Date.now();
+          const pdfLog = log
+            .child({ pdfId: pdf.id, jobId: pdf.jobId, pdfType: pdf.type })
+            .timed();
 
           try {
             const recorded = await this.sendsService.createMany([
-              { userId: user.id, jobId: pdf.editalId, pdfId: pdf.id },
+              { userId: user.id, jobId: pdf.jobId, pdfId: pdf.id },
             ]);
 
             // `createMany` com skipDuplicates é atômico: count 0 significa que
             // outro processo (ou uma execução anterior do cron) já enviou este PDF.
             if (recorded.count === 0) {
-              this.logger.debug(
-                {
-                  evt: 'queue.notify_pdfs.already_sent',
-                  queue: 'sendPdf',
-                  queueJobId: job.id,
-                  userId: user.id,
-                  pdfId: pdf.id,
-                  jobId: pdf.editalId,
-                },
+              pdfLog.debug(
+                'already_sent',
                 'PDF já enviado anteriormente para o usuário',
               );
               return;
             }
 
-            this.logger.debug(
-              {
-                evt: 'queue.notify_pdfs.send_recorded',
-                queue: 'sendPdf',
-                queueJobId: job.id,
-                userId: user.id,
-                pdfId: pdf.id,
-                jobId: pdf.editalId,
-              },
+            pdfLog.debug(
+              'send_recorded',
               'Envio registrado antes do disparo no WhatsApp',
             );
 
             await client.sendMessage(
               user.chatId,
-              `${pdf.edital.job.title}
-Seu nome foi mencionado no edital: ${pdf.edital.job.link}
+              `${pdf.job.title}
+Seu nome foi mencionado no edital: ${pdf.job.link}
 Neste pdf de ${pdf.type}: ${pdf.link}
-${pdf.edital.job.summary}
+${formatVagasSummary(pdf.job)}
 `,
             );
 
-            this.logger.info(
-              {
-                evt: 'queue.notify_pdfs.message_sent',
-                queue: 'sendPdf',
-                queueJobId: job.id,
-                userId: user.id,
-                pdfId: pdf.id,
-                jobId: pdf.editalId,
-                pdfType: pdf.type,
-                durationMs: Date.now() - pdfStartedAt,
-              },
-              'PDF que cita o usuário enviado',
-            );
+            pdfLog.info('message_sent', 'PDF que cita o usuário enviado');
           } catch (e: unknown) {
-            this.logger.error(
+            pdfLog.error(
+              'pdf_failed',
+              'Falha ao enviar PDF que cita o usuário',
               {
-                evt: 'queue.notify_pdfs.pdf_failed',
-                queue: 'sendPdf',
-                queueJobId: job.id,
-                userId: user.id,
-                pdfId: pdf.id,
-                jobId: pdf.editalId,
-                pdfType: pdf.type,
-                durationMs: Date.now() - pdfStartedAt,
                 err: e,
               },
-              'Falha ao enviar PDF que cita o usuário',
             );
             throw e;
           }
         }),
       );
 
-      this.logger.info(
-        {
-          evt: 'queue.notify_pdfs.job_done',
-          queue: 'sendPdf',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          count: pdfs.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Envio de PDFs do usuário concluído',
-      );
+      timer.info('job_done', 'Envio de PDFs do usuário concluído', {
+        count: pdfs.length,
+      });
     } catch (e: unknown) {
-      this.logger.error(
-        {
-          evt: 'queue.notify_pdfs.job_failed',
-          queue: 'sendPdf',
-          queueJobId: job.id,
-          attempt: job.attemptsMade + 1,
-          userId: user.id,
-          durationMs: Date.now() - startedAt,
-          err: e,
-        },
-        'Falha ao enviar PDFs do usuário',
-      );
+      timer.error('job_failed', 'Falha ao enviar PDFs do usuário', { err: e });
       throw new BadRequestException(e);
     }
   }

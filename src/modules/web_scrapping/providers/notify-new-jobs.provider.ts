@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class NotifyNewJobsProvider {
@@ -14,10 +15,12 @@ export class NotifyNewJobsProvider {
   ) {}
 
   async execute() {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'cron.notify_new_jobs', {
+      cron: true,
+    });
 
-    this.logger.info(
-      { evt: 'cron.notify_new_jobs.start', cron: true },
+    const timer = log.start(
+      'start',
       'Enfileirando notificação de novos editais',
     );
 
@@ -28,26 +31,16 @@ export class NotifyNewJobsProvider {
         users.map((user) => ({ name: 'notifyNewJobs', data: user })),
       );
 
-      this.logger.info(
-        {
-          evt: 'cron.notify_new_jobs.done',
-          cron: true,
-          enqueued: users.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Notificação de novos editais enfileirada',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'cron.notify_new_jobs.failed',
-          cron: true,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
+      timer.info('done', 'Notificação de novos editais enfileirada', {
+        enqueued: users.length,
+      });
+    } catch (err: unknown) {
+      timer.error(
+        'failed',
         'Falha ao enfileirar notificação de novos editais',
+        { err },
       );
-      throw error;
+      throw err;
     }
   }
 }

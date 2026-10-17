@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../user/services/user.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Injectable()
 export class NotifyPdfsProvider {
@@ -14,12 +15,11 @@ export class NotifyPdfsProvider {
   ) {}
 
   async execute() {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'cron.notify_pdfs', {
+      cron: true,
+    });
 
-    this.logger.info(
-      { evt: 'cron.notify_pdfs.start', cron: true },
-      'Enfileirando envio de PDFs',
-    );
+    const timer = log.start('start', 'Enfileirando envio de PDFs');
 
     try {
       const users = await this.userService.findManyUsers();
@@ -28,26 +28,12 @@ export class NotifyPdfsProvider {
         users.map((user) => ({ name: 'pdf', data: user })),
       );
 
-      this.logger.info(
-        {
-          evt: 'cron.notify_pdfs.done',
-          cron: true,
-          enqueued: users.length,
-          durationMs: Date.now() - startedAt,
-        },
-        'Envio de PDFs enfileirado',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'cron.notify_pdfs.failed',
-          cron: true,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao enfileirar envio de PDFs',
-      );
-      throw error;
+      timer.info('done', 'Envio de PDFs enfileirado', {
+        enqueued: users.length,
+      });
+    } catch (err: unknown) {
+      timer.error('failed', 'Falha ao enfileirar envio de PDFs', { err });
+      throw err;
     }
   }
 }

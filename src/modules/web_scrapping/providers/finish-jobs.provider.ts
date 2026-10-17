@@ -1,190 +1,110 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { JobsService } from '../../jobs/services/jobs.service.js';
-import {
-  ImdScraperService,
-  JobWithPdfLinks,
-} from '../services/imd-scraper.service.js';
-import { JerimunScraperService } from '../services/jerimun-scraper.service.js';
-import { JobType } from '../../../../generated/prisma/client.js';
-import { StiScraperService } from '../services/sti-scraper.service.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JOB_SOURCES, JobSource, JobToFinish } from '../sources/job.source.js';
+import { ActiveJob, JobsService } from '../../jobs/services/jobs.service.js';
 
 @Injectable()
 export class FinishJobsProvider {
   constructor(
-    private imdScraperService: ImdScraperService,
-    private jobsService: JobsService,
-    private readonly jerimunScraperService: JerimunScraperService,
-    private readonly stiScraperService: StiScraperService,
+    private readonly jobsService: JobsService,
+    @Inject(JOB_SOURCES)
+    private readonly sources: JobSource[],
     @InjectPinoLogger(FinishJobsProvider.name)
     private readonly logger: PinoLogger,
   ) {}
 
   // Disparado pelo FinishJobsConsumer, dentro do flow da coleta de editais.
   async execute() {
-    const startedAt = Date.now();
+    const log = new ScopedLogger(this.logger, 'cron.finish_jobs', {
+      cron: true,
+    });
 
-    this.logger.info(
-      { evt: 'cron.finish_jobs.start', cron: true },
-      'Verificando editais encerrados',
+    const timer = log.start('start', 'Verificando editais encerrados');
+
+    const deactivatedBySource: Record<string, number> = {};
+    const failed: string[] = [];
+
+    // Falha em uma fonte não deve impedir o encerramento das outras.
+    for (const source of this.sources) {
+      try {
+        const active = await this.jobsService.findActiveByTypes(source.types);
+        const toFinish = source.findFinished
+          ? await source.findFinished(active)
+          : await this.findMissingFromListing(source, active, log);
+
+        await this.jobsService.deactivateMany(toFinish);
+        deactivatedBySource[source.name] = toFinish.length;
+
+        log.info('source_done', 'Vagas encerradas da fonte atualizadas', {
+          source: source.name,
+          activeInDb: active.length,
+          deactivated: toFinish.length,
+          // Encerrar não tem volta: os ids permitem auditar o que saiu.
+          deactivatedIds: toFinish.map((job) => job.id),
+          unparsedValidUntil: toFinish.filter((job) =>
+            Number.isNaN(job.validUntil),
+          ).length,
+        });
+      } catch (err: unknown) {
+        failed.push(source.name);
+        log.error(
+          'source_failed',
+          'Falha ao encerrar as vagas da fonte — seguindo com as outras',
+          { source: source.name, err },
+        );
+      }
+    }
+
+    if (failed.length > 0) {
+      timer.error('failed', 'Falha ao encerrar editais', {
+        deactivatedBySource,
+        failed,
+      });
+      throw new Error(
+        `Falha ao encerrar vagas das fontes: ${failed.join(', ')}`,
+      );
+    }
+
+    timer.info('done', 'Editais encerrados atualizados', {
+      deactivatedBySource,
+    });
+  }
+
+  // Encerramento padrão: vaga ativa que sumiu da listagem da fonte encerrou.
+  private async findMissingFromListing(
+    source: JobSource,
+    active: ActiveJob[],
+    log: ScopedLogger,
+  ): Promise<JobToFinish[]> {
+    const listed = await source.list();
+
+    log.info(
+      'listing_fetched',
+      'Listagem da fonte obtida para o encerramento',
+      {
+        source: source.name,
+        listedOnSite: listed.length,
+      },
     );
 
-    try {
-      const imdEditaisFinished =
-        await this.imdScraperService.getImdEditaisFinished();
+    return source.types.flatMap((type) => {
+      const activeOfType = active.filter((job) => job.type === type);
+      const listedOfType = listed.filter((job) => job.type === type);
 
-      const listedJerimumJobs =
-        await this.jerimunScraperService.getListedJobs();
-      // Falha na API da STI (já logada no scraper) cai no guard de listagem vazia.
-      const listedStiEditais = await this.stiScraperService
-        .getEditaisEmAndamento()
-        .catch((): JobWithPdfLinks[] => []);
-      const dbActiveimdEditais = await this.jobsService.findActive();
-
-      this.logger.debug(
-        {
-          evt: 'cron.finish_jobs.candidates',
-          cron: true,
-          finishedOnSite: imdEditaisFinished.length,
-          jerimumListedOnSite: listedJerimumJobs.length,
-          activeInDb: dbActiveimdEditais.length,
-        },
-        'Comparando editais encerrados com os ativos no banco',
-      );
-
-      let unparsedValidUntil = 0;
-
-      const jobsToFinish = dbActiveimdEditais
-        .flatMap((ef) =>
-          imdEditaisFinished.flatMap((dae) => {
-            if (dae.href === ef.link) {
-              if (!ef.edital) return;
-
-              const split = ef.edital.pdfs
-                ?.find((pdf) => pdf.type === 'EDITAL')
-                ?.text.split('\n')
-                ?.find((v) => v.match('validade'))
-                ?.match(/(\d+)\s*(?:\([^)]*\)\s*)?m[eê]s(?:es)?/i)?.[1];
-
-              const validUntil = Number(split);
-
-              if (Number.isNaN(validUntil)) {
-                unparsedValidUntil += 1;
-                this.logger.warn(
-                  {
-                    evt: 'cron.finish_jobs.valid_until_unparsed',
-                    cron: true,
-                    jobId: ef.id,
-                    jobTitle: ef.title,
-                    hasPdf: Boolean(
-                      ef.edital.pdfs?.find((pdf) => pdf.type === 'EDITAL'),
-                    ),
-                  },
-                  'Não foi possível extrair a validade do edital',
-                );
-              }
-
-              return {
-                id: ef.id,
-                validUntil,
-              };
-            }
-          }),
-        )
-        .filter((f) => f !== undefined);
-
-      const listedJerimumLinks = new Set(
-        listedJerimumJobs.map((job) => job.href),
-      );
-      const dbActiveJerimumJobs = dbActiveimdEditais.filter(
-        (job) => job.type === JobType.JERIMUM,
-      );
-
-      // Uma listagem vazia normalmente significa site fora do ar ou mudança no
-      // HTML, não que todas as vagas encerraram — desativar tudo seria irreversível.
-      const skipJerimum =
-        listedJerimumJobs.length === 0 && dbActiveJerimumJobs.length > 0;
-
-      if (skipJerimum) {
-        this.logger.warn(
-          {
-            evt: 'cron.finish_jobs.jerimum_listing_empty',
-            cron: true,
-            activeInDb: dbActiveJerimumJobs.length,
-          },
-          'Listagem do jerimun jobs veio vazia — nenhuma vaga será encerrada nesta execução',
+      if (listedOfType.length === 0 && activeOfType.length > 0) {
+        log.warn(
+          'listing_empty',
+          'Listagem vazia — nenhuma vaga do tipo será encerrada nesta execução',
+          { source: source.name, type, activeInDb: activeOfType.length },
         );
+        return [];
       }
 
-      const jerimumJobsToFinish = skipJerimum
-        ? []
-        : dbActiveJerimumJobs
-            .filter((job) => !listedJerimumLinks.has(job.link))
-            .map((job) => ({ id: job.id }));
-
-      const listedStiLinks = new Set(listedStiEditais.map((job) => job.link));
-      const dbActiveStiEditais = dbActiveimdEditais.filter(
-        (job) => job.type === JobType.STI,
-      );
-
-      // Mesmo raciocínio do jerimum: listagem vazia provavelmente é falha na API.
-      const skipSti =
-        listedStiEditais.length === 0 && dbActiveStiEditais.length > 0;
-
-      if (skipSti) {
-        this.logger.warn(
-          {
-            evt: 'cron.finish_jobs.sti_listing_empty',
-            cron: true,
-            activeInDb: dbActiveStiEditais.length,
-          },
-          'Listagem da STI veio vazia — nenhum edital será encerrado nesta execução',
-        );
-      }
-
-      const stiEditaisToFinish = skipSti
-        ? []
-        : dbActiveStiEditais
-            .filter((job) => !listedStiLinks.has(job.link))
-            .map((job) => ({ id: job.id }));
-
-      await this.jobsService.deactivateMany([
-        ...jobsToFinish,
-        ...jerimumJobsToFinish,
-        ...stiEditaisToFinish,
-      ]);
-
-      this.logger.info(
-        {
-          evt: 'cron.finish_jobs.done',
-          cron: true,
-          finishedOnSite: imdEditaisFinished.length,
-          jerimumListedOnSite: listedJerimumJobs.length,
-          activeInDb: dbActiveimdEditais.length,
-          stiListedOnSite: listedStiEditais.length,
-          deactivated:
-            jobsToFinish.length +
-            jerimumJobsToFinish.length +
-            stiEditaisToFinish.length,
-          deactivatedImd: jobsToFinish.length,
-          deactivatedJerimum: jerimumJobsToFinish.length,
-          deactivatedSti: stiEditaisToFinish.length,
-          unparsedValidUntil,
-          durationMs: Date.now() - startedAt,
-        },
-        'Editais encerrados atualizados',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          evt: 'cron.finish_jobs.failed',
-          cron: true,
-          durationMs: Date.now() - startedAt,
-          err: error,
-        },
-        'Falha ao encerrar editais',
-      );
-      throw error;
-    }
+      const listedLinks = new Set(listedOfType.map((job) => job.link));
+      return activeOfType
+        .filter((job) => !listedLinks.has(job.link))
+        .map((job) => ({ id: job.id }));
+    });
   }
 }

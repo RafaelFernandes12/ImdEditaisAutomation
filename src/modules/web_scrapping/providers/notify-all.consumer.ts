@@ -3,6 +3,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { NotifyNewJobsProvider } from './notify-new-jobs.provider.js';
 import { NotifyPdfsProvider } from './notify-pdfs.provider.js';
+import { ScopedLogger } from '../../../utils/scoped-logger.js';
 
 @Processor('notifyAll')
 export class NotifyAllConsumer extends WorkerHost {
@@ -16,30 +17,21 @@ export class NotifyAllConsumer extends WorkerHost {
   }
 
   async process(job: Job) {
-    const startedAt = Date.now();
     const ignoredFailures = Object.keys(await job.getIgnoredChildrenFailures());
+    const log = new ScopedLogger(this.logger, 'queue.notify_all', {
+      queue: 'notifyAll',
+      queueJobId: job.id,
+    });
 
-    this.logger.info(
-      {
-        evt: 'queue.notify_all.job_start',
-        queue: 'notifyAll',
-        queueJobId: job.id,
-        ignoredFailures: ignoredFailures.length,
-      },
+    const timer = log.start(
+      'job_start',
       'Coleta de editais concluída — disparando notificações',
+      { ignoredFailures: ignoredFailures.length },
     );
 
     await this.notifyNewJobsProvider.execute();
     await this.notifyPdfsProvider.execute();
 
-    this.logger.info(
-      {
-        evt: 'queue.notify_all.job_done',
-        queue: 'notifyAll',
-        queueJobId: job.id,
-        durationMs: Date.now() - startedAt,
-      },
-      'Notificações disparadas',
-    );
+    timer.info('job_done', 'Notificações disparadas');
   }
 }

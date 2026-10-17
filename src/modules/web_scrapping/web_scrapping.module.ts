@@ -5,8 +5,9 @@ import { WebScrappingController } from './controllers/web_scrapping.controller.j
 import { UserModule } from '../user/user.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
-import { ImdScraperService } from './services/imd-scraper.service.js';
-import { PdfExtractorService } from './services/pdf-extractor.service.js';
+import { ImdSource } from './sources/imd.source.js';
+import { PdfExtractorService } from './utils/pdf-extractor.service.js';
+import { CambioService } from './utils/cambio.service.js';
 import { NotifyNewJobsProvider } from './providers/notify-new-jobs.provider.js';
 import { NotifyNewJobsConsumer } from './providers/notify-new-jobs.consumer.js';
 import { BullModule } from '@nestjs/bullmq';
@@ -17,11 +18,20 @@ import { AiChatModule } from '../ai_chat/ai_chat.module.js';
 import { NotifyPdfsProvider } from './providers/notify-pdfs.provider.js';
 import { NotifyNewPdf } from './providers/notify-pdfs.consumer.js';
 import { SendsModule } from '../sends/sends.module.js';
-import { JerimunScraperService } from './services/jerimun-scraper.service.js';
-import { StiScraperService } from './services/sti-scraper.service.js';
+import { JerimunSource } from './sources/jerimun.source.js';
+import { StiSource } from './sources/sti.source.js';
 import { NotifyAllConsumer } from './providers/notify-all.consumer.js';
 import { FinishJobsConsumer } from './providers/finish-jobs.consumer.js';
-import { GithubService } from './services/github.service.js';
+import { EditalStrategy } from './strategy/edital.strategy.js';
+import { VagaStrategy } from './strategy/vaga.strategy.js';
+import { GithubSource } from './sources/github.source.js';
+import {
+  assertCoversAllJobTypes,
+  JOB_SOURCES,
+  JobSource,
+} from './sources/job.source.js';
+
+const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource];
 
 @Module({
   imports: [
@@ -44,18 +54,23 @@ import { GithubService } from './services/github.service.js';
     PrismaService,
     FinishJobsProvider,
     FinishJobsConsumer,
-    GithubService,
-    ImdScraperService,
     PdfExtractorService,
+    CambioService,
     NotifyNewJobsProvider,
     NotifyNewJobsConsumer,
     NotifyPdfsProvider,
     NotifyNewPdf,
     GetNewJobsProvider,
     GetNewJobsConsumer,
-    JerimunScraperService,
-    StiScraperService,
+    EditalStrategy,
+    VagaStrategy,
     NotifyAllConsumer,
+    ...SOURCES,
+    {
+      provide: JOB_SOURCES,
+      inject: SOURCES,
+      useFactory: (...sources: JobSource[]) => assertCoversAllJobTypes(sources),
+    },
   ],
   controllers: [WebScrappingController],
 })

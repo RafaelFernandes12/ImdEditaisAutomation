@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveJob, JobsRepository } from '../repositories/jobs.repository.js';
 import { CreateJob } from '../dto/jobs.dto.js';
+import { JobType } from '#generated/prisma/enums.js';
 
 export type { ActiveJob };
 
@@ -16,6 +17,9 @@ export class JobsService {
   }
   async findActive(stillActive: boolean = false) {
     return await this.jobsRepository.findActive(stillActive);
+  }
+  async findActiveByTypes(types: JobType[]) {
+    return await this.jobsRepository.findActive(false, types);
   }
 
   async deactivateMany(data: { id: number; validUntil?: number }[]) {
