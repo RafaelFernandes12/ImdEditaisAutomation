@@ -21,6 +21,7 @@ function vaga(overrides: Partial<VagaResumida> = {}): VagaResumida {
     modalidade: 'CLT',
     cidade: 'Natal',
     estado: 'RN',
+    isInternational: false,
     duracao: null,
     keywords: ['Node.js', 'PostgreSQL'],
     ecossystems: [],

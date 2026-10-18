@@ -39,6 +39,7 @@ export class SummarizeJob {
     modalidade: z.enum(Modelo).nullable(),
     cidade: z.string().nullable(),
     estado: z.string().nullable(),
+    isInternational: z.boolean(),
     duracao: z.string().nullable(),
     keywords: z.array(z.string()),
     ecossystems: z.array(z.enum(Object.keys(ECOSYSTEMS))).max(3),
@@ -66,6 +67,7 @@ COMO PREENCHER CADA CAMPO:
 - modalidade: tipo de vínculo: "CLT", "PJ", "ESTAGIO", "FREELANCE" ou "BOLSISTA" (Se o type do job for IMD, LAIS ou ECT, é bolsista). Outro tipo de vínculo usa null.
 - cidade: nome da cidade onde a vaga é exercida, sem o estado. Se não achar, use null.
 - estado: sigla da UF (ex: "RN", "SP"). Se não achar, use null.
+- isInternational: true se a contratação é feita por empresa de fora do Brasil ou a vaga é exercida fora do Brasil (ex: empresa estrangeira contratando remoto do Brasil, pagamento em dólar ou euro, vaga em outro país). false para empresa brasileira, mesmo que peça inglês ou atenda clientes de fora. Se o texto não deixar claro, use false.
 - duracao: duração do contrato ou da bolsa, curta (ex: "12 meses", "6 meses, prorrogável"). Se o texto disser que não tem prazo definido, use "Indeterminado"; se não falar de duração, use null.
 - keywords: de 5 a 10 hard skills, tecnologias ou ferramentas pedidas na vaga, com a grafia oficial (ex: "Node.js", "PostgreSQL", "Python"). Não inclua soft skills nem termos genéricos como "programação" ou "tecnologia". Se o texto citar menos de 5, devolva só as citadas.
 - ecossystems: derive SOMENTE das keywords que você listou acima, no máximo 3, do mais para o menos relevante. Um ecossistema entra se alguma keyword for um dos termos dele (ignorando maiúsculas, versão e sufixos como ".js": "React.js" → react, "Python 3" → python). Não use o resto do texto e não escolha um ecossistema só por proximidade. Se nenhuma keyword casar, devolva lista vazia. Use só os nomes desta lista (cada nome seguido dos termos que o caracterizam):

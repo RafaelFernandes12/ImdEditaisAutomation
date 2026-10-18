@@ -71,3 +71,11 @@ https://funpec.br/processo-seletivo/processo-seletivo-04-2024-programador-de-sis
 - Vagas por mês: não medido
 - Ruído: alto no BNE — muita vaga com "desenvolvedor" no título é comercial/vendas
 - Obs: BNE tem páginas por cidade + cargo (HTML). Gupy é onde muitas empresas de Natal recrutam, mas os endpoints de API pública conhecidos (`portal.api.gupy.io/api/job`, `employability-portal.gupy.io/api/v1/jobs`) deram 404 — investigar como o portal faz a busca por cidade. Mais frágeis que as outras fontes
+
+### telegram — vagas ti br
+
+- Site: https://t.me/vagastibr (grupo público, ~65 mil membros)
+- Volume de tech: não medido
+- Vagas por mês: não medido
+- Ruído: médio — é grupo de conversa, mas a regra do grupo pede a hashtag `#vaga` em todo anúncio, o que já separa vaga de conversa antes do filtro de ecossistemas
+- Obs: é grupo, não canal — a prévia web `t.me/s/vagastibr` não existe (redireciona). Bot API só funciona se um admin adicionar o bot. O caminho é cliente de usuário (MTProto, npm `telegram`/GramJS) com `api_id`/`api_hash` de my.telegram.org e sessão salva no `.env`; lê o histórico pelo `@vagastibr`. Seria fonte de kind VAGA (como GitHub/Jerimum), com link `t.me/vagastibr/<id>` aberto a qualquer um. Grupo nacional — deve ser quase tudo remoto/outras cidades, sobrepondo o GitHub; medir quantas citam Natal/RN antes de implementar

@@ -31,6 +31,7 @@ type CadastroBody = {
   modelo?: unknown;
   senioridade?: unknown;
   escolaridade?: unknown;
+  isInternational?: unknown;
 };
 
 function text(value: unknown) {
@@ -114,6 +115,8 @@ export class CadastroController {
       modelo: list(body?.modelo),
       senioridade: list(body?.senioridade),
       escolaridade: list(body?.escolaridade),
+      // Sem o campo no formulário, o padrão é só vaga nacional.
+      isInternational: body?.isInternational === true,
     };
 
     const result = await this.registerLinkService.register(token, data);

@@ -18,6 +18,9 @@ const ALL_COVERED = [
   source('sti', ['STI']),
   source('jerimum', ['JERIMUM']),
   source('github', ['BACKEND_GITHUB', 'FRONTEND_GITHUB']),
+  source('lais', ['LAIS']),
+  source('funpec', ['FUNPEC']),
+  source('ect', ['ECT']),
 ];
 
 describe('assertCoversAllJobTypes', () => {
