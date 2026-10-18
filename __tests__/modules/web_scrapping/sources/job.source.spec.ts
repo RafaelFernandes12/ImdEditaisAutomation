@@ -22,6 +22,7 @@ const ALL_COVERED = [
   source('lais', ['LAIS']),
   source('funpec', ['FUNPEC']),
   source('ect', ['ECT']),
+  source('gupy', ['GUPY']),
 ];
 
 describe('assertCoversAllJobTypes', () => {
