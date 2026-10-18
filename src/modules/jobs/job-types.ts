@@ -20,7 +20,11 @@ export const JOB_TYPES = {
     header: 'VAGAS FRONTEND GITHUB',
     source: 'GitHub Frontend',
   },
-
+  GUPY: {
+    kind: 'VAGA',
+    header: 'VAGAS GUPY',
+    source: 'Gupy',
+  },
   LAIS: {
     kind: 'EDITAL',
     header: 'EDITAIS LAIS',
