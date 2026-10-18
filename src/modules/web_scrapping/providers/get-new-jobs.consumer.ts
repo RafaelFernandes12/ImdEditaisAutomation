@@ -106,7 +106,12 @@ export class GetNewJobsConsumer extends WorkerHost {
       )
         ? await this.cambio.cotacoes()
         : {};
-      const vagas = toVagas(resumo, cotacoes);
+      // O que a fonte já informa estruturado vale mais que a leitura da IA.
+      const known = 'attributes' in newJob ? newJob.attributes : undefined;
+      const vagas = toVagas(resumo, cotacoes).map((vaga) => ({
+        ...vaga,
+        ...known,
+      }));
 
       // O GitHub informa quando a issue foi criada; nas outras fontes vale o
       // dia da coleta.

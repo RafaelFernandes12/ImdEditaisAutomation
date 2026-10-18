@@ -3,7 +3,10 @@ import {
   JobKind,
   VagaJobType,
 } from '#src/modules/jobs/job-types.js';
-import type { CreateVaga } from '#src/modules/jobs/dto/jobs.dto.js';
+import type {
+  CreateVaga,
+  VagaAttributes,
+} from '#src/modules/jobs/dto/jobs.dto.js';
 
 interface NewJobPayloadBase {
   title: string;
@@ -27,6 +30,12 @@ export interface EditalJobPayload extends NewJobPayloadBase {
 export interface VagaJobPayload extends NewJobPayloadBase {
   type: VagaJobType;
   description: string | null;
+  // Fim das inscrições quando a fonte informa (Gupy), em ISO pelo mesmo motivo
+  // do publishedAt.
+  subscriptionUntil?: string;
+  // Atributos que a fonte já informa estruturados; valem mais que a leitura
+  // da IA sobre o texto.
+  attributes?: Partial<VagaAttributes>;
 }
 export type NewJobPayload = EditalJobPayload | VagaJobPayload;
 
