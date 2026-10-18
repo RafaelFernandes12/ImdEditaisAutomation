@@ -81,6 +81,7 @@ services:
       REDIS_PORT: 6379
       LOKI_URL: http://loki:3100
       OPENAI_API_KEY: ${OPENAI_API_KEY:-local}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
     ports:
       - '${PORT:-7638}:7638'
     volumes:

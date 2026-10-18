@@ -66,6 +66,9 @@ enum JobType {
   STI
   BACKEND_GITHUB
   FRONTEND_GITHUB
+  LAIS
+  FUNPEC
+  ECT
 
   @@map("job_type")
 }
@@ -82,7 +85,7 @@ enum PdfTipo {
 
 model Job {
   id          Int       @id @default(autoincrement())
-  title       String    @unique
+  title       String
   link        String    @unique
   type        JobType
   kind        JobKind

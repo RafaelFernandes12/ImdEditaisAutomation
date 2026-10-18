@@ -30,8 +30,20 @@ import {
   JOB_SOURCES,
   JobSource,
 } from './sources/job.source.js';
+import { LaisSource } from './sources/lais.source.js';
+import { FunpecSource } from './sources/funpec.source.js';
+import { EctSource } from './sources/ect.source.js';
+import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 
-const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource];
+const SOURCES = [
+  ImdSource,
+  StiSource,
+  JerimunSource,
+  GithubSource,
+  LaisSource,
+  FunpecSource,
+  EctSource,
+];
 
 @Module({
   imports: [
@@ -55,6 +67,7 @@ const SOURCES = [ImdSource, StiSource, JerimunSource, GithubSource];
     FinishJobsProvider,
     FinishJobsConsumer,
     PdfExtractorService,
+    EcosystemFilterService,
     CambioService,
     NotifyNewJobsProvider,
     NotifyNewJobsConsumer,
