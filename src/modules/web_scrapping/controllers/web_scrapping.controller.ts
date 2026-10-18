@@ -11,6 +11,8 @@ import { ImdSource } from '../sources/imd.source.js';
 import { LaisSource } from '../sources/lais.source.js';
 import { FunpecSource } from '../sources/funpec.source.js';
 import { EctSource } from '../sources/ect.source.js';
+import { StiSource } from '../sources/sti.source.js';
+import { GupySource } from '../sources/gupy.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -27,6 +29,8 @@ export class WebScrappingController {
     private readonly laisSource: LaisSource,
     private readonly funpecSource: FunpecSource,
     private readonly ectSource: EctSource,
+    private readonly stiSource: StiSource,
+    private readonly gupySource: GupySource,
   ) {}
 
   private trigger(provider: string) {
@@ -93,5 +97,17 @@ export class WebScrappingController {
   async getEctSource() {
     this.trigger('getEctSource');
     return await this.getNewJobsProvider.collect(this.ectSource);
+  }
+
+  @Get('/getStiSource')
+  async getStiSource() {
+    this.trigger('getStiSource');
+    return await this.getNewJobsProvider.collect(this.stiSource);
+  }
+
+  @Get('/getGupySource')
+  async getGupySource() {
+    this.trigger('getGupySource');
+    return await this.getNewJobsProvider.collect(this.gupySource);
   }
 }
