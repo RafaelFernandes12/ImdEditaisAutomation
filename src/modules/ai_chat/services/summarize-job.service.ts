@@ -55,7 +55,7 @@ REGRA PRINCIPAL: nunca invente nem deduza valores. Se o texto não informar um c
 COMO PREENCHER CADA CAMPO:
 - isTech: true se o trabalho do dia a dia da vaga for de tecnologia: desenvolver, testar, manter ou operar software, dados, infraestrutura ou sistemas (ex: desenvolvimento, QA, dados/BI, IA, DevOps/cloud, segurança da informação, suporte técnico e redes, UI/UX de produtos digitais, embarcados, desenvolvimento de jogos). false se a atividade principal for de outra área, mesmo que a empresa, o setor ou o edital sejam de tecnologia (ex: vendas, comercial, marketing, design gráfico, arte e animação para jogos, atendimento ao cliente sem suporte técnico, administrativo, financeiro, RH, coordenação ou gestão sem atuação técnica). Decida pelas atribuições da vaga, nunca pelos cursos aceitos, pelo nome da empresa ou por ferramentas de escritório (Excel, Notion, Google Sheets, CRM). Em editais com várias vagas, decida separadamente para cada uma.
 - vaga: nome curto do cargo ou do perfil, sem a senioridade (ex: "Desenvolvedor Backend", "Bolsista de Desenvolvimento Web"). Se o texto não disser qual é o cargo, use null.
-- senioridade: nível exigido do candidato, só se o texto disser explicitamente. Em anúncio de emprego, use "ESTAGIO", "TRAINEE", "JUNIOR", "PLENO", "SENIOR" ou "TECHLEAD" (Tech Lead). Vaga de estágio usa "ESTAGIO" aqui e também em modalidade. Se não achar, devolva null.
+- senioridade: nível exigido do candidato, só se o título ou o texto disser explicitamente (abreviações valem: "Sr" é SENIOR, "Pl" é PLENO, "Jr" é JUNIOR). Em anúncio de emprego, use "ESTAGIO", "TRAINEE", "JUNIOR", "PLENO", "SENIOR" ou "TECHLEAD" (Tech Lead). Vaga de estágio usa "ESTAGIO" aqui e também em modalidade. Se não achar, devolva null.
 - escolaridade: Use o nível acadêmico exigido pelaga vaga: graduandos usam "GRADUACAO"; graduados ou bacharéis, "GRADUADO"; também vale "MESTRADO" ou "DOUTORADO". Se não achar, devolva null
 - qtdVagas: número de vagas imediatas. Se o texto não disser quantas, use null.
 - cadastroReserva: número de vagas de cadastro reserva. Se não houver ou não disser, use null.
@@ -78,11 +78,21 @@ ${Object.entries(ECOSYSTEMS)
 Texto:
 `;
 
+  // O título traz o que a descrição muitas vezes omite: a senioridade (Gupy,
+  // GitHub) e o cargo, quando o texto abre falando só da empresa.
+  buildInput(job: NewJobPayload, text: string) {
+    return (
+      this.summarizePrompt +
+      `Título: ${job.title}\n\n${text}` +
+      `\n\n\n TIPO DA VAGA:${job.type}`
+    );
+  }
+
   async execute(job: NewJobPayload, text: string) {
     try {
       const jobResume = await openAIClient.responses.parse({
         model: process.env.LLM_MODEL ?? 'gpt-4o-mini',
-        input: this.summarizePrompt + text + `\n\n\n TIPO DA VAGA:${job.type}`,
+        input: this.buildInput(job, text),
         text: {
           format: zodTextFormat(
             z.object({ vagas: z.array(this.vaga) }),
@@ -90,6 +100,8 @@ Texto:
           ),
         },
       });
+
+      console.log('JOBRESUME', jobResume);
       if (!jobResume.output_parsed) {
         throw new Error('A IA não devolveu o resumo estruturado da vaga');
       }

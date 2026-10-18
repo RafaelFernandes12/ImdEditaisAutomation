@@ -12,4 +12,26 @@ describe('SummarizeJob', () => {
       }
     }
   });
+
+  // A senioridade costuma estar só no título ("Desenvolvedor Java SR").
+  it('manda o título da vaga junto com o texto', () => {
+    const service = new SummarizeJob();
+
+    const input = service.buildInput(
+      {
+        title: 'DESENVOLVEDOR FULLSTACK SR',
+        type: 'GUPY',
+        link: 'https://empresa.gupy.io/job/1',
+        description: 'Somos uma empresa de software.',
+        isActive: true,
+      },
+      'Somos uma empresa de software.',
+    );
+
+    expect(input).toContain(
+      'Título: DESENVOLVEDOR FULLSTACK SR\n\nSomos uma empresa de software.',
+    );
+    expect(input.startsWith(service.summarizePrompt)).toBe(true);
+    expect(input).toContain('TIPO DA VAGA:GUPY');
+  });
 });
