@@ -25,6 +25,8 @@ import {
   GupyWorkplaceType,
 } from '../models/gupy.js';
 import { matchedEcosystemTerms } from '../utils/ecosystem-match.util.js';
+import { htmlToText } from '../utils/html-to-text.util.js';
+import { UFS } from '../utils/uf.util.js';
 
 const SEARCH_URL = 'https://portal.gupy.io/api/job-search/jobs';
 
@@ -58,36 +60,6 @@ const SENIORIDADE: Partial<Record<GupyJobType, Senioridade>> = {
   vacancy_type_internship: 'ESTAGIO',
   vacancy_type_trainee: 'TRAINEE',
 };
-
-const UFS = new Set([
-  'AC',
-  'AL',
-  'AP',
-  'AM',
-  'BA',
-  'CE',
-  'DF',
-  'ES',
-  'GO',
-  'MA',
-  'MT',
-  'MS',
-  'MG',
-  'PA',
-  'PB',
-  'PR',
-  'PE',
-  'PI',
-  'RJ',
-  'RN',
-  'RS',
-  'RO',
-  'RR',
-  'SC',
-  'SP',
-  'SE',
-  'TO',
-]);
 
 export interface GupyListedJob extends ListedJob {
   gupy: GupyJob;
@@ -374,18 +346,4 @@ function pageText(page: GupyJobPage) {
   })
     .filter((section): section is string => section !== null)
     .join('\n\n');
-}
-
-// Quebra de linha depois de cada bloco: sem ela, "<li>Java</li><li>Spring"
-// vira "JavaSpring" e nenhum dos dois termos casa.
-function htmlToText(html: string | null) {
-  if (!html) return '';
-  const $ = cheerio.load(html);
-  $('p, li, br, div, h1, h2, h3, h4, h5, h6').after('\n');
-  return $.root()
-    .text()
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join('\n');
 }
