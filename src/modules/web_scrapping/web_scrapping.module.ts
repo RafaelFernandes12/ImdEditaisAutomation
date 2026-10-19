@@ -36,6 +36,7 @@ import { FunpecSource } from './sources/funpec.source.js';
 import { EctSource } from './sources/ect.source.js';
 import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 import { GupySource } from './sources/gupy.source.js';
+import { LinkedinSource } from './sources/linkedin.source.js';
 
 const SOURCES = [
   ImdSource,
@@ -46,6 +47,7 @@ const SOURCES = [
   FunpecSource,
   EctSource,
   GupySource,
+  LinkedinSource,
 ];
 
 @Module({
