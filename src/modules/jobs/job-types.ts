@@ -40,6 +40,12 @@ export const JOB_TYPES = {
     header: 'EDITAIS ECT',
     source: 'ECT',
   },
+
+  LINKEDIN: {
+    kind: 'VAGA',
+    header: 'VAGAS LINKEDIN',
+    source: 'LINKEDIN',
+  },
 } as const satisfies Record<
   JobType,
   { kind: JobKind; header: string; source: string }
