@@ -101,12 +101,13 @@ describe('GupySource', () => {
     it('busca cada termo e não repete a vaga que casa com mais de um', async () => {
       mockFetchOnce([gupyJob({ id: 1 }), gupyJob({ id: 2 })]);
       mockFetchOnce([gupyJob({ id: 2 }), gupyJob({ id: 3 })]);
-      mockFetchOnce([]);
+      for (let i = 0; i < 3; i++) mockFetchOnce([]);
+      mockFetchOnce([gupyJob({ id: 3 })]);
 
       const listed = await service.list();
 
-      // desenvolvedor, developer e software.
-      expect(global.fetch).toHaveBeenCalledTimes(3);
+      // desenvolvedor, developer e software, no país e em Natal.
+      expect(global.fetch).toHaveBeenCalledTimes(6);
       const [firstUrl] = jest.mocked(global.fetch).mock.calls[0] as [URL];
       expect(firstUrl.searchParams.get('jobName')).toBe('desenvolvedor');
       expect(firstUrl.searchParams.get('sortBy')).toBe('publishedDate');
@@ -115,6 +116,21 @@ describe('GupySource', () => {
         link: 'https://empresa.gupy.io/job/1',
         type: 'GUPY',
       });
+    });
+
+    it('busca no país sem local e em Natal com cidade e estado', async () => {
+      for (let i = 0; i < 6; i++) mockFetchOnce([]);
+
+      await service.list();
+
+      const urls = jest
+        .mocked(global.fetch)
+        .mock.calls.map(([url]) => (url as URL).searchParams);
+      expect(urls[0].has('city')).toBe(false);
+      expect(urls[0].has('state')).toBe(false);
+      expect(urls[3].get('jobName')).toBe('desenvolvedor');
+      expect(urls[3].get('city')).toBe('Natal');
+      expect(urls[3].get('state')).toBe('Rio Grande do Norte');
     });
 
     it('ignora as vagas de outros sites que o portal também lista', async () => {
@@ -126,7 +142,7 @@ describe('GupySource', () => {
             'https://vaga-ja.com/vagas/empresa/produtor?jobBoardSource=gupy_portal',
         }),
       ]);
-      for (let i = 0; i < 2; i++) mockFetchOnce([]);
+      for (let i = 0; i < 5; i++) mockFetchOnce([]);
 
       const listed = await service.list();
 

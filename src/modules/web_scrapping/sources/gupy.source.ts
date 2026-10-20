@@ -32,6 +32,13 @@ const SEARCH_URL = 'https://portal.gupy.io/api/job-search/jobs';
 
 const SEARCH_TERMS = ['desenvolvedor', 'developer', 'software'];
 
+// Cada termo busca no país e em Natal: as poucas vagas de Natal se perdem entre
+// as mais recentes do país.
+const LOCATIONS: { name: string; city?: string; state?: string }[] = [
+  { name: 'brasil' },
+  { name: 'natal', city: 'Natal', state: 'Rio Grande do Norte' },
+];
+
 const PAGE_SIZE = 100;
 
 const MIN_TECH_TERMS = 2;
@@ -93,6 +100,7 @@ export class GupySource implements JobSource<GupyListedJob> {
     const log = new ScopedLogger(this.logger, 'scraper.gupy');
     const timer = log.start('batch_start', 'Buscando vagas na Gupy', {
       terms: SEARCH_TERMS,
+      locations: LOCATIONS.map((location) => location.name),
     });
 
     try {
@@ -100,10 +108,16 @@ export class GupySource implements JobSource<GupyListedJob> {
       const countByTerm: Record<string, number> = {};
 
       // Uma requisição por vez para não martelar a API do portal.
-      for (const term of SEARCH_TERMS) {
-        const jobs = await this.search(log.child({ term }), term);
-        countByTerm[term] = jobs.length;
-        for (const job of jobs) byId.set(job.id, job);
+      for (const location of LOCATIONS) {
+        for (const term of SEARCH_TERMS) {
+          const jobs = await this.search(
+            log.child({ term, location: location.name }),
+            term,
+            location,
+          );
+          countByTerm[`${location.name}/${term}`] = jobs.length;
+          for (const job of jobs) byId.set(job.id, job);
+        }
       }
 
       // O portal também lista vagas de outros sites (vaga-ja.com), cuja página
@@ -197,10 +211,15 @@ export class GupySource implements JobSource<GupyListedJob> {
     );
   }
 
-  private async search(log: ScopedLogger, term: string) {
+  private async search(
+    log: ScopedLogger,
+    term: string,
+    { city, state }: (typeof LOCATIONS)[number],
+  ) {
     const url = new URL(SEARCH_URL);
     url.search = new URLSearchParams({
       jobName: term,
+      ...(city && state && { city, state }),
       limit: String(PAGE_SIZE),
       offset: '0',
       sortBy: 'publishedDate',
@@ -223,7 +242,8 @@ export class GupySource implements JobSource<GupyListedJob> {
         throw new Error('Resposta da API da Gupy sem a lista de vagas');
       }
 
-      if (body.data.length === 0) {
+      // Em Natal, termo sem vaga é o normal.
+      if (body.data.length === 0 && !city) {
         log.warn('list.empty', 'Termo retornou zero vagas');
       }
 
