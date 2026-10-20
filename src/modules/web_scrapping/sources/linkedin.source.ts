@@ -16,6 +16,7 @@ import { VagaJobPayload } from '../strategy/new-job.strategy.js';
 import { LinkedinCard, LinkedinJobPage } from '../models/linkedin.js';
 import { matchedEcosystemTerms } from '../utils/ecosystem-match.util.js';
 import { htmlToText } from '../utils/html-to-text.util.js';
+import { inNatal } from '../utils/natal.util.js';
 import { UFS } from '../utils/uf.util.js';
 
 // Rotas que a página pública de vagas usa sem login.
@@ -43,8 +44,8 @@ const NATAL_PARAMS = {
 };
 
 const SEARCHES = [
-  { name: 'brasil', params: BRASIL_PARAMS },
-  { name: 'natal', params: NATAL_PARAMS },
+  { name: 'brasil', params: BRASIL_PARAMS, natal: false },
+  { name: 'natal', params: NATAL_PARAMS, natal: true },
 ];
 
 const PAGE_SIZE = 10;
@@ -78,6 +79,8 @@ const MODELO: Partial<Record<string, Modelo>> = {
 
 export interface LinkedinListedJob extends ListedJob {
   linkedin: LinkedinCard;
+  // Achada na busca de Natal.
+  natal: boolean;
 }
 
 class LinkedinBlockedError extends Error {
@@ -118,6 +121,7 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
 
     try {
       const byId = new Map<string, LinkedinCard>();
+      const natalIds = new Set<string>();
       const countBySearch: Record<string, number> = {};
       let requests = 0;
 
@@ -150,7 +154,10 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
           }
 
           countBySearch[search.name] += cards.length;
-          for (const card of cards) byId.set(card.id, card);
+          for (const card of cards) {
+            byId.set(card.id, card);
+            if (search.natal) natalIds.add(card.id);
+          }
           // Página incompleta é a última.
           if (cards.length < PAGE_SIZE) break;
         }
@@ -165,6 +172,7 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
         link: jobLink(linkedin.id),
         type: 'LINKEDIN',
         linkedin,
+        natal: natalIds.has(linkedin.id),
       }));
     } catch (err: unknown) {
       timer.error('batch_failed', 'Falha ao buscar as vagas do LinkedIn', {
@@ -189,7 +197,7 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
 
     // Vaga que falha fica fora do banco e volta a ser tentada na próxima
     // coleta. No bloqueio para de vez: o resto também fica para a próxima.
-    for (const [index, { linkedin }] of jobs.entries()) {
+    for (const [index, { linkedin, natal }] of jobs.entries()) {
       const jobLog = log.child({ linkedinId: linkedin.id });
 
       try {
@@ -209,7 +217,8 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
           continue;
         }
 
-        payloads.push(this.toJob(linkedin, page, description));
+        const job = this.toJob(linkedin, page, description);
+        payloads.push(natal ? inNatal(job) : job);
       } catch (err: unknown) {
         if (err instanceof LinkedinBlockedError) {
           blocked = true;

@@ -21,6 +21,7 @@ import { VagaJobPayload } from '../strategy/new-job.strategy.js';
 import { InfojobsCard, InfojobsJobPage } from '../models/infojobs.js';
 import { matchedEcosystemTerms } from '../utils/ecosystem-match.util.js';
 import { htmlToText } from '../utils/html-to-text.util.js';
+import { inNatal } from '../utils/natal.util.js';
 import { UFS } from '../utils/uf.util.js';
 
 const BASE_URL = 'https://www.infojobs.com.br';
@@ -39,6 +40,7 @@ const SEARCHES = [
     idw: '1,3',
     workplaces: ['Presencial', 'Híbrido'],
     uf: 'RN',
+    natal: true,
   },
   {
     name: 'remoto',
@@ -46,6 +48,7 @@ const SEARCHES = [
     idw: '2',
     workplaces: ['Home office'],
     uf: null,
+    natal: false,
   },
 ];
 
@@ -82,6 +85,8 @@ const SENIORIDADE: Partial<Record<string, Senioridade>> = {
 
 export interface InfojobsListedJob extends ListedJob {
   infojobs: InfojobsCard;
+  // Achada na busca de Natal.
+  natal: boolean;
 }
 
 @Injectable()
@@ -116,6 +121,7 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
 
     try {
       const byId = new Map<string, InfojobsCard>();
+      const natalIds = new Set<string>();
       const countBySearch: Record<string, number> = {};
 
       for (const [index, search] of SEARCHES.entries()) {
@@ -125,7 +131,10 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
           search,
         );
         countBySearch[search.name] = cards.length;
-        for (const card of cards) byId.set(card.id, card);
+        for (const card of cards) {
+          byId.set(card.id, card);
+          if (search.natal) natalIds.add(card.id);
+        }
       }
 
       timer.info('batch_done', 'Vagas do InfoJobs obtidas', {
@@ -137,6 +146,7 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
         link: jobLink(infojobs.path),
         type: 'INFOJOBS',
         infojobs,
+        natal: natalIds.has(infojobs.id),
       }));
     } catch (err: unknown) {
       timer.error('batch_failed', 'Falha ao buscar as vagas do InfoJobs', {
@@ -158,7 +168,7 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
 
     // Vaga que falha fica fora do banco e volta a ser tentada na próxima
     // coleta.
-    for (const [index, { infojobs }] of jobs.entries()) {
+    for (const [index, { infojobs, natal }] of jobs.entries()) {
       const jobLog = log.child({ infojobsId: infojobs.id });
 
       try {
@@ -178,7 +188,8 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
           continue;
         }
 
-        payloads.push(this.toJob(infojobs, page, description));
+        const job = this.toJob(infojobs, page, description);
+        payloads.push(natal ? inNatal(job) : job);
       } catch (err: unknown) {
         failed++;
         jobLog.warn('job.failed', 'Falha ao processar a vaga', { err });

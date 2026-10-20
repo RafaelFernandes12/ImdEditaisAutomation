@@ -119,9 +119,17 @@ describe('GupySource', () => {
     });
 
     it('busca no país sem local e em Natal com cidade e estado', async () => {
-      for (let i = 0; i < 6; i++) mockFetchOnce([]);
+      for (let i = 0; i < 3; i++) mockFetchOnce([gupyJob({ id: 1 })]);
+      mockFetchOnce([gupyJob({ id: 1 }), gupyJob({ id: 2 })]);
+      for (let i = 0; i < 2; i++) mockFetchOnce([]);
 
-      await service.list();
+      const listed = await service.list();
+
+      // A vaga que aparece também na busca do país continua de Natal.
+      expect(listed.map(({ gupy, natal }) => [gupy.id, natal])).toEqual([
+        [1, true],
+        [2, true],
+      ]);
 
       const urls = jest
         .mocked(global.fetch)
@@ -163,9 +171,9 @@ describe('GupySource', () => {
   });
 
   describe('fetchDetails', () => {
-    const listed = (overrides: Partial<GupyJob> = {}) => {
+    const listed = (overrides: Partial<GupyJob> = {}, natal = false) => {
       const gupy = gupyJob(overrides);
-      return { link: gupy.jobUrl, type: 'GUPY' as const, gupy };
+      return { link: gupy.jobUrl, type: 'GUPY' as const, gupy, natal };
     };
 
     it('monta o payload com o texto da página, prazo e atributos da Gupy', async () => {
@@ -313,6 +321,22 @@ describe('GupySource', () => {
 
       expect(payload.attributes).not.toHaveProperty('state');
       expect(payload.attributes).not.toHaveProperty('isInternational');
+    });
+
+    it('põe em Natal a vaga achada na busca de Natal, seja qual for o local', async () => {
+      mockPageOnce({
+        addressCity: 'Bogota',
+        addressStateShortName: 'Ninguno',
+        addressCountryShortName: 'CO',
+      });
+
+      const [payload] = await service.fetchDetails([listed({}, true)]);
+
+      expect(payload.attributes).toMatchObject({
+        city: 'Natal',
+        state: 'RN',
+        isInternational: false,
+      });
     });
   });
 
