@@ -228,12 +228,19 @@ describe('vagaMatches', () => {
       expect(score('city', prefs(), vaga({ formato: 'REMOTO' }))).toBe(-100);
     });
 
+    // Fora de Natal: vaga em Natal tem o score multiplicado.
+    const mossoro = prefs({ city: 'Mossoró' });
+
     it('presencial ou híbrida vale 1 só na cidade do usuário', () => {
       expect(
-        score('city', prefs(), vaga({ formato: 'PRESENCIAL', city: 'natal' })),
+        score(
+          'city',
+          mossoro,
+          vaga({ formato: 'PRESENCIAL', city: 'mossoró' }),
+        ),
       ).toBe(1);
       expect(
-        score('city', prefs(), vaga({ formato: 'HIBRIDO', city: 'Recife' })),
+        score('city', mossoro, vaga({ formato: 'HIBRIDO', city: 'Recife' })),
       ).toBe(-100);
     });
 
@@ -258,7 +265,7 @@ describe('vagaMatches', () => {
 
     it('quem só quer remoto não recebe presencial', () => {
       expect(
-        score('city', remoto, vaga({ formato: 'PRESENCIAL', city: 'Natal' })),
+        score('city', remoto, vaga({ formato: 'PRESENCIAL', city: 'Recife' })),
       ).toBe(-100);
     });
 
@@ -272,8 +279,8 @@ describe('vagaMatches', () => {
     });
 
     it('sem formato, usa o local da vaga', () => {
-      expect(score('city', prefs(), vaga({ city: 'Natal' }))).toBe(1);
-      expect(score('city', prefs(), vaga({ city: 'Recife' }))).toBe(-100);
+      expect(score('city', mossoro, vaga({ city: 'Mossoró' }))).toBe(1);
+      expect(score('city', mossoro, vaga({ city: 'Recife' }))).toBe(-100);
     });
   });
 
