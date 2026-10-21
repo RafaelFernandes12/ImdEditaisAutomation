@@ -45,7 +45,7 @@ const SEARCH_PARAMS = {
 // O LinkedIn devolve 10 cards por página, sem opção de mudar.
 const PAGE_SIZE = 10;
 
-const MAX_PAGES = 5;
+const MAX_PAGES = 1;
 
 const MIN_TECH_TERMS = 2;
 
