@@ -26,6 +26,7 @@ function fakeSource(
   overrides: Partial<JobSource> & Pick<JobSource, 'name' | 'types'>,
 ): JobSource {
   return {
+    weight: [],
     list: jest.fn().mockResolvedValue([]),
     fetchDetails: jest.fn(),
     ...overrides,

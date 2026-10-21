@@ -69,6 +69,8 @@ enum JobType {
   LAIS
   FUNPEC
   ECT
+  GUPY
+  LINKEDIN
 
   @@map("job_type")
 }

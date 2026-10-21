@@ -3,6 +3,7 @@ import {
   vagaMatches,
 } from '../../../../src/modules/web_scrapping/utils/job-filter.util.js';
 import { formatRankedVagas } from '../../../../src/utils/format-job-lines.js';
+import type { JobWeights } from '../../../../src/modules/web_scrapping/sources/job.source.js';
 
 type Jobs = Parameters<typeof rankVagas>[1];
 type Preferences = NonNullable<
@@ -20,6 +21,36 @@ const prefs: Preferences = {
   salary: 3000,
   isInternational: true,
 };
+
+// Mesmos pesos das sources do GitHub e do IMD.
+const weights: JobWeights = new Map([
+  [
+    'BACKEND_GITHUB',
+    {
+      ecossytem: 40,
+      escolaridade: 10,
+      salary: 5,
+      formato: 5,
+      city: 1,
+      modelo: 4,
+      senioridade: 30,
+      priority: 1,
+    },
+  ],
+  [
+    'IMD',
+    {
+      ecossytem: 65,
+      escolaridade: 20,
+      salary: 5,
+      formato: 5,
+      city: 0,
+      modelo: 5,
+      senioridade: 0,
+      priority: 1.4,
+    },
+  ],
+]);
 
 let nextId = 1;
 function vaga(overrides: Record<string, unknown> = {}) {
@@ -68,7 +99,11 @@ describe('rankVagas', () => {
       ],
     });
 
-    const ranked = rankVagas({ UserPreferences: prefs }, jobs([media, forte]));
+    const ranked = rankVagas(
+      { UserPreferences: prefs },
+      jobs([media, forte]),
+      weights,
+    );
 
     expect(ranked.map(({ vaga }) => vaga.summary)).toEqual(['forte', 'media']);
     expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
@@ -76,7 +111,9 @@ describe('rankVagas', () => {
 
   it('corta vaga do GitHub abaixo da nota mínima', () => {
     const fraca = job({ vagas: [vaga({ ecossytem: 'php' })] });
-    expect(rankVagas({ UserPreferences: prefs }, jobs([fraca]))).toEqual([]);
+    expect(
+      rankVagas({ UserPreferences: prefs }, jobs([fraca]), weights),
+    ).toEqual([]);
   });
 
   it('manda sempre as vagas das fontes locais, mesmo sem compatibilidade', () => {
@@ -85,17 +122,24 @@ describe('rankVagas', () => {
       kind: 'EDITAL',
       vagas: [vaga({ ecossytem: 'php', senioridade: 'SENIOR' })],
     });
-    expect(rankVagas({ UserPreferences: prefs }, jobs([imd]))).toHaveLength(1);
+    expect(
+      rankVagas({ UserPreferences: prefs }, jobs([imd]), weights),
+    ).toHaveLength(1);
   });
 
   it('tira 100 pontos da vaga internacional de quem não quer internacional', () => {
     const internacional = job({
       vagas: [vaga({ ecossytem: 'java', isInternational: true })],
     });
-    const aceita = rankVagas({ UserPreferences: prefs }, jobs([internacional]));
+    const aceita = rankVagas(
+      { UserPreferences: prefs },
+      jobs([internacional]),
+      weights,
+    );
     const naoAceita = rankVagas(
       { UserPreferences: { ...prefs, isInternational: false } },
       jobs([internacional]),
+      weights,
     );
 
     expect(aceita).toHaveLength(1);
@@ -110,16 +154,22 @@ describe('rankVagas', () => {
         { ...prefs, isInternational },
         vagaInternacional as never,
         'BACKEND_GITHUB',
+        weights,
       ).score;
     expect(pontos(true) - pontos(false)).toBe(100);
   });
 
   it('não penaliza vaga nacional de quem não quer internacional', () => {
     const nacional = job({ vagas: [vaga({ ecossytem: 'java' })] });
-    const [aceita] = rankVagas({ UserPreferences: prefs }, jobs([nacional]));
+    const [aceita] = rankVagas(
+      { UserPreferences: prefs },
+      jobs([nacional]),
+      weights,
+    );
     const [naoAceita] = rankVagas(
       { UserPreferences: { ...prefs, isInternational: false } },
       jobs([nacional]),
+      weights,
     );
 
     expect(naoAceita.score).toBe(aceita.score);
@@ -127,7 +177,9 @@ describe('rankVagas', () => {
 
   it('cadastro sem preferências recebe todas as vagas', () => {
     const fraca = job({ vagas: [vaga({ ecossytem: 'php' }), vaga()] });
-    expect(rankVagas({ UserPreferences: null }, jobs([fraca]))).toHaveLength(2);
+    expect(
+      rankVagas({ UserPreferences: null }, jobs([fraca]), weights),
+    ).toHaveLength(2);
   });
 });
 

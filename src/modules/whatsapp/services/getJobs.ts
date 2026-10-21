@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import pkg from 'whatsapp-web.js';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../../jobs/services/jobs.service.js';
@@ -7,6 +7,10 @@ import { maskContact } from '../../../utils/log-redact.js';
 import { formatRankedVagas } from '../../../utils/format-job-lines.js';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { rankVagas } from '../../web_scrapping/utils/job-filter.util.js';
+import {
+  JOB_WEIGHTS,
+  type JobWeights,
+} from '../../web_scrapping/sources/job.source.js';
 
 @Injectable()
 export class GetJobs {
@@ -15,6 +19,8 @@ export class GetJobs {
     private userService: UserService,
     @InjectPinoLogger(GetJobs.name)
     private readonly logger: PinoLogger,
+    @Inject(JOB_WEIGHTS)
+    private readonly weights: JobWeights,
   ) {}
 
   async execute(message: pkg.Message, stillActive: boolean) {
@@ -31,6 +37,7 @@ export class GetJobs {
     const ranked = rankVagas(
       { UserPreferences: user?.UserPreferences ?? null },
       activeJobs,
+      this.weights,
     );
 
     if (ranked.length === 0) {

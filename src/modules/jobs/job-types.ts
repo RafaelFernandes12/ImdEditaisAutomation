@@ -20,7 +20,11 @@ export const JOB_TYPES = {
     header: 'VAGAS FRONTEND GITHUB',
     source: 'GitHub Frontend',
   },
-
+  GUPY: {
+    kind: 'VAGA',
+    header: 'VAGAS GUPY',
+    source: 'Gupy',
+  },
   LAIS: {
     kind: 'EDITAL',
     header: 'EDITAIS LAIS',
@@ -35,6 +39,12 @@ export const JOB_TYPES = {
     kind: 'EDITAL',
     header: 'EDITAIS ECT',
     source: 'ECT',
+  },
+
+  LINKEDIN: {
+    kind: 'VAGA',
+    header: 'VAGAS LINKEDIN',
+    source: 'LINKEDIN',
   },
 } as const satisfies Record<
   JobType,

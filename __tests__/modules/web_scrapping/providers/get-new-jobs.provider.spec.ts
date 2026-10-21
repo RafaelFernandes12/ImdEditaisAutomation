@@ -26,7 +26,7 @@ function fakeSource(name: string, types: JobType[], jobs: ListedJob[]) {
     .mockImplementation((toFetch: ListedJob[]) =>
       Promise.resolve(toFetch.map((job) => ({ ...job, detailed: true }))),
     );
-  const source: JobSource = { name, types, list, fetchDetails };
+  const source: JobSource = { name, types, weight: [], list, fetchDetails };
   return Object.assign(source, { mocks: { list, fetchDetails } });
 }
 

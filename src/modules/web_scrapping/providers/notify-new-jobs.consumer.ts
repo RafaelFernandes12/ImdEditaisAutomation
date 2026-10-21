@@ -4,10 +4,11 @@ import { JobsService } from '../../jobs/services/jobs.service.js';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { client } from '#src/config/whatsapp/client.js';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Inject } from '@nestjs/common';
 import { formatRankedVagas } from '#src/utils/format-job-lines.js';
 import { ScopedLogger } from '#src/utils/scoped-logger.js';
 import { rankVagas } from '../utils/job-filter.util.js';
+import { JOB_WEIGHTS, type JobWeights } from '../sources/job.source.js';
 
 @Processor('notifyNewJobs')
 export class NotifyNewJobsConsumer extends WorkerHost {
@@ -16,6 +17,8 @@ export class NotifyNewJobsConsumer extends WorkerHost {
     @InjectPinoLogger(NotifyNewJobsConsumer.name)
     private readonly logger: PinoLogger,
     private readonly userService: UserService,
+    @Inject(JOB_WEIGHTS)
+    private readonly weights: JobWeights,
   ) {
     super();
   }
@@ -45,7 +48,7 @@ export class NotifyNewJobsConsumer extends WorkerHost {
       );
       // Job filtrado não é marcado como enviado: se o usuário mudar as
       // preferências, ele volta a ser avaliado.
-      const ranked = rankVagas(user, unsentJobs);
+      const ranked = rankVagas(user, unsentJobs, this.weights);
       const newJobsId = [...new Set(ranked.map(({ job }) => job.id))];
 
       if (ranked.length === 0) {

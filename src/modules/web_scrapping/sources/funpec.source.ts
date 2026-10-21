@@ -6,7 +6,7 @@ import { ScopedLogger } from '../../../utils/scoped-logger.js';
 import { JobUrl, JobWithPdfLinks } from '../models/sources.js';
 import { PdfExtractorService } from '../utils/pdf-extractor.service.js';
 import { EditalJobPayload } from '../strategy/new-job.strategy.js';
-import { JobSource, JobToFinish } from './job.source.js';
+import { JobSource, JobToFinish, SourceWeight } from './job.source.js';
 import type { ActiveJob } from '../../jobs/services/jobs.service.js';
 import { EcosystemFilterService } from '../utils/ecosystem-filter.service.js';
 
@@ -60,6 +60,21 @@ function listUrl(status: ProcessoStatus, page: number) {
 export class FunpecSource implements JobSource<JobUrl> {
   readonly name = 'funpec';
   readonly types: JobType[] = ['FUNPEC'];
+  readonly weight: SourceWeight = [
+    [
+      this.types[0],
+      {
+        ecossytem: 55,
+        escolaridade: 10,
+        salary: 5,
+        formato: 10,
+        city: 0,
+        modelo: 10,
+        senioridade: 10,
+        priority: 1.4,
+      },
+    ],
+  ];
   constructor(
     @InjectPinoLogger(FunpecSource.name)
     private readonly logger: PinoLogger,

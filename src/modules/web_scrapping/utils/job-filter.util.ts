@@ -5,6 +5,7 @@ import type {
 } from '#generated/prisma/client.js';
 import { JobsService } from '#src/modules/jobs/services/jobs.service.js';
 import { BadRequestException } from '@nestjs/common';
+import type { JobWeights } from '../sources/job.source.js';
 type jobs = Awaited<ReturnType<JobsService['findActive']>>;
 
 type Preferences = Pick<
@@ -34,125 +35,6 @@ type FilterableVaga = Pick<
   | 'isInternational'
 >;
 
-const weights = new Map<
-  JobType,
-  {
-    ecossytem: number;
-    escolaridade: number;
-    salary: number;
-    formato: number;
-    city: number;
-    modelo: number;
-    senioridade: number;
-    priority: number;
-  }
->([
-  [
-    'FRONTEND_GITHUB',
-    {
-      ecossytem: 40,
-      escolaridade: 10,
-      salary: 5,
-      formato: 5,
-      city: 1,
-      modelo: 4,
-      senioridade: 30,
-      priority: 1,
-    },
-  ],
-  [
-    'BACKEND_GITHUB',
-    {
-      ecossytem: 40,
-      escolaridade: 10,
-      salary: 5,
-      formato: 5,
-      city: 1,
-      modelo: 4,
-      senioridade: 30,
-      priority: 1,
-    },
-  ],
-  [
-    'STI',
-    {
-      ecossytem: 55,
-      escolaridade: 10,
-      salary: 5,
-      formato: 10,
-      city: 0,
-      modelo: 10,
-      senioridade: 10,
-      priority: 1.4,
-    },
-  ],
-  [
-    'JERIMUM',
-    {
-      ecossytem: 50,
-      escolaridade: 0,
-      salary: 20,
-      formato: 5,
-      city: 0,
-      modelo: 5,
-      senioridade: 20,
-      priority: 1.4,
-    },
-  ],
-  [
-    'IMD',
-    {
-      ecossytem: 65,
-      escolaridade: 20,
-      salary: 5,
-      formato: 5,
-      city: 0,
-      modelo: 5,
-      senioridade: 0,
-      priority: 1.4,
-    },
-  ],
-  [
-    'LAIS',
-    {
-      ecossytem: 65,
-      escolaridade: 20,
-      salary: 5,
-      formato: 5,
-      city: 0,
-      modelo: 5,
-      senioridade: 0,
-      priority: 1.4,
-    },
-  ],
-  [
-    'ECT',
-    {
-      ecossytem: 65,
-      escolaridade: 20,
-      salary: 5,
-      formato: 5,
-      city: 0,
-      modelo: 5,
-      senioridade: 0,
-      priority: 1.4,
-    },
-  ],
-  [
-    'FUNPEC',
-    {
-      ecossytem: 55,
-      escolaridade: 10,
-      salary: 5,
-      formato: 10,
-      city: 0,
-      modelo: 10,
-      senioridade: 10,
-      priority: 1.4,
-    },
-  ],
-]);
-
 type ActiveJob = jobs[number];
 
 export type RankedVaga = {
@@ -169,6 +51,7 @@ const ALWAYS_SENT: JobType[] = ['IMD', 'STI', 'JERIMUM'];
 export function rankVagas(
   user: { UserPreferences: Preferences | null },
   jobs: jobs,
+  weights: JobWeights,
 ): RankedVaga[] {
   const preferences = user.UserPreferences;
 
@@ -178,7 +61,9 @@ export function rankVagas(
         job,
         vaga,
         // Cadastro antigo, sem preferências: recebe tudo, sem ordem.
-        score: preferences ? vagaMatches(preferences, vaga, job.type).score : 0,
+        score: preferences
+          ? vagaMatches(preferences, vaga, job.type, weights).score
+          : 0,
       })),
     )
     .filter(
@@ -192,6 +77,7 @@ export function vagaMatches(
   preferences: Preferences,
   vaga: FilterableVaga,
   jobType: JobType,
+  weights: JobWeights,
 ) {
   let soma = 0;
   const weightJob = weights.get(jobType);

@@ -8,6 +8,7 @@ function source(name: string, types: JobType[]): JobSource {
   return {
     name,
     types,
+    weight: [],
     list: jest.fn(),
     fetchDetails: jest.fn(),
   };
@@ -21,6 +22,8 @@ const ALL_COVERED = [
   source('lais', ['LAIS']),
   source('funpec', ['FUNPEC']),
   source('ect', ['ECT']),
+  source('gupy', ['GUPY']),
+  source('linkedin', ['LINKEDIN']),
 ];
 
 describe('assertCoversAllJobTypes', () => {

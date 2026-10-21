@@ -28,12 +28,15 @@ import { GithubSource } from './sources/github.source.js';
 import {
   assertCoversAllJobTypes,
   JOB_SOURCES,
+  JOB_WEIGHTS,
   JobSource,
 } from './sources/job.source.js';
 import { LaisSource } from './sources/lais.source.js';
 import { FunpecSource } from './sources/funpec.source.js';
 import { EctSource } from './sources/ect.source.js';
 import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
+import { GupySource } from './sources/gupy.source.js';
+import { LinkedinSource } from './sources/linkedin.source.js';
 
 const SOURCES = [
   ImdSource,
@@ -43,6 +46,8 @@ const SOURCES = [
   LaisSource,
   FunpecSource,
   EctSource,
+  GupySource,
+  LinkedinSource,
 ];
 
 @Module({
@@ -84,7 +89,14 @@ const SOURCES = [
       inject: SOURCES,
       useFactory: (...sources: JobSource[]) => assertCoversAllJobTypes(sources),
     },
+    {
+      provide: JOB_WEIGHTS,
+      inject: [JOB_SOURCES],
+      useFactory: (sources: JobSource[]) =>
+        new Map(sources.flatMap((source) => source.weight)),
+    },
   ],
+  exports: [JOB_WEIGHTS],
   controllers: [WebScrappingController],
 })
 export class WebScrappingModule {}

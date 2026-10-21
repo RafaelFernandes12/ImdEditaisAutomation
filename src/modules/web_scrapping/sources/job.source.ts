@@ -4,6 +4,7 @@ import type { ActiveJob } from '../../jobs/services/jobs.service.js';
 import { NewJobPayload } from '../strategy/new-job.strategy.js';
 
 export const JOB_SOURCES = Symbol('JOB_SOURCES');
+export const JOB_WEIGHTS = Symbol('JOB_WEIGHTS');
 
 export interface ListedJob {
   link: string;
@@ -15,9 +16,26 @@ export interface JobToFinish {
   validUntil?: number;
 }
 
+export type SourceWeight = [
+  JobType,
+  {
+    ecossytem: number;
+    escolaridade: number;
+    salary: number;
+    formato: number;
+    city: number;
+    modelo: number;
+    senioridade: number;
+    priority: number;
+  },
+][];
+
+export type JobWeights = Map<JobType, SourceWeight[number][1]>;
+
 export interface JobSource<T extends ListedJob = ListedJob> {
   readonly name: string;
   readonly types: JobType[];
+  readonly weight: SourceWeight;
 
   list(): Promise<T[]>;
   fetchDetails(jobs: T[]): Promise<NewJobPayload[]>;

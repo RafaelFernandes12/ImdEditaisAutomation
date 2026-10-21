@@ -24,6 +24,9 @@ export class VagaStrategy implements NewJobStrategy<VagaJobPayload> {
         isActive: job.isActive,
         description: job.description || '',
         publishedAt,
+        subscriptionUntil: job.subscriptionUntil
+          ? new Date(job.subscriptionUntil)
+          : null,
         vagas,
       });
 
