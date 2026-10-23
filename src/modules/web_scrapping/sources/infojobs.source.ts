@@ -242,14 +242,10 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
 
       const listed = parseCards(await response.text());
 
-      // Página sem card é mais provável ser HTML que mudou do que busca vazia.
       if (listed.length === 0) {
         log.warn('list.empty', 'Listagem sem cards — HTML do site mudou?');
       }
 
-      // Busca com poucos resultados é completada com vagas home office de
-      // outras cidades, e a busca por cidade traz junto a vaga que não informa
-      // o local ("Todo Brasil"), que pode ser em qualquer lugar.
       const cards = listed.filter(
         (card) =>
           card.workplace !== null &&
