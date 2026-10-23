@@ -30,6 +30,7 @@ const SEARCH_PARAMS = {
   categoria: '74',
   campo: 'griddate',
   orden: 'desc',
+  Antiguedad: '1',
 };
 
 // idw: 1 presencial, 2 home office, 3 híbrido.
