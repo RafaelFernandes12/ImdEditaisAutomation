@@ -37,6 +37,7 @@ import { EctSource } from './sources/ect.source.js';
 import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 import { GupySource } from './sources/gupy.source.js';
 import { LinkedinSource } from './sources/linkedin.source.js';
+import { InfojobsSource } from './sources/infojobs.source.js';
 
 const SOURCES = [
   ImdSource,
@@ -48,6 +49,7 @@ const SOURCES = [
   EctSource,
   GupySource,
   LinkedinSource,
+  InfojobsSource,
 ];
 
 @Module({

@@ -46,6 +46,12 @@ export const JOB_TYPES = {
     header: 'VAGAS LINKEDIN',
     source: 'LINKEDIN',
   },
+
+  INFOJOBS: {
+    kind: 'VAGA',
+    header: 'VAGAS INFOJOBS',
+    source: 'INFOJOBS',
+  },
 } as const satisfies Record<
   JobType,
   { kind: JobKind; header: string; source: string }

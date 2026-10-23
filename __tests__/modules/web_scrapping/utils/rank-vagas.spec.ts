@@ -175,6 +175,19 @@ describe('rankVagas', () => {
     expect(naoAceita.score).toBe(aceita.score);
   });
 
+  it('multiplica por 1.5 o score da vaga em Natal, de qualquer fonte', () => {
+    const pontos = (city: string | null) =>
+      vagaMatches(
+        prefs,
+        vaga({ ecossytem: 'java', city }) as never,
+        'BACKEND_GITHUB',
+        weights,
+      ).score;
+
+    expect(pontos('NATAL')).toBe(pontos(null) * 1.5);
+    expect(pontos('Mossoró')).toBe(pontos(null));
+  });
+
   it('cadastro sem preferências recebe todas as vagas', () => {
     const fraca = job({ vagas: [vaga({ ecossytem: 'php' }), vaga()] });
     expect(

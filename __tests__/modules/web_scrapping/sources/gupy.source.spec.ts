@@ -101,12 +101,13 @@ describe('GupySource', () => {
     it('busca cada termo e não repete a vaga que casa com mais de um', async () => {
       mockFetchOnce([gupyJob({ id: 1 }), gupyJob({ id: 2 })]);
       mockFetchOnce([gupyJob({ id: 2 }), gupyJob({ id: 3 })]);
-      mockFetchOnce([]);
+      for (let i = 0; i < 3; i++) mockFetchOnce([]);
+      mockFetchOnce([gupyJob({ id: 3 })]);
 
       const listed = await service.list();
 
-      // desenvolvedor, developer e software.
-      expect(global.fetch).toHaveBeenCalledTimes(3);
+      // desenvolvedor, developer e software, no país e em Natal.
+      expect(global.fetch).toHaveBeenCalledTimes(6);
       const [firstUrl] = jest.mocked(global.fetch).mock.calls[0] as [URL];
       expect(firstUrl.searchParams.get('jobName')).toBe('desenvolvedor');
       expect(firstUrl.searchParams.get('sortBy')).toBe('publishedDate');
@@ -115,6 +116,29 @@ describe('GupySource', () => {
         link: 'https://empresa.gupy.io/job/1',
         type: 'GUPY',
       });
+    });
+
+    it('busca no país sem local e em Natal com cidade e estado', async () => {
+      for (let i = 0; i < 3; i++) mockFetchOnce([gupyJob({ id: 1 })]);
+      mockFetchOnce([gupyJob({ id: 1 }), gupyJob({ id: 2 })]);
+      for (let i = 0; i < 2; i++) mockFetchOnce([]);
+
+      const listed = await service.list();
+
+      // A vaga que aparece também na busca do país continua de Natal.
+      expect(listed.map(({ gupy, natal }) => [gupy.id, natal])).toEqual([
+        [1, true],
+        [2, true],
+      ]);
+
+      const urls = jest
+        .mocked(global.fetch)
+        .mock.calls.map(([url]) => (url as URL).searchParams);
+      expect(urls[0].has('city')).toBe(false);
+      expect(urls[0].has('state')).toBe(false);
+      expect(urls[3].get('jobName')).toBe('desenvolvedor');
+      expect(urls[3].get('city')).toBe('Natal');
+      expect(urls[3].get('state')).toBe('Rio Grande do Norte');
     });
 
     it('ignora as vagas de outros sites que o portal também lista', async () => {
@@ -126,7 +150,7 @@ describe('GupySource', () => {
             'https://vaga-ja.com/vagas/empresa/produtor?jobBoardSource=gupy_portal',
         }),
       ]);
-      for (let i = 0; i < 2; i++) mockFetchOnce([]);
+      for (let i = 0; i < 5; i++) mockFetchOnce([]);
 
       const listed = await service.list();
 
@@ -147,9 +171,9 @@ describe('GupySource', () => {
   });
 
   describe('fetchDetails', () => {
-    const listed = (overrides: Partial<GupyJob> = {}) => {
+    const listed = (overrides: Partial<GupyJob> = {}, natal = false) => {
       const gupy = gupyJob(overrides);
-      return { link: gupy.jobUrl, type: 'GUPY' as const, gupy };
+      return { link: gupy.jobUrl, type: 'GUPY' as const, gupy, natal };
     };
 
     it('monta o payload com o texto da página, prazo e atributos da Gupy', async () => {
@@ -297,6 +321,22 @@ describe('GupySource', () => {
 
       expect(payload.attributes).not.toHaveProperty('state');
       expect(payload.attributes).not.toHaveProperty('isInternational');
+    });
+
+    it('põe em Natal a vaga achada na busca de Natal, seja qual for o local', async () => {
+      mockPageOnce({
+        addressCity: 'Bogota',
+        addressStateShortName: 'Ninguno',
+        addressCountryShortName: 'CO',
+      });
+
+      const [payload] = await service.fetchDetails([listed({}, true)]);
+
+      expect(payload.attributes).toMatchObject({
+        city: 'Natal',
+        state: 'RN',
+        isInternational: false,
+      });
     });
   });
 

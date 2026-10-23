@@ -26,11 +26,24 @@ import {
 } from '../models/gupy.js';
 import { matchedEcosystemTerms } from '../utils/ecosystem-match.util.js';
 import { htmlToText } from '../utils/html-to-text.util.js';
+import { inNatal } from '../utils/natal.util.js';
 import { UFS } from '../utils/uf.util.js';
 
 const SEARCH_URL = 'https://portal.gupy.io/api/job-search/jobs';
 
 const SEARCH_TERMS = ['desenvolvedor', 'developer', 'software'];
+
+// Cada termo busca no país e em Natal: as poucas vagas de Natal se perdem entre
+// as mais recentes do país.
+const LOCATIONS: {
+  name: string;
+  natal: boolean;
+  city?: string;
+  state?: string;
+}[] = [
+  { name: 'brasil', natal: false },
+  { name: 'natal', natal: true, city: 'Natal', state: 'Rio Grande do Norte' },
+];
 
 const PAGE_SIZE = 100;
 
@@ -63,6 +76,8 @@ const SENIORIDADE: Partial<Record<GupyJobType, Senioridade>> = {
 
 export interface GupyListedJob extends ListedJob {
   gupy: GupyJob;
+  // Achada na busca de Natal.
+  natal: boolean;
 }
 
 @Injectable()
@@ -93,17 +108,28 @@ export class GupySource implements JobSource<GupyListedJob> {
     const log = new ScopedLogger(this.logger, 'scraper.gupy');
     const timer = log.start('batch_start', 'Buscando vagas na Gupy', {
       terms: SEARCH_TERMS,
+      locations: LOCATIONS.map((location) => location.name),
     });
 
     try {
       const byId = new Map<number, GupyJob>();
+      const natalIds = new Set<number>();
       const countByTerm: Record<string, number> = {};
 
       // Uma requisição por vez para não martelar a API do portal.
-      for (const term of SEARCH_TERMS) {
-        const jobs = await this.search(log.child({ term }), term);
-        countByTerm[term] = jobs.length;
-        for (const job of jobs) byId.set(job.id, job);
+      for (const location of LOCATIONS) {
+        for (const term of SEARCH_TERMS) {
+          const jobs = await this.search(
+            log.child({ term, location: location.name }),
+            term,
+            location,
+          );
+          countByTerm[`${location.name}/${term}`] = jobs.length;
+          for (const job of jobs) {
+            byId.set(job.id, job);
+            if (location.natal) natalIds.add(job.id);
+          }
+        }
       }
 
       // O portal também lista vagas de outros sites (vaga-ja.com), cuja página
@@ -122,6 +148,7 @@ export class GupySource implements JobSource<GupyListedJob> {
         link: gupy.jobUrl,
         type: 'GUPY',
         gupy,
+        natal: natalIds.has(gupy.id),
       }));
     } catch (err: unknown) {
       timer.error('batch_failed', 'Falha ao buscar as vagas da Gupy', {
@@ -145,7 +172,7 @@ export class GupySource implements JobSource<GupyListedJob> {
 
     // Uma página por vez, como na listagem. Vaga que falha fica fora do banco
     // e volta a ser tentada na próxima coleta, sem derrubar as outras.
-    for (const { gupy } of jobs) {
+    for (const { gupy, natal } of jobs) {
       const jobLog = log.child({ gupyId: gupy.id, link: gupy.jobUrl });
 
       try {
@@ -164,7 +191,8 @@ export class GupySource implements JobSource<GupyListedJob> {
           continue;
         }
 
-        payloads.push(this.toJob(gupy, page, description));
+        const job = this.toJob(gupy, page, description);
+        payloads.push(natal ? inNatal(job) : job);
       } catch (err: unknown) {
         failed++;
         jobLog.warn('job.failed', 'Falha ao processar a vaga', { err });
@@ -197,10 +225,15 @@ export class GupySource implements JobSource<GupyListedJob> {
     );
   }
 
-  private async search(log: ScopedLogger, term: string) {
+  private async search(
+    log: ScopedLogger,
+    term: string,
+    { city, state }: (typeof LOCATIONS)[number],
+  ) {
     const url = new URL(SEARCH_URL);
     url.search = new URLSearchParams({
       jobName: term,
+      ...(city && state && { city, state }),
       limit: String(PAGE_SIZE),
       offset: '0',
       sortBy: 'publishedDate',
@@ -223,7 +256,8 @@ export class GupySource implements JobSource<GupyListedJob> {
         throw new Error('Resposta da API da Gupy sem a lista de vagas');
       }
 
-      if (body.data.length === 0) {
+      // Em Natal, termo sem vaga é o normal.
+      if (body.data.length === 0 && !city) {
         log.warn('list.empty', 'Termo retornou zero vagas');
       }
 

@@ -71,6 +71,7 @@ enum JobType {
   ECT
   GUPY
   LINKEDIN
+  INFOJOBS
 
   @@map("job_type")
 }

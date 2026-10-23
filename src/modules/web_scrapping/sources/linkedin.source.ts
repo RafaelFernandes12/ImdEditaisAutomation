@@ -16,6 +16,7 @@ import { VagaJobPayload } from '../strategy/new-job.strategy.js';
 import { LinkedinCard, LinkedinJobPage } from '../models/linkedin.js';
 import { matchedEcosystemTerms } from '../utils/ecosystem-match.util.js';
 import { htmlToText } from '../utils/html-to-text.util.js';
+import { inNatal } from '../utils/natal.util.js';
 import { UFS } from '../utils/uf.util.js';
 
 // Rotas que a página pública de vagas usa sem login.
@@ -23,55 +24,51 @@ const SEARCH_URL =
   'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search';
 const JOB_PAGE_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting';
 
-const SEARCH_PARAMS = {
-  // A busca do LinkedIn é por IA e entende frase. Pleno e sênior ficam de fora
-  // de propósito: o foco do app é vaga de entrada. Não citar stack nem cidade:
-  // a IA passa a priorizar a tecnologia e traz pleno; quem filtra isso é o
-  // ranking, pelas preferências de cada usuário.
+const BRASIL_PARAMS = {
   keywords:
     'vagas de desenvolvedor júnior, estágio ou trainee em backend, frontend, fullstack node java python javascript typescript react',
   location: 'Brasil',
   geoId: '106057199',
-  // Últimas 24h. Numa janela curta (3h) há poucas vagas que casam com a busca
-  // e o LinkedIn completa a página com vagas que só casam por alto: buscando
-  // "desenvolvedor junior", vinha 1 júnior a cada 6. As vagas repetidas entre
-  // coletas não custam requisição: o collect descarta as já gravadas antes de
-  // abrir os detalhes.
-  f_TPR: '10800',
+  f_TPR: 'r10800',
   // Mais recentes primeiro.
   sortBy: 'DD',
 };
 
-// O LinkedIn devolve 10 cards por página, sem opção de mudar.
+// Em Natal a frase acima quase não acha vaga (1 na semana): ali vale qualquer
+// vaga de desenvolvedor da última semana, e o ranking separa a senioridade.
+const NATAL_PARAMS = {
+  keywords: 'desenvolvedor',
+  location: 'Natal, Rio Grande do Norte, Brasil',
+  f_TPR: 'r604800',
+  sortBy: 'DD',
+};
+
+const SEARCHES = [
+  { name: 'brasil', params: BRASIL_PARAMS, natal: false },
+  { name: 'natal', params: NATAL_PARAMS, natal: true },
+];
+
 const PAGE_SIZE = 10;
 
 const MAX_PAGES = 1;
 
 const MIN_TECH_TERMS = 2;
 
-// A página pública não informa o fim das inscrições.
 const MAX_AGE_DAYS = 7;
 
-// Pausa aleatória entre requisições para não parecer robô.
 const MIN_PAUSE_MS = 1000;
 const MAX_PAUSE_MS = 3000;
 
-// pt-BR faz a localização vir com a sigla da UF ("Natal, RN").
 const HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
   'Accept-Language': 'pt-BR,pt;q=0.9',
 };
 
-// 429 vem em rajadas curtas e costuma passar em segundos: espera e tenta de
-// novo. 999 é o bloqueio do LinkedIn a robôs, e insistir só o prolonga.
 const TOO_MANY_REQUESTS = 429;
 const BLOCKED = 999;
 const RETRY_DELAYS_MS = [10_000, 30_000];
 
-// Só estágio: o resto o recrutador marca a esmo. Vaga sênior vem como "Não
-// aplicável" ou até "Júnior" (vaga .NET pedindo 4+ anos), e pleno e sênior
-// vêm juntos em "Pleno-sênior". Esses ficam com a leitura da IA.
 const SENIORIDADE: Partial<Record<string, Senioridade>> = {
   Estágio: 'ESTAGIO',
 };
@@ -82,6 +79,8 @@ const MODELO: Partial<Record<string, Modelo>> = {
 
 export interface LinkedinListedJob extends ListedJob {
   linkedin: LinkedinCard;
+  // Achada na busca de Natal.
+  natal: boolean;
 }
 
 class LinkedinBlockedError extends Error {
@@ -117,37 +116,55 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
   async list(): Promise<LinkedinListedJob[]> {
     const log = new ScopedLogger(this.logger, 'scraper.linkedin');
     const timer = log.start('batch_start', 'Buscando vagas no LinkedIn', {
-      params: SEARCH_PARAMS,
+      searches: SEARCHES,
     });
 
     try {
       const byId = new Map<string, LinkedinCard>();
+      const natalIds = new Set<string>();
+      const countBySearch: Record<string, number> = {};
+      let requests = 0;
 
       // Uma página por vez. Bloqueio no meio fica com as páginas já lidas: as
       // vagas mais recentes vêm primeiro e o resto entra na próxima coleta.
-      for (let page = 0; page < MAX_PAGES; page++) {
-        if (page > 0) await pause();
+      searches: for (const search of SEARCHES) {
+        const searchLog = log.child({ search: search.name });
+        countBySearch[search.name] = 0;
 
-        let cards: LinkedinCard[];
-        try {
-          cards = await this.searchPage(log, page * PAGE_SIZE);
-        } catch (err: unknown) {
-          if (!(err instanceof LinkedinBlockedError) || byId.size === 0) {
-            throw err;
+        for (let page = 0; page < MAX_PAGES; page++) {
+          if (requests++ > 0) await pause();
+
+          let cards: LinkedinCard[];
+          try {
+            cards = await this.searchPage(
+              searchLog,
+              search.params,
+              page * PAGE_SIZE,
+            );
+          } catch (err: unknown) {
+            if (!(err instanceof LinkedinBlockedError) || byId.size === 0) {
+              throw err;
+            }
+            searchLog.warn(
+              'list.partial',
+              'LinkedIn bloqueou — seguindo com o lido',
+              { status: err.status, pagesRead: page },
+            );
+            break searches;
           }
-          log.warn('list.partial', 'LinkedIn bloqueou — seguindo com o lido', {
-            status: err.status,
-            pagesRead: page,
-          });
-          break;
-        }
 
-        for (const card of cards) byId.set(card.id, card);
-        // Página incompleta é a última.
-        if (cards.length < PAGE_SIZE) break;
+          countBySearch[search.name] += cards.length;
+          for (const card of cards) {
+            byId.set(card.id, card);
+            if (search.natal) natalIds.add(card.id);
+          }
+          // Página incompleta é a última.
+          if (cards.length < PAGE_SIZE) break;
+        }
       }
 
       timer.info('batch_done', 'Vagas do LinkedIn obtidas', {
+        countBySearch,
         count: byId.size,
       });
 
@@ -155,6 +172,7 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
         link: jobLink(linkedin.id),
         type: 'LINKEDIN',
         linkedin,
+        natal: natalIds.has(linkedin.id),
       }));
     } catch (err: unknown) {
       timer.error('batch_failed', 'Falha ao buscar as vagas do LinkedIn', {
@@ -179,7 +197,7 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
 
     // Vaga que falha fica fora do banco e volta a ser tentada na próxima
     // coleta. No bloqueio para de vez: o resto também fica para a próxima.
-    for (const [index, { linkedin }] of jobs.entries()) {
+    for (const [index, { linkedin, natal }] of jobs.entries()) {
       const jobLog = log.child({ linkedinId: linkedin.id });
 
       try {
@@ -199,7 +217,8 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
           continue;
         }
 
-        payloads.push(this.toJob(linkedin, page, description));
+        const job = this.toJob(linkedin, page, description);
+        payloads.push(natal ? inNatal(job) : job);
       } catch (err: unknown) {
         if (err instanceof LinkedinBlockedError) {
           blocked = true;
@@ -263,10 +282,14 @@ export class LinkedinSource implements JobSource<LinkedinListedJob> {
     }
   }
 
-  private async searchPage(log: ScopedLogger, start: number) {
+  private async searchPage(
+    log: ScopedLogger,
+    params: Record<string, string>,
+    start: number,
+  ) {
     const url = new URL(SEARCH_URL);
     url.search = new URLSearchParams({
-      ...SEARCH_PARAMS,
+      ...params,
       start: String(start),
     }).toString();
     const timer = log.start('list.start', 'Buscando página da listagem', {

@@ -45,7 +45,16 @@ export type RankedVaga = {
 
 const MIN_SCORE = 50;
 // Editais e vagas das fontes locais vão sempre; o score só ordena.
-const ALWAYS_SENT: JobType[] = ['IMD', 'STI', 'JERIMUM'];
+const ALWAYS_SENT: JobType[] = [
+  'IMD',
+  'STI',
+  'JERIMUM',
+  'FUNPEC',
+  'LAIS',
+  'ECT',
+];
+// Vaga em Natal sobe na lista, de qualquer fonte.
+const NATAL_PRIORITY = 1.5;
 
 /** Vagas que o usuário deve receber, da mais para a menos compatível. */
 export function rankVagas(
@@ -104,6 +113,7 @@ export function vagaMatches(
   const formato = matchesFormato(preferences, vaga);
   soma += formato * weightJob.formato;
   soma *= weightJob.priority;
+  if (normalizeText(vaga.city) === 'natal') soma *= NATAL_PRIORITY;
 
   // Penalidade fixa, aplicada depois do peso da fonte: vale -100 em qualquer
   // tipo de vaga.
