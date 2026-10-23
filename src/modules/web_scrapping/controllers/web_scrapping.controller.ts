@@ -17,6 +17,7 @@ import { LinkedinSource } from '../sources/linkedin.source.js';
 import { InfojobsSource } from '../sources/infojobs.source.js';
 import { SolidesSource } from '../sources/solides.source.js';
 import { BneSource } from '../sources/bne.source.js';
+import { SeniorSource } from '../sources/senior.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -39,6 +40,7 @@ export class WebScrappingController {
     private readonly infojobsSource: InfojobsSource,
     private readonly solidesSource: SolidesSource,
     private readonly bneSource: BneSource,
+    private readonly seniorSource: SeniorSource,
   ) {}
 
   private trigger(provider: string) {
@@ -141,5 +143,11 @@ export class WebScrappingController {
   async getBneSource() {
     this.trigger('getBneSource');
     return await this.getNewJobsProvider.collect(this.bneSource);
+  }
+
+  @Get('/getSeniorSource')
+  async getSeniorSource() {
+    this.trigger('getSeniorSource');
+    return await this.getNewJobsProvider.collect(this.seniorSource);
   }
 }

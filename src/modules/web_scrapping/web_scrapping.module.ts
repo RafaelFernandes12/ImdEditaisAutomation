@@ -40,6 +40,7 @@ import { LinkedinSource } from './sources/linkedin.source.js';
 import { InfojobsSource } from './sources/infojobs.source.js';
 import { SolidesSource } from './sources/solides.source.js';
 import { BneSource } from './sources/bne.source.js';
+import { SeniorSource } from './sources/senior.source.js';
 
 const SOURCES = [
   ImdSource,
@@ -54,6 +55,7 @@ const SOURCES = [
   InfojobsSource,
   SolidesSource,
   BneSource,
+  SeniorSource,
 ];
 
 @Module({
