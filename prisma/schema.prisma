@@ -74,6 +74,7 @@ enum JobType {
   INFOJOBS
   SOLIDES
   BNE
+  SENIOR
 
   @@map("job_type")
 }
