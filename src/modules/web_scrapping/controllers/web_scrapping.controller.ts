@@ -16,6 +16,7 @@ import { GupySource } from '../sources/gupy.source.js';
 import { LinkedinSource } from '../sources/linkedin.source.js';
 import { InfojobsSource } from '../sources/infojobs.source.js';
 import { SolidesSource } from '../sources/solides.source.js';
+import { BneSource } from '../sources/bne.source.js';
 
 @Controller('jobs')
 export class WebScrappingController {
@@ -37,6 +38,7 @@ export class WebScrappingController {
     private readonly linkedinSource: LinkedinSource,
     private readonly infojobsSource: InfojobsSource,
     private readonly solidesSource: SolidesSource,
+    private readonly bneSource: BneSource,
   ) {}
 
   private trigger(provider: string) {
@@ -133,5 +135,11 @@ export class WebScrappingController {
   async getSolidesSource() {
     this.trigger('getSolidesSource');
     return await this.getNewJobsProvider.collect(this.solidesSource);
+  }
+
+  @Get('/getBneSource')
+  async getBneSource() {
+    this.trigger('getBneSource');
+    return await this.getNewJobsProvider.collect(this.bneSource);
   }
 }
