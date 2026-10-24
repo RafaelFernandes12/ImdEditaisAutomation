@@ -53,7 +53,7 @@ const SEARCHES = [
   // },
 ];
 
-const MIN_TECH_TERMS = 2;
+const MIN_TECH_TERMS = 1;
 
 const MAX_AGE_DAYS = 15;
 
