@@ -41,7 +41,7 @@ const LOCATIONS: {
   city?: string;
   state?: string;
 }[] = [
-  { name: 'brasil', natal: false },
+  // { name: 'brasil', natal: false },
   { name: 'natal', natal: true, city: 'Natal', state: 'Rio Grande do Norte' },
 ];
 

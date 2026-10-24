@@ -44,7 +44,7 @@ const NATAL_PARAMS = {
 };
 
 const SEARCHES = [
-  { name: 'brasil', params: BRASIL_PARAMS, natal: false },
+  // { name: 'brasil', params: BRASIL_PARAMS, natal: false },
   { name: 'natal', params: NATAL_PARAMS, natal: true },
 ];
 
