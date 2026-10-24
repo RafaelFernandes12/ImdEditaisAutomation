@@ -73,6 +73,7 @@ enum JobType {
   LINKEDIN
   INFOJOBS
   SOLIDES
+  BNE
 
   @@map("job_type")
 }
