@@ -19,7 +19,7 @@ import { SolidesSource } from '../sources/solides.source.js';
 import { BneSource } from '../sources/bne.source.js';
 import { SeniorSource } from '../sources/senior.source.js';
 
-@Controller('jobs')
+@Controller('scrape')
 export class WebScrappingController {
   constructor(
     private readonly notifyNewJobsProvider: NotifyNewJobsProvider,
