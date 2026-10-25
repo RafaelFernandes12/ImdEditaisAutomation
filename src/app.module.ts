@@ -10,6 +10,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { PuppeteerModule } from './modules/puppeteer/puppeteer.module.js';
+import { JobsModule } from './modules/jobs/jobs.module.js';
 
 const LOG_LEVEL = process.env.LOG_LEVEL ?? 'info';
 
@@ -19,6 +20,7 @@ const LOG_LEVEL = process.env.LOG_LEVEL ?? 'info';
     WebScrappingModule,
     WhatsappModule,
     UserModule,
+    JobsModule,
     ScheduleModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
