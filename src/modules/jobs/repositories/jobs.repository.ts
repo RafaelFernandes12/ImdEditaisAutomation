@@ -41,6 +41,34 @@ export class JobsRepository {
     });
     return jobs;
   }
+  async findForDashboard(
+    stillActive: boolean,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const jobs = await tx.job.findMany({
+      where: {
+        isActive: true,
+        ...(stillActive && {
+          OR: [
+            { subscriptionUntil: { gt: new Date() } },
+            { subscriptionUntil: null },
+          ],
+        }),
+      },
+      select: {
+        id: true,
+        subscriptionUntil: true,
+        isActive: true,
+        kind: true,
+        type: true,
+        created_at: true,
+        link: true,
+        vagas: true,
+      },
+      orderBy: [{ subscriptionUntil: 'desc' }, { id: 'desc' }],
+    });
+    return jobs;
+  }
   async findActive(
     stillActive: boolean,
     types?: JobType[],

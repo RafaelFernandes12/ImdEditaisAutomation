@@ -43,7 +43,7 @@ export type RankedVaga = {
   score: number;
 };
 
-const MIN_SCORE = 50;
+const MIN_SCORE = -1000;
 // Editais e vagas das fontes locais vão sempre; o score só ordena.
 const ALWAYS_SENT: JobType[] = [
   'IMD',

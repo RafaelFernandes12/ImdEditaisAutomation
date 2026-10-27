@@ -72,6 +72,8 @@ enum JobType {
   GUPY
   LINKEDIN
   INFOJOBS
+  SOLIDES
+  BNE
 
   @@map("job_type")
 }

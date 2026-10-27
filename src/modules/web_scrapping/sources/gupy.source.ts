@@ -41,13 +41,13 @@ const LOCATIONS: {
   city?: string;
   state?: string;
 }[] = [
-  { name: 'brasil', natal: false },
+  // { name: 'brasil', natal: false },
   { name: 'natal', natal: true, city: 'Natal', state: 'Rio Grande do Norte' },
 ];
 
 const PAGE_SIZE = 100;
 
-const MIN_TECH_TERMS = 2;
+const MIN_TECH_TERMS = 1;
 
 const PAGE_SECTIONS = [
   ['description', null],

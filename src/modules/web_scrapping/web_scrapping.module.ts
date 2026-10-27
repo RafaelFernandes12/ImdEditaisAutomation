@@ -38,6 +38,8 @@ import { EcosystemFilterService } from './utils/ecosystem-filter.service.js';
 import { GupySource } from './sources/gupy.source.js';
 import { LinkedinSource } from './sources/linkedin.source.js';
 import { InfojobsSource } from './sources/infojobs.source.js';
+import { SolidesSource } from './sources/solides.source.js';
+import { BneSource } from './sources/bne.source.js';
 
 const SOURCES = [
   ImdSource,
@@ -50,6 +52,8 @@ const SOURCES = [
   GupySource,
   LinkedinSource,
   InfojobsSource,
+  SolidesSource,
+  BneSource,
 ];
 
 @Module({

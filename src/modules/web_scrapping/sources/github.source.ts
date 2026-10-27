@@ -130,7 +130,8 @@ export class GithubSource implements JobSource<VagaJobPayload> {
         pullRequestCount: items.length - issues.length,
       });
 
-      return issues;
+      // return issues;
+      return [];
     } catch (err: unknown) {
       timer.error('list.failed', 'Falha ao buscar as issues do repo', {
         err,

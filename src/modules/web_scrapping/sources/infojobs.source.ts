@@ -43,17 +43,17 @@ const SEARCHES = [
     uf: 'RN',
     natal: true,
   },
-  {
-    name: 'remoto',
-    path: '/vagas-de-emprego-desenvolvedor.aspx',
-    idw: '2',
-    workplaces: ['Home office'],
-    uf: null,
-    natal: false,
-  },
+  // {
+  //   name: 'remoto',
+  //   path: '/vagas-de-emprego-desenvolvedor.aspx',
+  //   idw: '2',
+  //   workplaces: ['Home office'],
+  //   uf: null,
+  //   natal: false,
+  // },
 ];
 
-const MIN_TECH_TERMS = 2;
+const MIN_TECH_TERMS = 1;
 
 const MAX_AGE_DAYS = 15;
 
