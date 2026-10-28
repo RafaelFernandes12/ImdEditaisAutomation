@@ -64,6 +64,12 @@ export const JOB_TYPES = {
     header: 'VAGAS BNE',
     source: 'BNE',
   },
+
+  SENIOR: {
+    kind: 'VAGA',
+    header: 'VAGAS SENIOR',
+    source: 'Senior',
+  },
 } as const satisfies Record<
   JobType,
   { kind: JobKind; header: string; source: string }

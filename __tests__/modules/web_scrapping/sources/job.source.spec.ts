@@ -27,6 +27,7 @@ const ALL_COVERED = [
   source('infojobs', ['INFOJOBS']),
   source('solides', ['SOLIDES']),
   source('bne', ['BNE']),
+  source('senior', ['SENIOR']),
 ];
 
 describe('assertCoversAllJobTypes', () => {
