@@ -4,7 +4,7 @@
 
 # @name /
 
-GET http://localhost:7638/jobs/finishJobs HTTP/1.1
+GET http://localhost:7638/scrape/finishJobs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
@@ -12,7 +12,7 @@ Accept: application/json
 
 # @name /
 
-GET http://localhost:7638/jobs/notifyPdfs HTTP/1.1
+GET http://localhost:7638/scrape/notifyPdfs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
@@ -20,7 +20,7 @@ Accept: application/json
 
 # @name /
 
-GET http://localhost:7638/jobs/notifyNewJobs HTTP/1.1
+GET http://localhost:7638/scrape/notifyNewJobs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
@@ -28,7 +28,7 @@ Accept: application/json
 
 # @name /
 
-GET http://localhost:7638/jobs/getNewJobs HTTP/1.1
+GET http://localhost:7638/scrape/getNewJobs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
@@ -36,7 +36,7 @@ Accept: application/json
 
 # @name /
 
-GET http://localhost:7638/jobs/jerimumJobs HTTP/1.1
+GET http://localhost:7638/scrape/jerimumJobs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
@@ -44,77 +44,77 @@ Accept: application/json
 
 # @name /
 
-GET http://localhost:7638/jobs/githubJobs HTTP/1.1
+GET http://localhost:7638/scrape/githubJobs HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getImdSource HTTP/1.1
+GET http://localhost:7638/scrape/getImdSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getLaisSource HTTP/1.1
+GET http://localhost:7638/scrape/getLaisSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getFunpecSource HTTP/1.1
+GET http://localhost:7638/scrape/getFunpecSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getEctSource HTTP/1.1
+GET http://localhost:7638/scrape/getEctSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getStiSource HTTP/1.1
+GET http://localhost:7638/scrape/getStiSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getGupySource HTTP/1.1
+GET http://localhost:7638/scrape/getGupySource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getInfoJobsSource HTTP/1.1
+GET http://localhost:7638/scrape/getInfoJobsSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getSolidesSource HTTP/1.1
+GET http://localhost:7638/scrape/getSolidesSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getBneSource HTTP/1.1
+GET http://localhost:7638/scrape/getBneSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
 ###
 # @name /
 
-GET http://localhost:7638/jobs/getSeniorSource HTTP/1.1
+GET http://localhost:7638/scrape/getSeniorSource HTTP/1.1
 Content-Type: application/json
 Accept: application/json
 
