@@ -70,8 +70,9 @@ export class WhatsappCommandsService {
     const userAnswer = message.body;
     const user = await this.userService.findByChatId(message.from);
     if (!user) {
-      if (userAnswer.trim() === '!login') {
-        await this.registerLinkService.sendLink(client, message);
+      if (/^!login\b/i.test(userAnswer.trim())) {
+        // await this.registerLinkService.sendLink(client, message);
+        await this.registerLinkService.registerByWhatsapp(client, message);
       } else {
         // await message.reply(
         //   'Faça login antes de enviar mensagens, o comando é *!login*',
