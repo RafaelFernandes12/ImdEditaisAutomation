@@ -50,7 +50,9 @@ const SEARCHES = [
 
 const PAGE_SIZE = 10;
 
-const MAX_PAGES = 1;
+// A busca de Natal da última semana tem umas 3 páginas; a página incompleta
+// encerra a busca antes do teto.
+const MAX_PAGES = 5;
 
 const MIN_TECH_TERMS = 1;
 
