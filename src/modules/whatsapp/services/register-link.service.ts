@@ -100,6 +100,52 @@ export class RegisterLinkService {
     );
   }
 
+  // Paliativo enquanto não há front de cadastro: só o nome, pelo próprio
+  // WhatsApp. As preferências são as mais abertas que o ranking aceita, para
+  // não esconder vaga nenhuma.
+  async registerByWhatsapp(client: pkg.Client, message: pkg.Message) {
+    const name = message.body.replace(/^!login/i, '').trim();
+    if (name.length < 2 || name.length > 120) {
+      await message.reply(
+        'Envie *!login* seguido do seu nome completo.\nEx.: !login Maria da Silva',
+      );
+      return;
+    }
+
+    const timer = this.logFor(message.from).timed();
+    const jobsId = (await this.jobsService.findActive(true)).map((id) => id.id);
+    const contact = await getFormattedContact(client, message);
+
+    await this.userService.createUser({
+      chatId: message.from,
+      contact,
+      name,
+      jobsId,
+      preferences: {
+        keyWords: Object.keys(ECOSYSTEMS).toString(),
+        // Sem REMOTO, toda vaga remota perde 100 pontos no ranking.
+        formato: ['PRESENCIAL', 'HIBRIDO', 'REMOTO'],
+        modelo: [],
+        // Vazio fica neutro; uma lista exclui as outras senioridades.
+        senioridade: [],
+        escolaridade: [],
+        city: 'Natal',
+        state: 'RN',
+        isInternational: false,
+      },
+    });
+
+    timer.info('completed', 'Cadastro concluído pelo WhatsApp', {
+      contact: maskContact(contact),
+      jobsCount: jobsId.length,
+    });
+
+    await message.reply(
+      `Cadastro concluído, ${name.split(' ')[0]}! ✅\nA partir de agora você vai receber as novas vagas por aqui.`,
+    );
+    await this.getJobsAndamento.execute(message, true);
+  }
+
   isValid(token: string) {
     this.removeExpired();
     return this.pending.has(token);

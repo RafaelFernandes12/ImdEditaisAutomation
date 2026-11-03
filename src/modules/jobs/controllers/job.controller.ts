@@ -3,7 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobsService } from '../services/jobs.service.js';
 import { ScopedLogger } from '#src/utils/scoped-logger.js';
 
-@Controller('job')
+@Controller('jobs')
 export class JobsController {
   constructor(
     @InjectPinoLogger(JobsController.name)
