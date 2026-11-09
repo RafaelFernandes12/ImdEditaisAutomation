@@ -57,6 +57,9 @@ const MIN_TECH_TERMS = 1;
 
 const MAX_AGE_DAYS = 15;
 
+// Aviso que a página mostra quando a busca não tem resultado.
+const NO_RESULTS_TEXT = 'Nenhuma vaga foi encontrada';
+
 const MIN_PAUSE_MS = 1000;
 const MAX_PAUSE_MS = 3000;
 
@@ -240,9 +243,14 @@ export class InfojobsSource implements JobSource<InfojobsListedJob> {
         throw new Error(`Busca do InfoJobs respondeu ${response.status}`);
       }
 
-      const listed = parseCards(await response.text());
+      const html = await response.text();
+      const listed = parseCards(html);
 
-      if (listed.length === 0) {
+      // Em Natal a busca costuma vir vazia de verdade: só sem o aviso do
+      // próprio site é que o HTML pode ter mudado.
+      if (listed.length === 0 && html.includes(NO_RESULTS_TEXT)) {
+        log.info('list.no_results', 'InfoJobs não achou vagas na busca');
+      } else if (listed.length === 0) {
         log.warn('list.empty', 'Listagem sem cards — HTML do site mudou?');
       }
 
