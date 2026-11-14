@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import type { ChildProcess } from 'node:child_process';
 import { hostname } from 'node:os';
 import qrcode from 'qrcode-terminal';
 import { client } from '../../../config/whatsapp/client.js';
@@ -18,11 +19,19 @@ const HEALTH_CHECK_TIMEOUT_MS = 15_000;
 // OPENING/TIMEOUT aparecem por alguns segundos quando o celular oscila; só
 // alerta se o estado ruim persistir por esse número de checagens seguidas.
 const HEALTH_CHECK_MAX_FAILURES = 3;
+// Um Chrome travado pode não responder nem ao close(); passado esse prazo,
+// o processo é morto na marra.
+const DESTROY_TIMEOUT_MS = 15_000;
 
 /** Minimal shape of the puppeteer page whatsapp-web.js keeps internally. */
 type PupPage = {
   evaluate(expression: string): Promise<unknown>;
   on(event: 'pageerror', handler: (err: unknown) => void): void;
+};
+
+/** whatsapp-web.js internals used to tear down a dead browser. */
+type ClientInternals = {
+  pupBrowser?: { process(): ChildProcess | null };
 };
 
 type InitOutcome = 'ready' | 'timeout' | 'failed';
@@ -398,10 +407,29 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async safeDestroy() {
+    // Pega o processo antes: um Chrome travado pode não fechar com destroy().
+    const chrome = (client as unknown as ClientInternals).pupBrowser?.process();
+    let timer: NodeJS.Timeout | undefined;
     try {
-      await client.destroy();
+      await Promise.race([
+        client.destroy(),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('destroy() não respondeu')),
+            DESTROY_TIMEOUT_MS,
+          );
+        }),
+      ]);
     } catch (err: unknown) {
       this.log.warn('destroy.failed', 'Falha ao destruir o cliente', { err });
+      if (chrome && chrome.exitCode === null && !chrome.killed) {
+        chrome.kill('SIGKILL');
+        this.log.warn('destroy.killed', 'Processo do Chrome morto à força', {
+          pid: chrome.pid,
+        });
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 }
