@@ -1,7 +1,9 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { ChildProcess } from 'node:child_process';
+import { rm } from 'node:fs/promises';
 import { hostname } from 'node:os';
+import { join } from 'node:path';
 import qrcode from 'qrcode-terminal';
 import { client } from '../../../config/whatsapp/client.js';
 import { WhatsappCommandsService } from './whatsapp-commands.service.js';
@@ -19,9 +21,19 @@ const HEALTH_CHECK_TIMEOUT_MS = 15_000;
 // OPENING/TIMEOUT aparecem por alguns segundos quando o celular oscila; só
 // alerta se o estado ruim persistir por esse número de checagens seguidas.
 const HEALTH_CHECK_MAX_FAILURES = 3;
+// Espera entre derrubar o cliente caído e subir de novo.
+const RECOVER_BACKOFF_MS = 10_000;
+// Se a reconexão inteira falhar, tenta outra vez depois desse intervalo.
+const RECOVER_RETRY_MS = 5 * 60_000;
 // Um Chrome travado pode não responder nem ao close(); passado esse prazo,
 // o processo é morto na marra.
 const DESTROY_TIMEOUT_MS = 15_000;
+// Locks que um Chrome morto deixa no perfil e que impedem o próximo de abrir.
+const CHROME_LOCK_FILES = [
+  'SingletonLock',
+  'SingletonCookie',
+  'SingletonSocket',
+];
 
 /** Minimal shape of the puppeteer page whatsapp-web.js keeps internally. */
 type PupPage = {
@@ -32,6 +44,7 @@ type PupPage = {
 /** whatsapp-web.js internals used to tear down a dead browser. */
 type ClientInternals = {
   pupBrowser?: { process(): ChildProcess | null };
+  authStrategy?: { userDataDir?: string };
 };
 
 type InitOutcome = 'ready' | 'timeout' | 'failed';
@@ -60,6 +73,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private wasReady = false;
   private downAlerted = false;
   private shuttingDown = false;
+  private recovering = false;
+  private retryTimer?: NodeJS.Timeout;
 
   private get log() {
     return new ScopedLogger(this.logger, 'wa');
@@ -112,6 +127,9 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         reason: String(reason),
       });
       this.alertDown(`Evento "disconnected" do cliente: ${String(reason)}.`);
+      // A lib já fecha o Chrome depois de emitir `disconnected`; sem subir de
+      // novo, o bot fica fora até alguém reiniciar o container.
+      void this.recover(`disconnected: ${String(reason)}`);
     });
 
     client.on('auth_failure', (message) => {
@@ -123,30 +141,74 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
 
     this.whatsappCommandsService.execute(client);
 
-    this.initializeWithWatchdog().catch((err: unknown) =>
-      this.log.error('watchdog.crashed', 'Watchdog de inicialização abortou', {
-        err,
-      }),
-    );
+    void this.connect();
   }
 
   async onModuleDestroy() {
     this.log.info('shutdown.start', 'Encerrando cliente');
     this.shuttingDown = true;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
     this.stopHealthCheck();
     this.stopPageDiagnostics();
     await this.safeDestroy();
     this.log.info('shutdown.done', 'Cliente encerrado');
   }
 
-  private async initializeWithWatchdog() {
+  /**
+   * Sobe o cliente; se nem o watchdog conseguir, agenda uma reconexão em vez
+   * de deixar o bot parado.
+   */
+  private async connect() {
+    let ready = false;
+    try {
+      ready = await this.initializeWithWatchdog();
+    } catch (err: unknown) {
+      this.log.error('watchdog.crashed', 'Watchdog de inicialização abortou', {
+        err,
+      });
+    }
+    if (ready || this.shuttingDown) return;
+
+    this.log.warn('recover.scheduled', 'Nova reconexão agendada', {
+      inMs: RECOVER_RETRY_MS,
+    });
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.recover('inicialização não chegou ao ready');
+    }, RECOVER_RETRY_MS);
+  }
+
+  /**
+   * Derruba o que sobrou do cliente e sobe de novo. Quando o Chrome morre ou
+   * trava, o processo Node segue vivo, então o `restart` do compose não age.
+   */
+  private async recover(cause: string) {
+    if (this.shuttingDown || this.recovering) return;
+    this.recovering = true;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
+    this.stopHealthCheck();
+    this.stopPageDiagnostics();
+    this.log.warn('recover.start', 'Reiniciando cliente após queda', { cause });
+
+    try {
+      await this.safeDestroy();
+      await this.removeChromeLocks();
+      await new Promise((r) => setTimeout(r, RECOVER_BACKOFF_MS));
+      if (!this.shuttingDown) await this.connect();
+    } finally {
+      this.recovering = false;
+    }
+  }
+
+  private async initializeWithWatchdog(): Promise<boolean> {
     const watchdogLog = this.log.timed();
 
     for (let attempt = 1; attempt <= MAX_RESTART_ATTEMPTS; attempt++) {
       const outcome = await this.tryInitialize(READY_TIMEOUT_MS);
       if (outcome === 'ready') {
         watchdogLog.info('init.done', 'Cliente inicializado', { attempt });
-        return;
+        return true;
       }
 
       const cause =
@@ -179,7 +241,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       `O cliente não ficou pronto em ${MAX_RESTART_ATTEMPTS} tentativas de ${READY_TIMEOUT_MS / 1000}s; segue esperando sem prazo.`,
     );
 
-    await this.tryInitialize(null);
+    return (await this.tryInitialize(null)) === 'ready';
   }
 
   private tryInitialize(timeoutMs: number | null): Promise<InitOutcome> {
@@ -371,6 +433,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       const minutes =
         (HEALTH_CHECK_MAX_FAILURES * HEALTH_CHECK_INTERVAL_MS) / 60_000;
       this.alertDown(`Estado da conexão há ~${minutes} min: ${state}.`);
+      void this.recover(`health check: ${state}`);
     }
   }
 
@@ -431,6 +494,27 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     } finally {
       if (timer) clearTimeout(timer);
     }
+  }
+
+  /** Mesmo papel do `rm Singleton*` do CMD do Dockerfile, sem reiniciar o container. */
+  private async removeChromeLocks() {
+    const dir = (client as unknown as ClientInternals).authStrategy
+      ?.userDataDir;
+    if (!dir) return;
+    await Promise.all(
+      CHROME_LOCK_FILES.map((name) =>
+        rm(join(dir, name), { force: true }).catch((err: unknown) =>
+          this.log.warn(
+            'recover.lock_failed',
+            'Falha ao remover lock do Chrome',
+            {
+              name,
+              err,
+            },
+          ),
+        ),
+      ),
+    );
   }
 }
 
