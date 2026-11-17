@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullModule } from '@nestjs/bullmq';
+import { JOB_RETENTION } from './config/bull/job-retention.js';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { AiChatModule } from './modules/ai_chat/ai_chat.module.js';
@@ -52,6 +53,7 @@ const LOG_LEVEL = process.env.LOG_LEVEL ?? 'info';
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
       },
+      defaultJobOptions: JOB_RETENTION,
     }),
     BullBoardModule.forRoot({
       route: '/queues',
