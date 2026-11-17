@@ -52,16 +52,40 @@ jobs:
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: SMTP_USER,SMTP_PASS,ALERT_EMAIL
           script: |
             set -e
             cd /home/ubuntu/ImdEditaisAutomation
+            # Replaces KEY in .env with the given value, adding it if missing.
+            set_env() {
+              grep -v "^$1=" .env > .env.tmp 2>/dev/null || true
+              printf "%s='%s'\n" "$1" "$2" >> .env.tmp
+              mv .env.tmp .env
+            }
             # Pin the deploy to this commit's immutable tag (compose reads IMAGE_TAG from .env)
-            grep -v '^IMAGE_TAG=' .env > .env.tmp 2>/dev/null || true
-            echo "IMAGE_TAG=sha-${{ github.sha }}" >> .env.tmp
-            mv .env.tmp .env
+            set_env IMAGE_TAG "sha-${{ github.sha }}"
+            # WhatsApp disconnect alerts by email (Gmail SMTP). Skipped while the
+            # secrets are unset, so the server's .env is never blanked.
+            if [ -n "$SMTP_PASS" ]; then
+              set_env SMTP_HOST smtp.gmail.com
+              set_env SMTP_PORT 465
+              set_env SMTP_USER "$SMTP_USER"
+              set_env SMTP_PASS "$SMTP_PASS"
+              set_env MAIL_FROM "Bot Vagas <$SMTP_USER>"
+              set_env ALERT_EMAIL "$ALERT_EMAIL"
+            else
+              echo "SMTP secrets not set, skipping email alert config"
+            fi
             docker compose pull app
             docker compose up -d app
+            docker compose exec -T app sh -c 'test -n "$SMTP_HOST"' \
+              && echo "SMTP config loaded in app" \
+              || echo "WARNING: SMTP_HOST missing in app container (env_file .env not in compose?)"
