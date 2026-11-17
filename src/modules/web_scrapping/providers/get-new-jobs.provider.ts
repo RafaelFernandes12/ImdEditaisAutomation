@@ -4,6 +4,7 @@ import { InjectFlowProducer } from '@nestjs/bullmq';
 import { FlowProducer } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 import { ScopedLogger } from '../../../utils/scoped-logger.js';
+import { JOB_RETENTION } from '../../../config/bull/job-retention.js';
 import { JOB_SOURCES, JobSource, ListedJob } from '../sources/job.source.js';
 import { NewJobPayload } from '../strategy/new-job.strategy.js';
 import { JobsService } from '../../jobs/services/jobs.service.js';
@@ -46,20 +47,24 @@ export class GetNewJobsProvider {
         }
       }
 
+      // O FlowProducer não usa o defaultJobOptions das filas: a retenção vai
+      // em cada job. Os resultados dos filhos ficam guardados no pai, então
+      // removê-los ao concluir não afeta o notifyAll.
       await this.flowProducer.add({
         name: 'notifyAll',
         queueName: 'notifyAll',
+        opts: JOB_RETENTION,
         children: [
           ...jobs.map((job) => ({
             name: 'getNewJobs',
             queueName: 'getNewJobs',
             data: job,
-            opts: { ignoreDependencyOnFailure: true },
+            opts: { ...JOB_RETENTION, ignoreDependencyOnFailure: true },
           })),
           {
             name: 'finishJobs',
             queueName: 'finishJobs',
-            opts: { ignoreDependencyOnFailure: true },
+            opts: { ...JOB_RETENTION, ignoreDependencyOnFailure: true },
           },
         ],
       });
