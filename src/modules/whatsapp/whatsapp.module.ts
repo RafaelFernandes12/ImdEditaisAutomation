@@ -16,6 +16,7 @@ import { WhatsappCommandsService } from './services/whatsapp-commands.service.js
 import { RegisterLinkService } from './services/register-link.service.js';
 import { CadastroController } from './controllers/cadastro.controller.js';
 import { WebScrappingModule } from '../web_scrapping/web_scrapping.module.js';
+import { MailModule } from '../mail/mail.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WebScrappingModule } from '../web_scrapping/web_scrapping.module.js';
     AiChatModule,
     PdfModule,
     WebScrappingModule,
+    MailModule,
   ],
   exports: [WhatsappService],
   providers: [
