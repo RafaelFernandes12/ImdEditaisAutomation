@@ -8,3 +8,19 @@ datasources:
     url: http://loki:3100
     isDefault: true
     editable: true
+
+  # Banco da aplicação, usado pelo dashboard de vagas.
+  - name: Postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    uid: postgres
+    url: postgres:5432
+    user: ${POSTGRES_USER}
+    editable: true
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: false
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
