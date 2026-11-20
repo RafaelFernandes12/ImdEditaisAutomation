@@ -1,0 +1,1337 @@
+{
+  "uid": "vagas-overview",
+  "title": "Vagas",
+  "tags": [
+    "vagas",
+    "postgres"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "type",
+        "label": "Tipo",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres"
+        },
+        "definition": "SELECT unnest(enum_range(NULL::job_type))::text",
+        "query": "SELECT unnest(enum_range(NULL::job_type))::text",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "kind",
+        "label": "Categoria",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres"
+        },
+        "definition": "SELECT unnest(enum_range(NULL::job_kind))::text",
+        "query": "SELECT unnest(enum_range(NULL::job_kind))::text",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "custom",
+        "name": "periodo",
+        "label": "Período",
+        "query": "Dia : day, Semana : week, Mês : month",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "Dia",
+          "value": "day"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "Dia",
+            "value": "day"
+          },
+          {
+            "selected": false,
+            "text": "Semana",
+            "value": "week"
+          },
+          {
+            "selected": false,
+            "text": "Mês",
+            "value": "month"
+          }
+        ]
+      },
+      {
+        "type": "textbox",
+        "name": "bucket",
+        "label": "Ponto",
+        "hide": 2,
+        "query": "",
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "selecionado",
+        "label": "Seleção",
+        "hide": 2,
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres"
+        },
+        "definition": "SELECT CASE\n  WHEN s.t IS NULL THEN 'período do dashboard'\n  WHEN '${periodo}' = 'day' THEN 'dia ' || to_char(s.t, 'DD/MM/YYYY')\n  WHEN '${periodo}' = 'week' THEN 'semana de ' || to_char(s.t, 'DD/MM') || ' a ' || to_char(s.t + interval '6 days', 'DD/MM/YYYY')\n  ELSE 'mês ' || to_char(s.t, 'MM/YYYY')\nEND\nFROM (SELECT to_timestamp(nullif('${bucket}', '')::bigint / 1000.0) AT TIME ZONE 'America/Fortaleza' AS t) s",
+        "query": "SELECT CASE\n  WHEN s.t IS NULL THEN 'período do dashboard'\n  WHEN '${periodo}' = 'day' THEN 'dia ' || to_char(s.t, 'DD/MM/YYYY')\n  WHEN '${periodo}' = 'week' THEN 'semana de ' || to_char(s.t, 'DD/MM') || ' a ' || to_char(s.t + interval '6 days', 'DD/MM/YYYY')\n  ELSE 'mês ' || to_char(s.t, 'MM/YYYY')\nEND\nFROM (SELECT to_timestamp(nullif('${bucket}', '')::bigint / 1000.0) AT TIME ZONE 'America/Fortaleza' AS t) s",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 1,
+      "title": "Visão geral",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Total",
+      "description": "Todas as vagas/editais já coletados",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Abertas",
+      "description": "is_active = true",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND is_active"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Finalizadas",
+      "description": "is_active = false",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND NOT is_active"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Entraram hoje",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('day', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('day', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Entraram na semana",
+      "description": "Semana atual (segunda a domingo)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('week', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('week', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Entraram no mês",
+      "description": "Mês atual",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('month', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('month', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 8,
+      "title": "Finalizadas hoje",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('day', (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('day', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 9,
+      "title": "Finalizadas na semana",
+      "description": "Semana atual (segunda a domingo)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('week', (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('week', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 10,
+      "title": "Finalizadas no mês",
+      "description": "Mês atual",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND date_trunc('month', (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = date_trunc('month', (now() AT TIME ZONE 'America/Fortaleza'))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 11,
+      "title": "Editais abertos",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND is_active AND kind = 'EDITAL'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "semi-dark-green"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 12,
+      "title": "Vagas abertas",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) AND is_active AND kind = 'VAGA'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "semi-dark-green"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "row",
+      "id": 13,
+      "title": "Por tipo (fonte)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "panels": []
+    },
+    {
+      "type": "barchart",
+      "id": 14,
+      "title": "Abertas x finalizadas por tipo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 10,
+        "x": 0,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT type::text AS \"Tipo\",\n       count(*) FILTER (WHERE is_active) AS \"Abertas\",\n       count(*) FILTER (WHERE NOT is_active) AS \"Finalizadas\"\nFROM job\nWHERE type::text IN ($type) AND kind::text IN ($kind)\nGROUP BY type\nORDER BY count(*) DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Abertas"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finalizadas"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "showValue": "auto",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 15,
+      "title": "Resumo por tipo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 14,
+        "x": 10,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT type::text AS \"Tipo\",\n       kind::text AS \"Categoria\",\n       count(*) AS \"Total\",\n       count(*) FILTER (WHERE is_active) AS \"Abertas\",\n       count(*) FILTER (WHERE NOT is_active) AS \"Finalizadas\",\n       count(*) FILTER (WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza') >= (now() AT TIME ZONE 'America/Fortaleza') - interval '7 days') AS \"Entraram 7d\",\n       count(*) FILTER (WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza') >= (now() AT TIME ZONE 'America/Fortaleza') - interval '30 days') AS \"Entraram 30d\",\n       count(*) FILTER (WHERE (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza') >= (now() AT TIME ZONE 'America/Fortaleza') - interval '30 days') AS \"Finalizadas 30d\",\n       max(created_at) AS \"Última entrada\"\nFROM job\nWHERE type::text IN ($type) AND kind::text IN ($kind)\nGROUP BY type, kind\nORDER BY \"Total\" DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Abertas"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finalizadas"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Última entrada"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": [
+            "Total",
+            "Abertas",
+            "Finalizadas",
+            "Entraram 7d",
+            "Entraram 30d",
+            "Finalizadas 30d"
+          ]
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 16,
+      "title": "Entradas e finalizações",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 17,
+      "title": "Entraram x finalizadas por ${periodo:text}",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "description": "Granularidade no filtro Período (dia/semana/mês). Clique num ponto para listar as vagas daquele período na tabela abaixo.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH j AS (\n  SELECT created_at, finished_at FROM job WHERE type::text IN ($type) AND kind::text IN ($kind)\n),\nb AS (\n  SELECT generate_series(\n    date_trunc('${periodo}', $__timeFrom()::timestamptz AT TIME ZONE 'America/Fortaleza'),\n    $__timeTo()::timestamptz AT TIME ZONE 'America/Fortaleza',\n    interval '1 ${periodo}'\n  ) AS t\n),\ne AS (\n  SELECT date_trunc('${periodo}', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) AS t, count(*) AS n FROM j GROUP BY 1\n),\nf AS (\n  SELECT date_trunc('${periodo}', (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) AS t, count(*) AS n FROM j WHERE finished_at IS NOT NULL GROUP BY 1\n)\nSELECT b.t AT TIME ZONE 'America/Fortaleza' AS time,\n       coalesce(e.n, 0) AS \"Entraram\",\n       coalesce(f.n, 0) AS \"Finalizadas\"\nFROM b\nLEFT JOIN e ON e.t = b.t\nLEFT JOIN f ON f.t = b.t\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "min": 0,
+          "links": [
+            {
+              "title": "Ver vagas deste período",
+              "url": "/d/vagas-overview/vagas?${__url_time_range}&${type:queryparam}&${kind:queryparam}&${periodo:queryparam}&var-bucket=${__value.time}",
+              "oneClick": true
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 7,
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Entraram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finalizadas"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 18,
+      "title": "Entradas por tipo, por ${periodo:text}",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "description": "Granularidade no filtro Período (dia/semana/mês). Clique num ponto para listar as vagas daquele período na tabela abaixo.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH b AS (\n  SELECT generate_series(\n    date_trunc('${periodo}', $__timeFrom()::timestamptz AT TIME ZONE 'America/Fortaleza'),\n    $__timeTo()::timestamptz AT TIME ZONE 'America/Fortaleza',\n    interval '1 ${periodo}'\n  ) AS t\n),\nty AS (\n  SELECT DISTINCT type FROM job WHERE type::text IN ($type) AND kind::text IN ($kind)\n),\ne AS (\n  SELECT date_trunc('${periodo}', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) AS t, type, count(*) AS n\n  FROM job WHERE type::text IN ($type) AND kind::text IN ($kind) GROUP BY 1, 2\n)\nSELECT b.t AT TIME ZONE 'America/Fortaleza' AS time,\n       ty.type::text AS metric,\n       coalesce(e.n, 0) AS n\nFROM b\nCROSS JOIN ty\nLEFT JOIN e ON e.t = b.t AND e.type = ty.type\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "min": 0,
+          "links": [
+            {
+              "title": "Ver vagas deste período",
+              "url": "/d/vagas-overview/vagas?${__url_time_range}&${type:queryparam}&${kind:queryparam}&${periodo:queryparam}&var-bucket=${__value.time}",
+              "oneClick": true
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 7,
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Total",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 19,
+      "title": "Vagas que entraram ou finalizaram — ${selecionado}",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "description": "Clique num ponto dos gráficos de linha para filtrar por aquele dia/semana/mês.",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "links": [
+        {
+          "title": "Limpar seleção (voltar ao período do dashboard)",
+          "url": "/d/vagas-overview/vagas?${__url_time_range}&${type:queryparam}&${kind:queryparam}&${periodo:queryparam}&var-bucket="
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH sel AS (SELECT to_timestamp(nullif('${bucket}', '')::bigint / 1000.0) AT TIME ZONE 'America/Fortaleza' AS t)\nSELECT * FROM (\n  SELECT 'Entrou' AS \"Evento\", created_at AS \"Quando\", type::text AS \"Tipo\",\n         kind::text AS \"Categoria\",\n         CASE WHEN is_active THEN 'Aberta' ELSE 'Finalizada' END AS \"Status atual\",\n         title AS \"Título\",\n         link AS \"Link\"\n  FROM job, sel\n  WHERE type::text IN ($type) AND kind::text IN ($kind) AND CASE WHEN sel.t IS NULL THEN $__timeFilter(created_at) ELSE date_trunc('${periodo}', (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = sel.t END\n  UNION ALL\n  SELECT 'Finalizou' AS \"Evento\", finished_at AS \"Quando\", type::text AS \"Tipo\",\n         kind::text AS \"Categoria\",\n         CASE WHEN is_active THEN 'Aberta' ELSE 'Finalizada' END AS \"Status atual\",\n         title AS \"Título\",\n         link AS \"Link\"\n  FROM job, sel\n  WHERE type::text IN ($type) AND kind::text IN ($kind) AND finished_at IS NOT NULL AND CASE WHEN sel.t IS NULL THEN $__timeFilter(finished_at) ELSE date_trunc('${periodo}', (finished_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Fortaleza')) = sel.t END\n) ev\nORDER BY \"Quando\" DESC\nLIMIT 500"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Quando"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM/YYYY HH:mm"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Evento"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Entrou": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Finalizou": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status atual"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 125
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Aberta": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Finalizada": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tipo"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Categoria"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Link"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Abrir",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "count"
+          ],
+          "countRows": true,
+          "fields": ""
+        }
+      }
+    }
+  ]
+}

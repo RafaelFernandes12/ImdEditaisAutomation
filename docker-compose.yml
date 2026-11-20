@@ -50,15 +50,22 @@ services:
     restart: unless-stopped
     depends_on:
       - loki
+      - postgres
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: 'true'
+      # Lidos pelo datasources.yml (datasource Postgres).
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-projeto_ai}
     ports:
       - '${GRAFANA_PORT:-3001}:3000'
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./docker/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards:ro
 
   app:
     image: rafaelfernn/imd_editais:${IMAGE_TAG:-latest}
