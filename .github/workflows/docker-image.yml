@@ -66,6 +66,11 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/ImdEditaisAutomation
+            # Brings docker-compose.yml, Grafana provisioning and the rest of the
+            # repo files up to this commit. --ff-only fails the deploy instead of
+            # merging if someone edited tracked files on the server; secrets and
+            # local settings belong in .env, which git ignores.
+            git pull --ff-only origin main
             # Replaces KEY in .env with the given value, adding it if missing.
             set_env() {
               grep -v "^$1=" .env > .env.tmp 2>/dev/null || true
