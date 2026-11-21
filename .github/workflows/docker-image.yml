@@ -100,3 +100,6 @@ jobs:
             docker compose exec -T app sh -c 'test -n "$SMTP_HOST"' \
               && echo "SMTP config loaded in app" \
               || echo "WARNING: SMTP_HOST missing in app container (env_file .env not in compose?)"
+            # Each deploy pulls a new tag and leaves the previous image unused;
+            # drop every image no container uses so the disk does not fill up.
+            docker image prune -af
