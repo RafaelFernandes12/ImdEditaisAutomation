@@ -30,9 +30,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: rafaelfernn/imd_editais
+          # type=sha gera sha-<commit completo>, a tag que o deploy grava como IMAGE_TAG.
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value={{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+            type=sha,format=long,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v6
