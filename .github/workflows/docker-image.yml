@@ -92,7 +92,11 @@ jobs:
               echo "SMTP secrets not set, skipping email alert config"
             fi
             docker compose pull app
-            docker compose up -d app
+            # All services, so compose changes to grafana, loki etc. apply too;
+            # services whose config did not change are left running as is.
+            # --no-build: the server only runs the image pushed to Docker Hub,
+            # never compiles one (it fails instead if the image is missing).
+            docker compose up -d --no-build
             docker compose exec -T app sh -c 'test -n "$SMTP_HOST"' \
               && echo "SMTP config loaded in app" \
               || echo "WARNING: SMTP_HOST missing in app container (env_file .env not in compose?)"
