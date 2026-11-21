@@ -321,7 +321,16 @@ O `.env.example` traz a lista completa, incluindo as portas publicadas pelo `doc
 
 ## Rodando com Docker
 
-O `docker-compose.yml` sobe a aplicação com Postgres, Redis, Loki e Grafana.
+O `docker-compose.yml` sobe a aplicação com Postgres, Redis, Loki e Grafana. O app vem da imagem `rafaelfernn/imd_editais` do Docker Hub, que é como roda na EC2: o deploy baixa a imagem do commit e nunca compila no servidor.
+
+Para rodar o código local em vez da imagem publicada, crie um `docker-compose.override.yml` (está no `.gitignore`, o compose junta ele sozinho):
+
+```yaml
+services:
+  app:
+    build: .
+    pull_policy: build
+```
 
 ```bash
 cp .env.example .env

@@ -30,9 +30,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: rafaelfernn/imd_editais
+          # type=sha gera sha-<commit completo>, a tag que o deploy grava como IMAGE_TAG.
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value={{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+            type=sha,format=long,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -64,6 +66,11 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/ImdEditaisAutomation
+            # Brings docker-compose.yml, Grafana provisioning and the rest of the
+            # repo files up to this commit. --ff-only fails the deploy instead of
+            # merging if someone edited tracked files on the server; secrets and
+            # local settings belong in .env, which git ignores.
+            git pull --ff-only origin main
             # Replaces KEY in .env with the given value, adding it if missing.
             set_env() {
               grep -v "^$1=" .env > .env.tmp 2>/dev/null || true
@@ -85,7 +92,14 @@ jobs:
               echo "SMTP secrets not set, skipping email alert config"
             fi
             docker compose pull app
-            docker compose up -d app
+            # All services, so compose changes to grafana, loki etc. apply too;
+            # services whose config did not change are left running as is.
+            # --no-build: the server only runs the image pushed to Docker Hub,
+            # never compiles one (it fails instead if the image is missing).
+            docker compose up -d --no-build
             docker compose exec -T app sh -c 'test -n "$SMTP_HOST"' \
               && echo "SMTP config loaded in app" \
               || echo "WARNING: SMTP_HOST missing in app container (env_file .env not in compose?)"
+            # Each deploy pulls a new tag and leaves the previous image unused;
+            # drop every image no container uses so the disk does not fill up.
+            docker image prune -af
